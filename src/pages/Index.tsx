@@ -1,13 +1,28 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState } from "react";
+import { AuthForm } from "@/components/auth/AuthForm";
+import { Layout } from "@/components/layout/Layout";
+import { Dashboard } from "@/components/dashboard/Dashboard";
 
 const Index = () => {
+  // In a real application, this would be handled by an auth provider
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+
+  const handleLogin = (userData: any) => {
+    // Simulate login - in real app, this would validate with your backend
+    setIsAuthenticated(true);
+    setUser(userData);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <Layout>
+      {!isAuthenticated ? (
+        <AuthForm onLogin={handleLogin} />
+      ) : (
+        <Dashboard user={user} />
+      )}
+    </Layout>
   );
 };
 
