@@ -16,66 +16,34 @@ const TrackJob = () => {
 
   useEffect(() => {
     // In a real app, this would fetch from your API
-    // For demo, we'll simulate a loading delay then return mock data
+    // For demo, we'll retrieve job data from localStorage
     setLoading(true);
     
-    setTimeout(() => {
-      // Mock jobs based on the jobId
-      if (jobId === "JOB-2023-001") {
-        setJob({
-          id: "JOB-2023-001",
-          motorcycle: {
-            make: "Honda",
-            model: "CBR600RR",
-            year: "2020"
-          },
-          serviceType: "Oil Change & Tune-up",
-          status: "in-progress",
-          dateCreated: "2023-05-18",
-          notes: [
-            { text: "Initial inspection completed", timestamp: "2023-05-18T10:30:00" },
-            { text: "Parts ordered", timestamp: "2023-05-18T14:15:00" }
-          ],
-          estimatedCompletion: "2023-05-20"
-        });
-      } else if (jobId === "JOB-2023-002") {
-        setJob({
-          id: "JOB-2023-002",
-          motorcycle: {
-            make: "Kawasaki",
-            model: "Ninja 650",
-            year: "2021"
-          },
-          serviceType: "Brake replacement",
-          status: "completed",
-          dateCreated: "2023-05-15",
-          dateCompleted: "2023-05-17",
-          notes: [
-            { text: "Front and rear brake pads replaced", timestamp: "2023-05-15T11:00:00" },
-            { text: "Brake fluid flushed and replaced", timestamp: "2023-05-16T09:45:00" },
-            { text: "Final inspection completed", timestamp: "2023-05-17T14:30:00" }
-          ]
-        });
-      } else if (jobId === "JOB-2023-003") {
-        setJob({
-          id: "JOB-2023-003",
-          motorcycle: {
-            make: "Yamaha",
-            model: "MT-09",
-            year: "2022"
-          },
-          serviceType: "Chain replacement & adjustment",
-          status: "pending",
-          dateCreated: "2023-05-19",
-          notes: [],
-          estimatedCompletion: "2023-05-21"
-        });
+    try {
+      // Get all jobs from localStorage
+      const storedJobsString = localStorage.getItem('projectPortJobs');
+      const jobs = storedJobsString ? JSON.parse(storedJobsString) : [];
+      
+      console.log("Looking for job with ID:", jobId);
+      console.log("Available jobs:", jobs);
+      
+      // Find the job with the matching ID
+      const foundJob = jobs.find((job: any) => job.id === jobId);
+      
+      if (foundJob) {
+        console.log("Found job:", foundJob);
+        setJob(foundJob);
+        setError(null);
       } else {
+        console.log("Job not found");
         setError(`No job found with ID: ${jobId}`);
       }
-      
+    } catch (err) {
+      console.error("Error retrieving job:", err);
+      setError("An error occurred while retrieving the job data");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   }, [jobId]);
 
   const getStatusColor = (status: string) => {
@@ -111,7 +79,7 @@ const TrackJob = () => {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6 text-center">Service Status Tracker</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">Project Port - Service Status Tracker</h1>
         
         {loading && (
           <div className="flex justify-center items-center h-60">
@@ -163,9 +131,9 @@ const TrackJob = () => {
                 
                 {job.dateCompleted ? (
                   <p><span className="font-medium">Date completed:</span> {job.dateCompleted}</p>
-                ) : job.estimatedCompletion ? (
-                  <p><span className="font-medium">Estimated completion:</span> {job.estimatedCompletion}</p>
-                ) : null}
+                ) : (
+                  <p><span className="font-medium">Status:</span> {job.status.replace("-", " ")}</p>
+                )}
               </div>
               
               <Separator className="my-4" />
@@ -176,11 +144,11 @@ const TrackJob = () => {
                   Service Progress
                 </h3>
                 
-                {job.notes.length === 0 ? (
+                {job.notes && job.notes.length === 0 ? (
                   <p className="text-muted-foreground text-sm">No updates yet</p>
                 ) : (
                   <div className="space-y-4 relative before:absolute before:top-3 before:bottom-0 before:left-1.5 before:w-px before:bg-muted-foreground/20">
-                    {job.notes.map((note: any, index: number) => {
+                    {job.notes && job.notes.map((note: any, index: number) => {
                       const date = new Date(note.timestamp);
                       const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                       

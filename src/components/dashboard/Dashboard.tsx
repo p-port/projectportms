@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -92,8 +92,29 @@ const SAMPLE_JOBS = [
 
 export const Dashboard = ({ user }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState("active-jobs");
-  const [jobs, setJobs] = useState(SAMPLE_JOBS);
+  const [jobs, setJobs] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Load jobs from localStorage or use sample data on first load
+  useEffect(() => {
+    const storedJobsString = localStorage.getItem('projectPortJobs');
+    if (storedJobsString) {
+      const storedJobs = JSON.parse(storedJobsString);
+      setJobs(storedJobs);
+    } else {
+      setJobs(SAMPLE_JOBS);
+      // Store the sample jobs in localStorage
+      localStorage.setItem('projectPortJobs', JSON.stringify(SAMPLE_JOBS));
+    }
+  }, []);
+
+  // Update localStorage whenever jobs change
+  useEffect(() => {
+    if (jobs.length > 0) {
+      localStorage.setItem('projectPortJobs', JSON.stringify(jobs));
+      console.log("Jobs updated in localStorage:", jobs);
+    }
+  }, [jobs]);
 
   const handleAddJob = (jobData: any) => {
     const newJob = {
@@ -108,7 +129,9 @@ export const Dashboard = ({ user }: DashboardProps) => {
       }
     };
     
-    setJobs([newJob, ...jobs]);
+    const updatedJobs = [newJob, ...jobs];
+    setJobs(updatedJobs);
+    localStorage.setItem('projectPortJobs', JSON.stringify(updatedJobs));
     setActiveTab("active-jobs");
   };
 

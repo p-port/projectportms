@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QrCode } from "lucide-react";
 import { toast } from "sonner";
+import QRCode from "react-qr-code";
 
 interface QrCodeDisplayProps {
   jobId: string;
@@ -15,9 +16,6 @@ export const QrCodeDisplay = ({ jobId }: QrCodeDisplayProps) => {
   // In a real app, this would be your actual domain
   const appDomain = window.location.origin;
   const trackingUrl = `${appDomain}/track-job/${jobId}`;
-  
-  // Generate a simple QR code SVG (in a real app, you'd use a proper QR code library)
-  const qrCodeSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200"><rect x="0" y="0" width="200" height="200" fill="white"/><rect x="50" y="50" width="20" height="20" fill="black"/><rect x="70" y="50" width="20" height="20" fill="black"/><rect x="90" y="50" width="20" height="20" fill="black"/><rect x="130" y="50" width="20" height="20" fill="black"/><rect x="50" y="70" width="20" height="20" fill="black"/><rect x="110" y="70" width="20" height="20" fill="black"/><rect x="130" y="70" width="20" height="20" fill="black"/><rect x="50" y="90" width="20" height="20" fill="black"/><rect x="70" y="90" width="20" height="20" fill="black"/><rect x="90" y="90" width="20" height="20" fill="black"/><rect x="130" y="90" width="20" height="20" fill="black"/><rect x="50" y="110" width="20" height="20" fill="black"/><rect x="70" y="110" width="20" height="20" fill="black"/><rect x="110" y="110" width="20" height="20" fill="black"/><rect x="50" y="130" width="20" height="20" fill="black"/><rect x="90" y="130" width="20" height="20" fill="black"/><rect x="110" y="130" width="20" height="20" fill="black"/><rect x="130" y="130" width="20" height="20" fill="black"/></svg>`;
   
   const handleCopyLink = () => {
     navigator.clipboard.writeText(trackingUrl);
@@ -37,10 +35,11 @@ export const QrCodeDisplay = ({ jobId }: QrCodeDisplayProps) => {
 
       <Card className="w-full max-w-md p-6 flex flex-col items-center space-y-6">
         <div className="bg-white p-4 rounded-lg shadow-sm">
-          <img 
-            src={qrCodeSvg} 
-            alt="QR Code for job tracking" 
-            className="w-48 h-48"
+          <QRCode
+            value={trackingUrl}
+            size={192}
+            style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+            viewBox={`0 0 256 256`}
           />
         </div>
         

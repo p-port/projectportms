@@ -63,6 +63,10 @@ export const JobDetailsDialog = ({
     setCurrentJob(updatedJob);
     setNewNote("");
     onUpdateJob(updatedJob);
+    
+    // Update the job in localStorage
+    updateJobInLocalStorage(updatedJob);
+    
     toast.success("Note added successfully");
   };
 
@@ -78,7 +82,23 @@ export const JobDetailsDialog = ({
 
     setCurrentJob(updatedJob);
     onUpdateJob(updatedJob);
+    
+    // Update the job in localStorage
+    updateJobInLocalStorage(updatedJob);
+    
     toast.success(`Job status updated to ${newStatus}`);
+  };
+
+  const updateJobInLocalStorage = (updatedJob: any) => {
+    const storedJobsString = localStorage.getItem('projectPortJobs');
+    if (storedJobsString) {
+      const storedJobs = JSON.parse(storedJobsString);
+      const updatedJobs = storedJobs.map((j: any) => 
+        j.id === updatedJob.id ? updatedJob : j
+      );
+      localStorage.setItem('projectPortJobs', JSON.stringify(updatedJobs));
+      console.log(`Job ${updatedJob.id} updated in localStorage`);
+    }
   };
 
   const simulatePhotoUpload = (type: "start" | "completion") => {
@@ -125,6 +145,10 @@ export const JobDetailsDialog = ({
       
       setCurrentJob(updatedJob);
       onUpdateJob(updatedJob);
+      
+      // Update the job in localStorage
+      updateJobInLocalStorage(updatedJob);
+      
       setUploadingPhotos(false);
       toast.success(`${photoCount} photos uploaded successfully`);
     }, 1500);
