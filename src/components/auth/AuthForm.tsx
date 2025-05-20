@@ -67,7 +67,7 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
     <div className="flex justify-center items-center min-h-[calc(100vh-12rem)]">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">MotoService Pro</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Project Port</CardTitle>
           <CardDescription className="text-center">
             Motorcycle Service Management System
           </CardDescription>
