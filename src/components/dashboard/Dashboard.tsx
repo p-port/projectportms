@@ -117,9 +117,11 @@ export const Dashboard = ({ user }: DashboardProps) => {
   }, [jobs]);
 
   const handleAddJob = (jobData: any) => {
+    // Generate the current year for the job ID
+    const currentYear = new Date().getFullYear();
     const newJob = {
       ...jobData,
-      id: `JOB-${new Date().getFullYear()}-${String(jobs.length + 1).padStart(3, '0')}`,
+      id: `JOB-${currentYear}-${String(jobs.length + 1).padStart(3, '0')}`,
       dateCreated: new Date().toISOString().split('T')[0],
       status: "pending",
       notes: [],

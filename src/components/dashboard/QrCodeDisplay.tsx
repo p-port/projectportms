@@ -15,6 +15,7 @@ export const QrCodeDisplay = ({ jobId }: QrCodeDisplayProps) => {
   
   // In a real app, this would be your actual domain
   const appDomain = window.location.origin;
+  // Make sure the jobId is correct without any modifications
   const trackingUrl = `${appDomain}/track-job/${jobId}`;
   
   const handleCopyLink = () => {

@@ -27,7 +27,7 @@ const TrackJob = () => {
       console.log("Looking for job with ID:", jobId);
       console.log("Available jobs:", jobs);
       
-      // Find the job with the matching ID
+      // Find the job with the matching ID - use exact matching
       const foundJob = jobs.find((job: any) => job.id === jobId);
       
       if (foundJob) {
