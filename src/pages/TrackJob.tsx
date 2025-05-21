@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
@@ -11,6 +10,13 @@ import { Button } from "@/components/ui/button";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 // Define languages for translation
 const translations = {
@@ -249,28 +255,29 @@ const TrackJob = () => {
       <div className="max-w-2xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
           <h1 className="text-xl sm:text-2xl font-bold text-center">{t.title}</h1>
-          <Button 
-            onClick={toggleLanguage}
-            variant="outline"
-            className="flex items-center gap-2 w-full sm:w-auto"
-            size={isMobile ? "sm" : "default"}
-          >
-            <Globe className="h-4 w-4" />
-            {getLanguageButtonText()}
-            {language === "en" ? <ArrowRight className="h-4 w-4" /> : 
-             language === "ko" ? <ArrowRight className="h-4 w-4" /> : 
-             <ArrowLeft className="h-4 w-4" />}
-          </Button>
+          <Select value={language} onValueChange={setLanguage}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                <SelectValue placeholder="Select Language" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="en">English</SelectItem>
+              <SelectItem value="ko">한국어 (Korean)</SelectItem>
+              <SelectItem value="ru">Русский (Russian)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         
         <div className="text-center mb-6">
           <p className="text-muted-foreground text-sm">
             {language === "en" ? (
-              <>You can switch languages using the button above</>
+              <>You can select your preferred language above</>
             ) : language === "ko" ? (
-              <>위의 버튼을 사용하여 언어를 전환할 수 있습니다</>
+              <>위에서 원하는 언어를 선택할 수 있습니다</>
             ) : (
-              <>Вы можете переключать языки, используя кнопку выше</>
+              <>Вы можете выбрать предпочитаемый язык выше</>
             )}
           </p>
         </div>
