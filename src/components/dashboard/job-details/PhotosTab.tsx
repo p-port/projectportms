@@ -30,11 +30,9 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
   const [completionConfirmOpen, setCompletionConfirmOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canStartJob = currentJob.status === "pending" && currentJob.photos.start.length === 0;
-  const canCompleteJob = 
-    currentJob.status === "in-progress" && 
-    currentJob.photos.start.length >= minPhotosRequired && 
-    currentJob.photos.completion.length === 0;
+  // Status checks for job stage
+  const canStartJob = currentJob.status === "pending";
+  const canCompleteJob = currentJob.status === "in-progress" && currentJob.photos.start.length >= minPhotosRequired;
 
   const hasEnoughStartPhotos = currentJob.photos.start.length >= minPhotosRequired;
   const hasEnoughCompletionPhotos = currentJob.photos.completion.length >= minPhotosRequired;
@@ -289,11 +287,12 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
               <span className="text-green-500 ml-2">✓ Minimum photos met</span>
             )}
           </h3>
-          {canStartJob || currentJob.status === "in-progress" ? (
+          {/* Always show upload buttons for start photos unless job is completed */}
+          {currentJob.status !== "completed" && (
             <div className="flex gap-2">
               <Button 
                 onClick={() => handlePhotoCapture("start", true)}
-                disabled={uploadingPhotos || currentJob.status === "completed"}
+                disabled={uploadingPhotos}
                 variant="outline"
               >
                 <Camera className="h-4 w-4 mr-2" />
@@ -301,7 +300,7 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
               </Button>
               <Button 
                 onClick={() => handleFileUpload("start")}
-                disabled={uploadingPhotos || currentJob.status === "completed"}
+                disabled={uploadingPhotos}
                 variant="outline"
               >
                 <Upload className="h-4 w-4 mr-2" />
@@ -326,7 +325,7 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
                 </Button>
               )}
             </div>
-          ) : null}
+          )}
         </div>
 
         {currentJob.photos.start.length > 0 ? (
@@ -366,7 +365,8 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
               <span className="text-green-500 ml-2">✓ Minimum photos met</span>
             )}
           </h3>
-          {canCompleteJob || currentJob.status === "completed" ? (
+          {/* Always show upload buttons for completion photos if job is in progress or completed */}
+          {(currentJob.status === "in-progress" || currentJob.status === "completed") && (
             <div className="flex gap-2">
               <Button 
                 onClick={() => handlePhotoCapture("completion", true)}
@@ -384,10 +384,10 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Photo
               </Button>
-              {canCompleteJob && (
+              {canCompleteJob && currentJob.status === "in-progress" && (
                 <Button 
                   onClick={() => simulateMultiplePhotos("completion")}
-                  disabled={uploadingPhotos || currentJob.status !== "in-progress"}
+                  disabled={uploadingPhotos}
                 >
                   {uploadingPhotos && photoType === "completion" ? (
                     <span className="flex items-center gap-2">
@@ -403,7 +403,7 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
                 </Button>
               )}
             </div>
-          ) : null}
+          )}
         </div>
 
         {currentJob.photos.completion.length > 0 ? (

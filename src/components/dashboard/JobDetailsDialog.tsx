@@ -50,14 +50,16 @@ export const JobDetailsDialog = ({
   const handleStatusChange = async (newStatus: string) => {
     if (!currentJob) return;
     
+    const minPhotosRequired = 3; // Consistent with PhotosTab
+    
     // Check photo requirements
-    if (newStatus === "in-progress" && (!currentJob.photos.start || currentJob.photos.start.length < 3)) {
-      toast.error("You need to upload at least 3 start photos before changing status to In Progress");
+    if (newStatus === "in-progress" && (!currentJob.photos.start || currentJob.photos.start.length < minPhotosRequired)) {
+      toast.error(`You need to upload at least ${minPhotosRequired} start photos before changing status to In Progress`);
       return;
     }
 
-    if (newStatus === "completed" && (!currentJob.photos.completion || currentJob.photos.completion.length < 3)) {
-      toast.error("You need to upload at least 3 completion photos before marking this job as Complete");
+    if (newStatus === "completed" && (!currentJob.photos.completion || currentJob.photos.completion.length < minPhotosRequired)) {
+      toast.error(`You need to upload at least ${minPhotosRequired} completion photos before marking this job as Complete`);
       return;
     }
     
