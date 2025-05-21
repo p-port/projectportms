@@ -8,7 +8,7 @@ import { DetailsTab } from "./job-details/DetailsTab";
 import { NotesTab } from "./job-details/NotesTab";
 import { PhotosTab } from "./job-details/PhotosTab";
 import { QrCodeDisplay } from "./QrCodeDisplay";
-import { getStatusColor, updateJobInLocalStorage, canCompleteJob } from "./job-details/JobUtils";
+import { getStatusColor, updateJobInLocalStorage, canCompleteJob, addInitialCostNote, addFinalCostNote } from "./job-details/JobUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
