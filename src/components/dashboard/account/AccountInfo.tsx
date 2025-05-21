@@ -90,15 +90,35 @@ export const AccountInfo = ({ userId }: AccountInfoProps) => {
     setError(false);
     
     try {
-      const { data, error } = await supabase
+      // Get user profile from Supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
-      
-      setUserProfile(data);
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        
+        // Create a default profile if not found
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          const defaultProfile = {
+            id: userData.user.id,
+            name: userData.user.user_metadata?.name || "User",
+            email: userData.user.email,
+            role: "mechanic",
+            approved: true,
+            created_at: userData.user.created_at
+          };
+          
+          setUserProfile(defaultProfile);
+        } else {
+          throw profileError;
+        }
+      } else {
+        setUserProfile(profileData);
+      }
 
       // Fetch user's notifications
       const { data: notifData, error: notifError } = await supabase
@@ -112,28 +132,26 @@ export const AccountInfo = ({ userId }: AccountInfoProps) => {
       setNotifications(notifData || []);
 
       // Generate sample activities based on when the user account was created
-      if (data) {
-        const mockActivities = [
-          {
-            type: "account",
-            description: "Account created",
-            date: data.created_at
-          }
-        ];
-        
-        // Add login activity (simulated)
-        const loginDate = new Date();
-        loginDate.setHours(loginDate.getHours() - 1);
-        mockActivities.push({
-          type: "login",
-          description: "User logged in",
-          date: loginDate.toISOString()
-        });
+      const mockActivities = [
+        {
+          type: "account",
+          description: "Account created",
+          date: userProfile?.created_at || new Date().toISOString()
+        }
+      ];
+      
+      // Add login activity (simulated)
+      const loginDate = new Date();
+      loginDate.setHours(loginDate.getHours() - 1);
+      mockActivities.push({
+        type: "login",
+        description: "User logged in",
+        date: loginDate.toISOString()
+      });
 
-        setActivities(mockActivities);
-      }
+      setActivities(mockActivities);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Error in account info:', error);
       setError(true);
       toast.error(t.error);
     } finally {
@@ -146,7 +164,7 @@ export const AccountInfo = ({ userId }: AccountInfoProps) => {
   }, [userId, language]);
 
   const getRoleBadgeVariant = (role: string) => {
-    switch (role) {
+    switch (role?.toLowerCase()) {
       case 'admin':
         return 'destructive';
       case 'support':

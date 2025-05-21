@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -27,7 +28,9 @@ const translations = {
     loginPrompt: "Please log in to use the support chat.",
     loginButton: "Log In",
     noMessages: "No messages yet. Start a conversation!",
-    justNow: "just now"
+    justNow: "just now",
+    messageSent: "Message sent",
+    errorSending: "Error sending message. Please try again."
   },
   ko: {
     supportChat: "지원팀 채팅",
@@ -40,7 +43,9 @@ const translations = {
     loginPrompt: "지원팀 채팅을 이용하려면 로그인하세요.",
     loginButton: "로그인",
     noMessages: "아직 메시지가 없습니다. 대화를 시작하세요!",
-    justNow: "방금"
+    justNow: "방금",
+    messageSent: "메시지가 전송되었습니다",
+    errorSending: "메시지 전송 중 오류가 발생했습니다. 다시 시도하세요."
   }
 };
 
@@ -156,11 +161,13 @@ export const SupportChat = () => {
         setMessages(prev => 
           prev.map(msg => msg.id === tempMessage.id ? data : msg)
         );
+        toast.success(t.messageSent);
       }
     } catch (error) {
       console.error('Error sending message:', error);
       // Remove temp message on error
       setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+      toast.error(t.errorSending);
     }
   };
 

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Loader2 } from "lucide-react";
 
 interface User {
   id: string;
@@ -32,6 +33,7 @@ const translations = {
   en: {
     to: "To",
     selectRecipient: "Select a recipient",
+    pleaseSelect: "Please select a recipient for your message",
     recipients: "Recipients",
     replyingTo: "Replying to",
     loading: "Loading recipients...",
@@ -45,6 +47,7 @@ const translations = {
   ko: {
     to: "받는 사람",
     selectRecipient: "수신자 선택",
+    pleaseSelect: "메시지를 보낼 수신자를 선택해주세요",
     recipients: "수신자 목록",
     replyingTo: "회신 대상",
     loading: "수신자 목록 로딩 중...",
@@ -115,7 +118,7 @@ export const RecipientSelect = ({
         <SelectContent>
           {loading ? (
             <div className="py-2 px-2 text-center">
-              <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+              <Loader2 className="animate-spin w-4 h-4 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">{t.loading}</p>
             </div>
           ) : users.length > 0 ? (
@@ -134,6 +137,9 @@ export const RecipientSelect = ({
           )}
         </SelectContent>
       </Select>
+      {!value && !replyToName && (
+        <p className="text-sm text-amber-500">{t.pleaseSelect}</p>
+      )}
       {replyToName && (
         <div className="text-sm text-muted-foreground">
           {t.replyingTo} {replyToName}

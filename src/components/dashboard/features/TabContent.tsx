@@ -13,6 +13,7 @@ interface TabContentProps {
   setJobs: React.Dispatch<React.SetStateAction<any[]>>;
   handleAddJob: (jobData: any) => void;
   userId?: string;
+  translations?: any;
 }
 
 export const TabContent = ({ 
@@ -21,16 +22,29 @@ export const TabContent = ({
   allJobs, 
   setJobs,
   handleAddJob,
-  userId
+  userId,
+  translations
 }: TabContentProps) => {
   return (
     <>
       <TabsContent value="active-jobs">
-        <JobList jobs={activeJobs} type="active" setJobs={setJobs} allJobs={allJobs} />
+        <JobList 
+          jobs={activeJobs} 
+          type="active" 
+          setJobs={setJobs} 
+          allJobs={allJobs}
+          translations={translations} 
+        />
       </TabsContent>
 
       <TabsContent value="completed-jobs">
-        <JobList jobs={completedJobs} type="completed" setJobs={setJobs} allJobs={allJobs} />
+        <JobList 
+          jobs={completedJobs} 
+          type="completed" 
+          setJobs={setJobs} 
+          allJobs={allJobs}
+          translations={translations} 
+        />
       </TabsContent>
 
       <TabsContent value="new-job">

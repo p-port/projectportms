@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -15,84 +16,6 @@ interface DashboardProps {
   user: any;
 }
 
-// Sample jobs data
-const SAMPLE_JOBS = [
-  {
-    id: "HOCB-202305-001",
-    customer: {
-      name: "Michael Johnson",
-      phone: "555-123-4567",
-      email: "michael@example.com"
-    },
-    motorcycle: {
-      make: "Honda",
-      model: "CBR600RR",
-      year: "2020",
-      vin: "1HGCM82633A123456"
-    },
-    serviceType: "Oil Change & Tune-up",
-    status: "in-progress",
-    dateCreated: "2023-05-18",
-    notes: [
-      { text: "Initial inspection completed", timestamp: "2023-05-18T10:30:00" },
-      { text: "Parts ordered", timestamp: "2023-05-18T14:15:00" }
-    ],
-    photos: {
-      start: ["/placeholder.svg", "/placeholder.svg", "/placeholder.svg"],
-      completion: []
-    }
-  },
-  {
-    id: "KANI-202305-002",
-    customer: {
-      name: "Sarah Williams",
-      phone: "555-987-6543",
-      email: "sarah@example.com"
-    },
-    motorcycle: {
-      make: "Kawasaki",
-      model: "Ninja 650",
-      year: "2021",
-      vin: "JKAZXCE17MA012345"
-    },
-    serviceType: "Brake replacement",
-    status: "completed",
-    dateCreated: "2023-05-15",
-    dateCompleted: "2023-05-17",
-    notes: [
-      { text: "Front and rear brake pads replaced", timestamp: "2023-05-15T11:00:00" },
-      { text: "Brake fluid flushed and replaced", timestamp: "2023-05-16T09:45:00" },
-      { text: "Final inspection completed", timestamp: "2023-05-17T14:30:00" }
-    ],
-    photos: {
-      start: ["/placeholder.svg", "/placeholder.svg", "/placeholder.svg"],
-      completion: ["/placeholder.svg", "/placeholder.svg", "/placeholder.svg"]
-    }
-  },
-  {
-    id: "YAMT-202305-003",
-    customer: {
-      name: "David Thompson",
-      phone: "555-456-7890",
-      email: "david@example.com"
-    },
-    motorcycle: {
-      make: "Yamaha",
-      model: "MT-09",
-      year: "2022",
-      vin: "JYARN23E9NA001234"
-    },
-    serviceType: "Chain replacement & adjustment",
-    status: "pending",
-    dateCreated: "2023-05-19",
-    notes: [],
-    photos: {
-      start: [],
-      completion: []
-    }
-  }
-];
-
 // Dashboard translations
 const translations = {
   en: {
@@ -108,7 +31,13 @@ const translations = {
     account: "Account",
     loading: "Loading jobs...",
     error: "Error loading jobs",
-    retry: "Retry"
+    retry: "Retry",
+    noActiveJobs: "No active jobs found",
+    createNewJob: "Create a new job to get started",
+    noCompletedJobs: "No completed jobs found",
+    completedJobsAppear: "Completed jobs will appear here",
+    jobSynced: "Job synced to cloud storage",
+    jobSyncError: "Failed to sync job to cloud"
   },
   ko: {
     dashboard: "대시보드",
@@ -123,7 +52,13 @@ const translations = {
     account: "계정",
     loading: "작업 로딩 중...",
     error: "작업을 불러오는 중 오류가 발생했습니다",
-    retry: "재시도"
+    retry: "재시도",
+    noActiveJobs: "활성 작업을 찾을 수 없습니다",
+    createNewJob: "시작하려면 새 작업을 생성하세요",
+    noCompletedJobs: "완료된 작업을 찾을 수 없습니다", 
+    completedJobsAppear: "완료된 작업이 여기에 표시됩니다",
+    jobSynced: "작업이 클라우드 스토리지에 동기화되었습니다",
+    jobSyncError: "작업을 클라우드에 동기화하지 못했습니다"
   }
 };
 
@@ -197,7 +132,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
             
             setJobs(formattedJobs);
             
-            // Also update localStorage
+            // Also update localStorage for offline access
             localStorage.setItem('projectPortJobs', JSON.stringify(formattedJobs));
             return;
           }
@@ -212,16 +147,12 @@ export const Dashboard = ({ user }: DashboardProps) => {
           // If user is authenticated, sync to Supabase
           if (user?.id) {
             syncJobsToSupabase(storedJobs, user.id);
+            toast.success(t.jobSynced);
           }
         } else {
-          // No jobs in localStorage either, use samples
-          setJobs(SAMPLE_JOBS);
-          localStorage.setItem('projectPortJobs', JSON.stringify(SAMPLE_JOBS));
-          
-          // If user is authenticated, sync to Supabase
-          if (user?.id) {
-            syncJobsToSupabase(SAMPLE_JOBS, user.id);
-          }
+          // No jobs in localStorage either - no sample jobs needed anymore since we have Supabase
+          setJobs([]);
+          localStorage.setItem('projectPortJobs', JSON.stringify([]));
         }
       } catch (err) {
         console.error("Error loading jobs:", err);
@@ -232,8 +163,8 @@ export const Dashboard = ({ user }: DashboardProps) => {
         if (storedJobsString) {
           setJobs(JSON.parse(storedJobsString));
         } else {
-          setJobs(SAMPLE_JOBS);
-          localStorage.setItem('projectPortJobs', JSON.stringify(SAMPLE_JOBS));
+          setJobs([]);
+          localStorage.setItem('projectPortJobs', JSON.stringify([]));
         }
       } finally {
         setLoading(false);
@@ -241,7 +172,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
     };
 
     loadJobs();
-  }, [user?.id]);
+  }, [user?.id, t.jobSynced]);
 
   // Sync jobs to Supabase
   const syncJobsToSupabase = async (jobsToSync: any[], userId: string) => {
@@ -262,6 +193,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
       }
     } catch (error) {
       console.error("Error syncing jobs to Supabase:", error);
+      toast.error(t.jobSyncError);
     }
   };
 
@@ -305,9 +237,10 @@ export const Dashboard = ({ user }: DashboardProps) => {
         });
         
         if (error) throw error;
+        toast.success(t.jobSynced);
       } catch (error) {
         console.error("Error adding job to Supabase:", error);
-        toast.error("Failed to save job to cloud");
+        toast.error(t.jobSyncError);
       }
     }
     
@@ -375,6 +308,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
           setJobs={setJobs}
           handleAddJob={handleAddJob}
           userId={user?.id}
+          translations={t}
         />
       </Tabs>
     </div>
