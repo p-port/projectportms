@@ -31,6 +31,7 @@ export const MessageList = () => {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
+        // Fix: Properly await the Promise from getUser()
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
@@ -74,11 +75,16 @@ export const MessageList = () => {
         { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload) => {
           // Only add the message if it's for the current user
-          const { data: { user } } = supabase.auth.getUser();
-          if (user && payload.new.recipient_id === user.id) {
-            // Fetch the complete message with sender info
-            fetchSingleMessage(payload.new.id);
-          }
+          // Fix: Need to use async/await or Promise.then to get user data
+          const getCurrentUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && payload.new.recipient_id === user.id) {
+              // Fetch the complete message with sender info
+              fetchSingleMessage(payload.new.id);
+            }
+          };
+          
+          getCurrentUser();
         }
       )
       .subscribe();
