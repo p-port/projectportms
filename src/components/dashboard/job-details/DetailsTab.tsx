@@ -15,10 +15,16 @@ const detailsTranslations = {
     model: "Model:",
     year: "Year:",
     vin: "VIN:",
+    englishName: "English Name:",
+    koreanName: "Korean Name:",
+    mileage: "Mileage:",
+    plateNumber: "Plate Number:",
     serviceType: "Service Type:",
     created: "Created:",
     status: "Status:",
     completed: "Completed:",
+    initialCost: "Initial Cost:",
+    finalCost: "Final Cost:",
     notCompleted: "Not completed",
     pending: "Pending",
     inProgress: "In Progress",
@@ -36,10 +42,16 @@ const detailsTranslations = {
     model: "모델:",
     year: "연식:",
     vin: "차대번호:",
+    englishName: "영문 이름:",
+    koreanName: "한글 이름:",
+    mileage: "주행거리:",
+    plateNumber: "번호판:",
     serviceType: "서비스 유형:",
     created: "생성일:",
     status: "상태:",
     completed: "완료일:",
+    initialCost: "초기 견적:",
+    finalCost: "최종 비용:",
     notCompleted: "완료되지 않음",
     pending: "대기 중",
     inProgress: "진행 중",
@@ -93,6 +105,34 @@ export const DetailsTab = ({ currentJob }: DetailsTabProps) => {
             
             <span className="text-muted-foreground">{t.vin}</span>
             <span className="font-mono">{currentJob.motorcycle.vin}</span>
+
+            {currentJob.motorcycle.englishName && (
+              <>
+                <span className="text-muted-foreground">{t.englishName}</span>
+                <span>{currentJob.motorcycle.englishName}</span>
+              </>
+            )}
+            
+            {currentJob.motorcycle.koreanName && (
+              <>
+                <span className="text-muted-foreground">{t.koreanName}</span>
+                <span>{currentJob.motorcycle.koreanName}</span>
+              </>
+            )}
+            
+            {currentJob.motorcycle.mileage && (
+              <>
+                <span className="text-muted-foreground">{t.mileage}</span>
+                <span>{currentJob.motorcycle.mileage}</span>
+              </>
+            )}
+            
+            {currentJob.motorcycle.plateNumber && (
+              <>
+                <span className="text-muted-foreground">{t.plateNumber}</span>
+                <span>{currentJob.motorcycle.plateNumber}</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -119,6 +159,20 @@ export const DetailsTab = ({ currentJob }: DetailsTabProps) => {
             <span className="text-muted-foreground block">{t.completed}</span>
             <span>{currentJob.dateCompleted || t.notCompleted}</span>
           </div>
+
+          {currentJob.initialCost && (
+            <div>
+              <span className="text-muted-foreground block">{t.initialCost}</span>
+              <span>{currentJob.initialCost}</span>
+            </div>
+          )}
+          
+          {currentJob.finalCost && (
+            <div>
+              <span className="text-muted-foreground block">{t.finalCost}</span>
+              <span>{currentJob.finalCost}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

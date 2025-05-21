@@ -60,7 +60,8 @@ export const updateJobInLocalStorage = async (job: any) => {
         status: job.status,
         date_completed: job.dateCompleted,
         notes: job.notes,
-        photos: job.photos
+        photos: job.photos,
+        final_cost: job.finalCost
       }).eq('job_id', job.id);
       
       if (error) {
@@ -96,4 +97,28 @@ export const capturePhoto = (
       onPhotoCapture("/placeholder.svg");
     }, 500);
   }
+};
+
+// Check if the job has all requirements to be completed
+export const canCompleteJob = (job: any): { valid: boolean; message?: string } => {
+  // Check if job has minimum number of completion photos
+  const completionPhotos = job.photos?.completion || [];
+  const minPhotosRequired = 3;
+  
+  if (completionPhotos.length < minPhotosRequired) {
+    return { 
+      valid: false, 
+      message: `You need to upload at least ${minPhotosRequired} completion photos before marking this job as Complete` 
+    };
+  }
+  
+  // Check if job has a final cost set
+  if (!job.finalCost) {
+    return {
+      valid: false,
+      message: "You need to set a final cost before marking this job as Complete"
+    };
+  }
+  
+  return { valid: true };
 };

@@ -41,6 +41,8 @@ const formSchema = z.object({
     vin: z.string().optional(),
     mileage: z.string().optional(),
     plateNumber: z.string().optional(),
+    englishName: z.string().optional(),
+    koreanName: z.string().optional(),
   }),
   serviceType: z.string().min(3, "Service type is required"),
   initialCost: z.string().optional(),
@@ -62,6 +64,8 @@ export const NewJobForm = ({ onSubmit }: NewJobFormProps) => {
         vin: "",
         mileage: "",
         plateNumber: "",
+        englishName: "",
+        koreanName: "",
       },
       serviceType: "",
       initialCost: "",
@@ -194,6 +198,36 @@ export const NewJobForm = ({ onSubmit }: NewJobFormProps) => {
                     <FormLabel>VIN (Optional)</FormLabel>
                     <FormControl>
                       <Input placeholder="Vehicle Identification Number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="motorcycle.englishName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>English Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Motorcycle English Name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="motorcycle.koreanName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Korean Name (한글 이름)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="오토바이 한글 이름" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
