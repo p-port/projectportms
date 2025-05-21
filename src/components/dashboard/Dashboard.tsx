@@ -7,6 +7,7 @@ import { JobList } from "./JobList";
 import { NewJobForm } from "./NewJobForm";
 import { SearchCustomers } from "./SearchCustomers";
 import { Search } from "lucide-react";
+import { generateUniqueJobId } from "./job-details/JobUtils";
 
 interface DashboardProps {
   user: any;
@@ -15,7 +16,7 @@ interface DashboardProps {
 // Sample jobs data
 const SAMPLE_JOBS = [
   {
-    id: "JOB-2023-001",
+    id: "HOCB-202305-001",
     customer: {
       name: "Michael Johnson",
       phone: "555-123-4567",
@@ -40,7 +41,7 @@ const SAMPLE_JOBS = [
     }
   },
   {
-    id: "JOB-2023-002",
+    id: "KANI-202305-002",
     customer: {
       name: "Sarah Williams",
       phone: "555-987-6543",
@@ -67,7 +68,7 @@ const SAMPLE_JOBS = [
     }
   },
   {
-    id: "JOB-2023-003",
+    id: "YAMT-202305-003",
     customer: {
       name: "David Thompson",
       phone: "555-456-7890",
@@ -117,11 +118,16 @@ export const Dashboard = ({ user }: DashboardProps) => {
   }, [jobs]);
 
   const handleAddJob = (jobData: any) => {
-    // Generate the current year for the job ID
-    const currentYear = new Date().getFullYear();
+    // Generate a unique job ID based on motorcycle details
+    const newJobId = generateUniqueJobId(
+      jobData.motorcycle.make,
+      jobData.motorcycle.model,
+      jobs.length + 1
+    );
+    
     const newJob = {
       ...jobData,
-      id: `JOB-${currentYear}-${String(jobs.length + 1).padStart(3, '0')}`,
+      id: newJobId,
       dateCreated: new Date().toISOString().split('T')[0],
       status: "pending",
       notes: [],

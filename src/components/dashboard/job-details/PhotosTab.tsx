@@ -1,8 +1,9 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, Check } from "lucide-react";
+import { Camera, Check, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { capturePhoto, updateJobInLocalStorage } from "./JobUtils";
 
 interface PhotosTabProps {
   currentJob: any;
@@ -20,7 +21,65 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
     currentJob.photos.start.length > 0 && 
     currentJob.photos.completion.length === 0;
 
-  const simulatePhotoUpload = (type: "start" | "completion") => {
+  const handlePhotoCapture = (type: "start" | "completion", useCamera: boolean = true) => {
+    setUploadingPhotos(true);
+    setPhotoType(type);
+    
+    // Use our photo capture utility
+    capturePhoto((photoDataUrl) => {
+      // Add the new photo to the appropriate array
+      const updatedPhotos = {
+        ...currentJob.photos,
+        [type]: [...currentJob.photos[type], photoDataUrl]
+      };
+      
+      let updatedJob = {
+        ...currentJob,
+        photos: updatedPhotos
+      };
+      
+      // If this is start photos, also change status to in-progress
+      if (type === "start" && currentJob.status === "pending") {
+        updatedJob = {
+          ...updatedJob,
+          status: "in-progress",
+          notes: [
+            ...updatedJob.notes,
+            {
+              text: "Job started - initial photos uploaded",
+              timestamp: new Date().toISOString()
+            }
+          ]
+        };
+      }
+      
+      // If this is completion photos and we have enough photos, offer to change status to completed
+      if (type === "completion" && updatedPhotos.completion.length >= 2) {
+        updatedJob = {
+          ...updatedJob,
+          status: "completed",
+          dateCompleted: new Date().toISOString().split("T")[0],
+          notes: [
+            ...updatedJob.notes,
+            {
+              text: "Job completed - final photos uploaded",
+              timestamp: new Date().toISOString()
+            }
+          ]
+        };
+      }
+      
+      // Update job in state and localStorage
+      onUpdateJob(updatedJob);
+      updateJobInLocalStorage(updatedJob);
+      
+      setUploadingPhotos(false);
+      toast.success(`Photo captured and uploaded successfully`);
+    }, useCamera);
+  };
+
+  // Simulate multiple photo uploads for demo purposes
+  const simulateMultiplePhotos = (type: "start" | "completion") => {
     setUploadingPhotos(true);
     setPhotoType(type);
     
@@ -63,8 +122,6 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
       }
       
       onUpdateJob(updatedJob);
-      
-      // Update the job in localStorage
       updateJobInLocalStorage(updatedJob);
       
       setUploadingPhotos(false);
@@ -78,22 +135,40 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium">Start Photos ({currentJob.photos.start.length}/6)</h3>
           {canStartJob && (
-            <Button 
-              onClick={() => simulatePhotoUpload("start")}
-              disabled={uploadingPhotos}
-            >
-              {uploadingPhotos && photoType === "start" ? (
-                <span className="flex items-center gap-2">
-                  <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
-                  Uploading...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Camera className="h-4 w-4" />
-                  Upload Photos to Start Job
-                </span>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => handlePhotoCapture("start", true)}
+                disabled={uploadingPhotos}
+                variant="outline"
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                Take Photo
+              </Button>
+              <Button 
+                onClick={() => handlePhotoCapture("start", false)}
+                disabled={uploadingPhotos}
+                variant="outline"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Photo
+              </Button>
+              <Button 
+                onClick={() => simulateMultiplePhotos("start")}
+                disabled={uploadingPhotos}
+              >
+                {uploadingPhotos && photoType === "start" ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+                    Uploading...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Camera className="h-4 w-4" />
+                    Upload All Photos to Start Job
+                  </span>
+                )}
+              </Button>
+            </div>
           )}
         </div>
 
@@ -118,22 +193,40 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium">Completion Photos ({currentJob.photos.completion.length}/6)</h3>
           {canCompleteJob && (
-            <Button 
-              onClick={() => simulatePhotoUpload("completion")}
-              disabled={uploadingPhotos}
-            >
-              {uploadingPhotos && photoType === "completion" ? (
-                <span className="flex items-center gap-2">
-                  <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
-                  Uploading...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Check className="h-4 w-4" />
-                  Upload Photos to Complete Job
-                </span>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => handlePhotoCapture("completion", true)}
+                disabled={uploadingPhotos}
+                variant="outline"
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                Take Photo
+              </Button>
+              <Button 
+                onClick={() => handlePhotoCapture("completion", false)}
+                disabled={uploadingPhotos}
+                variant="outline"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Photo
+              </Button>
+              <Button 
+                onClick={() => simulateMultiplePhotos("completion")}
+                disabled={uploadingPhotos}
+              >
+                {uploadingPhotos && photoType === "completion" ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+                    Uploading...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Check className="h-4 w-4" />
+                    Upload All Photos to Complete Job
+                  </span>
+                )}
+              </Button>
+            </div>
           )}
         </div>
 

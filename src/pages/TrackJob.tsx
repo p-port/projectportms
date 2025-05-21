@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Check, Clock } from "lucide-react";
+import { getStatusColor } from "@/components/dashboard/job-details/JobUtils";
 
 // This page would be shown to customers when they scan the QR code
 const TrackJob = () => {
@@ -27,8 +28,8 @@ const TrackJob = () => {
       console.log("Looking for job with ID:", jobId);
       console.log("Available jobs:", jobs);
       
-      // Find the job with the matching ID - use exact matching and trim any whitespace
-      const foundJob = jobs.find((job: any) => job.id === jobId?.trim());
+      // Find the job with the matching ID - use exact case-sensitive matching
+      const foundJob = jobs.find((job: any) => job.id === jobId);
       
       if (foundJob) {
         console.log("Found job:", foundJob);
@@ -45,21 +46,6 @@ const TrackJob = () => {
       setLoading(false);
     }
   }, [jobId]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "in-progress":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "on-hold":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      case "completed":
-        return "bg-green-100 text-green-800 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
 
   const getStatusMessage = (status: string) => {
     switch (status) {
