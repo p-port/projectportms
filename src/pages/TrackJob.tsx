@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
@@ -42,7 +43,10 @@ const translations = {
     retry: "Retry",
     switchToKorean: "Switch to Korean",
     switchToRussian: "Switch to Russian",
-    switchToEnglish: "Switch to English"
+    switchToEnglish: "Switch to English",
+    initialCost: "Initial Cost",
+    finalCost: "Final Cost",
+    costEstimate: "Cost Estimate"
   },
   ko: {
     title: "프로젝트 포트 - 서비스 상태 추적기",
@@ -66,7 +70,10 @@ const translations = {
     retry: "재시도",
     switchToKorean: "한국어로 전환",
     switchToRussian: "러시아어로 전환",
-    switchToEnglish: "영어로 전환"
+    switchToEnglish: "영어로 전환",
+    initialCost: "초기 견적",
+    finalCost: "최종 비용",
+    costEstimate: "비용 견적"
   },
   ru: {
     title: "Проект Порт - Отслеживание статуса услуги",
@@ -90,7 +97,10 @@ const translations = {
     retry: "Повторить",
     switchToKorean: "Переключиться на корейский",
     switchToRussian: "Переключиться на русский",
-    switchToEnglish: "Переключиться на английский"
+    switchToEnglish: "Переключиться на английский",
+    initialCost: "Начальная стоимость",
+    finalCost: "Итоговая стоимость",
+    costEstimate: "Оценка стоимости"
   }
 };
 
@@ -143,6 +153,15 @@ const TrackJob = () => {
         const supabaseJob = supabaseJobs[0];
         console.log("Found job in Supabase:", supabaseJob);
         
+        // Extract finalCost from notes if it exists
+        let finalCost = null;
+        if (supabaseJob.notes && typeof supabaseJob.notes === 'object') {
+          // Check if notes is an object with finalCost property
+          if ('finalCost' in supabaseJob.notes) {
+            finalCost = supabaseJob.notes.finalCost;
+          }
+        }
+        
         const formattedJob = {
           id: supabaseJob.job_id,
           customer: supabaseJob.customer,
@@ -152,7 +171,9 @@ const TrackJob = () => {
           dateCreated: supabaseJob.date_created ? new Date(supabaseJob.date_created).toISOString().split('T')[0] : null,
           dateCompleted: supabaseJob.date_completed ? new Date(supabaseJob.date_completed).toISOString().split('T')[0] : null,
           notes: supabaseJob.notes || [],
-          photos: supabaseJob.photos || { start: [], completion: [] }
+          photos: supabaseJob.photos || { start: [], completion: [] },
+          initialCost: supabaseJob.initial_cost,
+          finalCost: finalCost
         };
         
         setJob(formattedJob);
@@ -351,6 +372,17 @@ const TrackJob = () => {
                      job.status === "completed" ? t.completed_status :
                      t.pending}
                   </p>
+                )}
+                
+                {job.initialCost && (
+                  <p><span className="font-medium">{t.initialCost}:</span> {job.initialCost}</p>
+                )}
+                
+                {job.finalCost && (
+                  <p><span className="font-medium">{t.finalCost}:</span> {job.finalCost}</p>
+                )}
+                {!job.finalCost && job.initialCost && job.status !== "completed" && (
+                  <p><span className="font-medium">{t.costEstimate}:</span> {job.initialCost}</p>
                 )}
               </div>
               
