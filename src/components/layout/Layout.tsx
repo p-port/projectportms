@@ -44,7 +44,14 @@ export const Layout = ({ children }: LayoutProps) => {
     <div className="min-h-screen bg-background">
       <header className="bg-secondary shadow-md">
         <div className="container mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-2">
-          <h1 className="text-xl md:text-2xl font-bold text-foreground">{t.title}</h1>
+          <div className="flex items-center">
+            <img 
+              src="/lovable-uploads/28dd3615-eb59-4a33-ae85-3a1e81c82540.png" 
+              alt="Project Port Logo" 
+              className="h-8 w-auto mr-2"
+            />
+            <span className="text-xl md:text-2xl font-bold text-foreground">{t.title}</span>
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleLanguage}>
               <Globe className="h-4 w-4" />
@@ -62,6 +69,13 @@ export const Layout = ({ children }: LayoutProps) => {
       </main>
       <footer className="bg-secondary text-muted-foreground py-4">
         <div className="container mx-auto px-4 text-center text-sm">
+          <div className="flex justify-center items-center mb-2">
+            <img 
+              src="/lovable-uploads/28dd3615-eb59-4a33-ae85-3a1e81c82540.png" 
+              alt="Project Port Logo" 
+              className="h-6 w-auto mr-2"
+            />
+          </div>
           &copy; {new Date().getFullYear()} {t.footer}
         </div>
       </footer>
