@@ -8,6 +8,8 @@ import { NewJobForm } from "./NewJobForm";
 import { SearchCustomers } from "./SearchCustomers";
 import { Search } from "lucide-react";
 import { generateUniqueJobId } from "./job-details/JobUtils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 interface DashboardProps {
   user: any;
@@ -91,10 +93,35 @@ const SAMPLE_JOBS = [
   }
 ];
 
+// Dashboard translations
+const translations = {
+  en: {
+    dashboard: "Dashboard",
+    welcome: "Welcome back",
+    searchPlaceholder: "Search jobs by ID, customer name, or motorcycle...",
+    activeJobs: "Active Jobs",
+    completed: "Completed",
+    newJob: "New Job",
+    customers: "Customers"
+  },
+  ko: {
+    dashboard: "대시보드",
+    welcome: "다시 환영합니다",
+    searchPlaceholder: "작업 ID, 고객 이름 또는 오토바이로 검색...",
+    activeJobs: "활성 작업",
+    completed: "완료됨",
+    newJob: "새 작업",
+    customers: "고객"
+  }
+};
+
 export const Dashboard = ({ user }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState("active-jobs");
   const [jobs, setJobs] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const isMobile = useIsMobile();
+  const [language] = useLocalStorage("language", "en");
+  const t = translations[language as keyof typeof translations];
 
   // Load jobs from localStorage or use sample data on first load
   useEffect(() => {
@@ -157,16 +184,16 @@ export const Dashboard = ({ user }: DashboardProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold">Dashboard</h2>
-        <p className="text-muted-foreground">Welcome back, {user?.name || "Mechanic"}</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <h2 className="text-2xl sm:text-3xl font-bold">{t.dashboard}</h2>
+        <p className="text-muted-foreground">{t.welcome}, {user?.name || "Mechanic"}</p>
       </div>
 
       <div className="flex w-full items-center space-x-2 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search jobs by ID, customer name, or motorcycle..."
+            placeholder={t.searchPlaceholder}
             className="pl-8"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -175,12 +202,31 @@ export const Dashboard = ({ user }: DashboardProps) => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 w-full">
-          <TabsTrigger value="active-jobs">Active Jobs ({activeJobs.length})</TabsTrigger>
-          <TabsTrigger value="completed-jobs">Completed ({completedJobs.length})</TabsTrigger>
-          <TabsTrigger value="new-job">New Job</TabsTrigger>
-          <TabsTrigger value="customers">Customers</TabsTrigger>
+        <TabsList className={`grid grid-cols-${isMobile ? "2" : "4"} w-full`}>
+          <TabsTrigger value="active-jobs">{t.activeJobs} ({activeJobs.length})</TabsTrigger>
+          <TabsTrigger value="completed-jobs">{t.completed} ({completedJobs.length})</TabsTrigger>
+          {isMobile ? null : <TabsTrigger value="new-job">{t.newJob}</TabsTrigger>}
+          {isMobile ? null : <TabsTrigger value="customers">{t.customers}</TabsTrigger>}
         </TabsList>
+
+        {isMobile && (
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <Button 
+              variant="outline" 
+              className={activeTab === "new-job" ? "bg-muted" : ""} 
+              onClick={() => setActiveTab("new-job")}
+            >
+              {t.newJob}
+            </Button>
+            <Button 
+              variant="outline" 
+              className={activeTab === "customers" ? "bg-muted" : ""} 
+              onClick={() => setActiveTab("customers")}
+            >
+              {t.customers}
+            </Button>
+          </div>
+        )}
 
         <TabsContent value="active-jobs">
           <JobList jobs={activeJobs} type="active" setJobs={setJobs} allJobs={jobs} />

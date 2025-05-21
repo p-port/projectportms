@@ -9,6 +9,7 @@ import { Check, Clock, Globe, ArrowLeft, ArrowRight } from "lucide-react";
 import { getStatusColor } from "@/components/dashboard/job-details/JobUtils";
 import { Button } from "@/components/ui/button";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Define languages for translation
 const translations = {
@@ -77,6 +78,7 @@ const TrackJob = () => {
   const [error, setError] = useState<string | null>(null);
   const { language, t, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // In a real app, this would fetch from your API
@@ -133,12 +135,13 @@ const TrackJob = () => {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-center">{t.title}</h1>
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
+          <h1 className="text-xl sm:text-2xl font-bold text-center">{t.title}</h1>
           <Button 
             onClick={toggleLanguage}
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto"
+            size={isMobile ? "sm" : "default"}
           >
             <Globe className="h-4 w-4" />
             {language === "en" ? t.switchLanguage : t.switchLanguage}
@@ -147,7 +150,7 @@ const TrackJob = () => {
         </div>
         
         <div className="text-center mb-6">
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {language === "en" ? (
               <>You can switch to Korean using the button above</>
             ) : (
@@ -180,16 +183,16 @@ const TrackJob = () => {
         )}
 
         {!loading && !error && job && (
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
                   <CardTitle>Job #{job.id}</CardTitle>
                   <p className="text-muted-foreground mt-1">
                     {job.motorcycle.make} {job.motorcycle.model} ({job.motorcycle.year})
                   </p>
                 </div>
-                <Badge className={`${getStatusColor(job.status)} capitalize`}>
+                <Badge className={`${getStatusColor(job.status)} capitalize mt-2 sm:mt-0`}>
                   {job.status.replace("-", " ")}
                 </Badge>
               </div>
