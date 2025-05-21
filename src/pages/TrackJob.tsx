@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
@@ -166,25 +165,17 @@ const TrackJob = () => {
         const supabaseJob = supabaseJobs[0];
         console.log("Found job in Supabase:", supabaseJob);
         
-        // Extract initialCost and finalCost from the notes
+        // Extract initialCost and finalCost from the job data
         let initialCost = null;
         let finalCost = null;
         
-        // Check notes for cost information - properly handle the JSON type
-        if (supabaseJob.notes && Array.isArray(supabaseJob.notes)) {
-          // Look through notes for cost information
-          for (const note of supabaseJob.notes) {
-            // Type check and safely access the note.text property
-            const noteText = typeof note === 'object' && note !== null && 'text' in note 
-              ? String(note.text) 
-              : '';
-              
-            if (noteText.includes('Initial cost estimate set to:')) {
-              initialCost = noteText.split('Initial cost estimate set to:')[1].trim();
-            }
-            if (noteText.includes('Final cost updated to:')) {
-              finalCost = noteText.split('Final cost updated to:')[1].trim();
-            }
+        // Check if notes contains cost information
+        if (supabaseJob.notes && typeof supabaseJob.notes === 'object') {
+          if ('initialCost' in supabaseJob.notes) {
+            initialCost = supabaseJob.notes.initialCost;
+          }
+          if ('finalCost' in supabaseJob.notes) {
+            finalCost = supabaseJob.notes.finalCost;
           }
         }
         
@@ -287,23 +278,12 @@ const TrackJob = () => {
   const translateNotes = (notes: any[]) => {
     if (!notes) return [];
     
-    return notes.map(note => {
-      // Safely access note.text and note.originalTexts
-      const noteText = typeof note === 'object' && note !== null && 'text' in note 
-        ? String(note.text) 
-        : '';
-      
-      const originalTexts = typeof note === 'object' && note !== null && 'originalTexts' in note 
-        ? note.originalTexts 
-        : null;
-      
-      return {
-        ...note,
-        text: originalTexts ? 
-          (originalTexts[language as keyof typeof translations] || noteText) : 
-          noteText
-      };
-    });
+    return notes.map(note => ({
+      ...note,
+      text: note.originalTexts ? 
+        (note.originalTexts[language as keyof typeof translations] || note.text) : 
+        note.text
+    }));
   };
 
   const translateStatus = (status: string) => {
@@ -438,6 +418,8 @@ const TrackJob = () => {
                      t.pending}
                   </p>
                 )}
+                
+                {/* Removed cost information from here since it's now displayed above */}
               </div>
               
               {/* Service Photos */}

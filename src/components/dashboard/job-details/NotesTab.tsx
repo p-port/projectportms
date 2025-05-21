@@ -130,6 +130,7 @@ export const NotesTab = ({
           originalTexts: {
             en: newNote,
             // These would typically be translated using an API like Google Translate
+            // This is a simplification for demonstration purposes
             ko: language === "ko" ? newNote : undefined,
             ru: language === "ru" ? newNote : undefined
           }
@@ -238,19 +239,10 @@ export const NotesTab = ({
                     'ru-RU'
                 )} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                 
-                // Safely access note.text and note.originalTexts
-                const noteText = typeof note === 'object' && note !== null && 'text' in note 
-                  ? String(note.text) 
-                  : '';
-                
-                const originalTexts = typeof note === 'object' && note !== null && 'originalTexts' in note 
-                  ? note.originalTexts 
-                  : null;
-                
                 // Display note in the current language if available
-                const displayText = originalTexts && originalTexts[language as keyof typeof notesTranslations] 
-                  ? originalTexts[language as keyof typeof notesTranslations] 
-                  : noteText;
+                const displayText = note.originalTexts && note.originalTexts[language as keyof typeof notesTranslations] 
+                  ? note.originalTexts[language as keyof typeof notesTranslations] 
+                  : note.text;
                 
                 return (
                   <div key={index} className="bg-muted p-3 rounded-md">

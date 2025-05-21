@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // Generate a unique job ID based on motorcycle make, model, and counter
@@ -51,20 +52,22 @@ export const updateJobInLocalStorage = async (job: any) => {
     // Check if the user is authenticated
     const { data } = await supabase.auth.getSession();
     if (data.session?.user) {
-      // Prepare update data for Supabase
-      // Making sure to use the correct column names for the Supabase table structure
-      const updateData: any = {
-        status: job.status,
-        date_completed: job.dateCompleted,
-        notes: job.notes,
-        photos: job.photos
-      };
-      
-      // Don't include these fields in the Supabase update as they don't exist as separate columns
-      // The cost information is included in the notes
+      // Prepare notes object to include final cost if needed
+      const notes = job.notes || {};
+      if (job.finalCost) {
+        notes.finalCost = job.finalCost;
+      }
       
       // Sync job data to Supabase with the correct column names
-      const { error } = await supabase.from('jobs').update(updateData).eq('job_id', job.id);
+      const { error } = await supabase.from('jobs').update({
+        customer: job.customer,
+        motorcycle: job.motorcycle,
+        service_type: job.serviceType,
+        status: job.status,
+        date_completed: job.dateCompleted,
+        notes: notes,
+        photos: job.photos
+      }).eq('job_id', job.id);
       
       if (error) {
         console.error("Error syncing job to Supabase:", error);
@@ -123,23 +126,4 @@ export const canCompleteJob = (job: any): { valid: boolean; message?: string } =
   }
   
   return { valid: true };
-};
-
-// Create a note for initial cost estimate when job status changes to in-progress
-export const addInitialCostNote = (job: any) => {
-  if (job.initialCost) {
-    return {
-      text: `Initial cost estimate set to: ${job.initialCost}`,
-      timestamp: new Date().toISOString()
-    };
-  }
-  return null;
-};
-
-// Create a note for final cost update
-export const addFinalCostNote = (finalCost: string) => {
-  return {
-    text: `Final cost updated to: ${finalCost}`,
-    timestamp: new Date().toISOString()
-  };
 };

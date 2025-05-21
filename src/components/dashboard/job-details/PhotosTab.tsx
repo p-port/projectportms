@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, Check, Upload, Trash2 } from "lucide-react";
@@ -72,17 +71,15 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
       if (type === "start" && currentJob.status === "pending" && updatedPhotos.start.length >= minPhotosRequired) {
         // Ask user if they want to start the job now
         if (confirm("You have uploaded enough photos to start the job. Would you like to change the status to In Progress?")) {
-          const initialCostNote = {
-            text: `Job started - initial photos uploaded. Initial cost estimate: ${currentJob.initialCost || 'Not set'}`,
-            timestamp: new Date().toISOString()
-          };
-
           updatedJob = {
             ...updatedJob,
             status: "in-progress",
             notes: [
               ...updatedJob.notes,
-              initialCostNote
+              {
+                text: "Job started - initial photos uploaded",
+                timestamp: new Date().toISOString()
+              }
             ]
           };
           toast.success("Job status changed to In Progress");
@@ -141,17 +138,15 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
             updatedPhotos.start.length >= minPhotosRequired) {
           // Ask user if they want to start the job
           if (confirm("You have uploaded enough photos to start the job. Would you like to change the status to In Progress?")) {
-            const initialCostNote = {
-              text: `Job started - initial photos uploaded. Initial cost estimate: ${currentJob.initialCost || 'Not set'}`,
-              timestamp: new Date().toISOString()
-            };
-
             updatedJob = {
               ...updatedJob,
               status: "in-progress",
               notes: [
                 ...updatedJob.notes,
-                initialCostNote
+                {
+                  text: "Job started - initial photos uploaded",
+                  timestamp: new Date().toISOString()
+                }
               ]
             };
             toast.success("Job status changed to In Progress");
@@ -220,19 +215,16 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
       return;
     }
     
-    // Create a note with the final cost information
-    const finalCostNote = {
-      text: `Job completed - final photos uploaded. Final cost: ${currentJob.finalCost || 'Not set'}`,
-      timestamp: new Date().toISOString()
-    };
-
     const updatedJob = {
       ...currentJob,
       status: "completed",
       dateCompleted: new Date().toISOString().split("T")[0],
       notes: [
         ...currentJob.notes,
-        finalCostNote
+        {
+          text: "Job completed - final photos uploaded",
+          timestamp: new Date().toISOString()
+        }
       ]
     };
     
@@ -284,16 +276,13 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
       // If this is start photos, also change status to in-progress
       if (type === "start" && currentJob.status === "pending") {
         if (confirm("You have uploaded enough photos to start the job. Would you like to change the status to In Progress?")) {
-          // Add note with initial cost estimate
-          const initialCostNote = {
-            text: `Job started - initial photos uploaded. Initial cost estimate: ${currentJob.initialCost || 'Not set'}`,
-            timestamp: new Date().toISOString()
-          };
-
           updatedJob.status = "in-progress";
           updatedJob.notes = [
             ...updatedJob.notes,
-            initialCostNote
+            {
+              text: "Job started - initial photos uploaded",
+              timestamp: new Date().toISOString()
+            }
           ];
           toast.success("Job status changed to In Progress");
         }

@@ -8,7 +8,7 @@ import { DetailsTab } from "./job-details/DetailsTab";
 import { NotesTab } from "./job-details/NotesTab";
 import { PhotosTab } from "./job-details/PhotosTab";
 import { QrCodeDisplay } from "./QrCodeDisplay";
-import { getStatusColor, updateJobInLocalStorage, canCompleteJob, addInitialCostNote, addFinalCostNote } from "./job-details/JobUtils";
+import { getStatusColor, updateJobInLocalStorage, canCompleteJob } from "./job-details/JobUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -153,14 +153,6 @@ export const JobDetailsDialog = ({
       status: newStatus,
     };
 
-    // Add initial cost note when job changes to in-progress
-    if (newStatus === "in-progress" && currentJob.initialCost) {
-      const initialCostNote = addInitialCostNote(currentJob);
-      if (initialCostNote) {
-        updatedJob.notes = [...currentJob.notes, initialCostNote];
-      }
-    }
-
     if (newStatus === "completed" && !currentJob.dateCompleted) {
       updatedJob.dateCompleted = new Date().toISOString().split("T")[0];
     }
@@ -173,8 +165,7 @@ export const JobDetailsDialog = ({
         // Here we need to ensure we're using the correct column names for Supabase
         const { error } = await supabase.from('jobs').update({
           status: newStatus,
-          date_completed: updatedJob.dateCompleted,
-          notes: updatedJob.notes
+          date_completed: updatedJob.dateCompleted
         }).eq('job_id', updatedJob.id);
         
         if (error) {
@@ -203,13 +194,9 @@ export const JobDetailsDialog = ({
       return;
     }
     
-    // Create a note about the final cost update
-    const finalCostNote = addFinalCostNote(finalCost);
-    
     const updatedJob = {
       ...currentJob,
-      finalCost: finalCost,
-      notes: [...currentJob.notes, finalCostNote]
+      finalCost: finalCost
     };
     
     // Update the job with final cost
@@ -218,9 +205,11 @@ export const JobDetailsDialog = ({
     try {
       // Update in Supabase if user is authenticated
       if (user) {
+        // Store the final cost in the notes object since there's no dedicated column for it
+        const notes = updatedJob.notes || {};
+        
         const { error } = await supabase.from('jobs').update({
-          notes: updatedJob.notes,
-          finalCost: finalCost
+          notes: { ...notes, finalCost: finalCost }
         }).eq('job_id', updatedJob.id);
         
         if (error) {
