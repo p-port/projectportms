@@ -1,17 +1,13 @@
 import { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { JobList } from "./JobList";
-import { NewJobForm } from "./NewJobForm";
-import { SearchCustomers } from "./SearchCustomers";
-import { Search, User, MessageSquare } from "lucide-react";
-import { generateUniqueJobId } from "./job-details/JobUtils";
+import { Tabs } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageList } from "./messaging/MessageList";
-import { AccountInfo } from "./account/AccountInfo";
+import { generateUniqueJobId } from "./job-details/JobUtils";
+import { DashboardHeader } from "./features/DashboardHeader";
+import { TabsNavigation } from "./features/TabsNavigation";
+import { TabContent } from "./features/TabContent";
+import { fetchUnreadMessagesCount, subscribeToMessageUpdates } from "./services/UnreadMessagesService";
 
 interface DashboardProps {
   user: any;
@@ -131,55 +127,23 @@ export const Dashboard = ({ user }: DashboardProps) => {
   // Load unread messages count
   useEffect(() => {
     const loadUnreadMessagesCount = async () => {
-      try {
-        if (!user?.id) return;
-        
-        const { count, error } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('recipient_id', user.id)
-          .eq('is_read', false);
-          
-        if (error) throw error;
-        setUnreadMessages(count || 0);
-      } catch (error) {
-        console.error('Error loading unread messages count:', error);
-      }
+      const count = await fetchUnreadMessagesCount(user?.id);
+      setUnreadMessages(count);
     };
     
     loadUnreadMessagesCount();
     
-    // Subscribe to new messages
-    const channel = supabase
-      .channel('messages-changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
-          if (payload.new.recipient_id === user?.id) {
-            setUnreadMessages(prev => prev + 1);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'messages' },
-        (payload) => {
-          if (payload.new.recipient_id === user?.id && 
-              !payload.new.is_read && payload.old.is_read) {
-            setUnreadMessages(prev => prev + 1);
-          }
-          
-          if (payload.new.recipient_id === user?.id && 
-              payload.new.is_read && !payload.old.is_read) {
-            setUnreadMessages(prev => Math.max(0, prev - 1));
-          }
-        }
-      )
-      .subscribe();
+    // Subscribe to message updates
+    const channel = subscribeToMessageUpdates(
+      user?.id,
+      // On new message
+      () => setUnreadMessages(prev => prev + 1),
+      // On message read
+      () => setUnreadMessages(prev => Math.max(0, prev - 1))
+    );
       
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [user?.id]);
 
@@ -244,110 +208,32 @@ export const Dashboard = ({ user }: DashboardProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-        <h2 className="text-2xl sm:text-3xl font-bold">{t.dashboard}</h2>
-        <p className="text-muted-foreground">{t.welcome}, {user?.name || "Mechanic"}</p>
-      </div>
-
-      <div className="flex w-full items-center space-x-2 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t.searchPlaceholder}
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </div>
+      <DashboardHeader
+        userName={user?.name}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        translations={t}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className={`grid w-full ${isMobile ? "grid-cols-2" : "grid-cols-6"}`}>
-          <TabsTrigger value="active-jobs">{t.activeJobs} ({activeJobs.length})</TabsTrigger>
-          <TabsTrigger value="completed-jobs">{t.completed} ({completedJobs.length})</TabsTrigger>
-          {isMobile ? null : <TabsTrigger value="new-job">{t.newJob}</TabsTrigger>}
-          {isMobile ? null : <TabsTrigger value="customers">{t.customers}</TabsTrigger>}
-          {isMobile ? null : (
-            <TabsTrigger value="messages" className="relative">
-              Messages
-              {unreadMessages > 0 && (
-                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {unreadMessages}
-                </span>
-              )}
-            </TabsTrigger>
-          )}
-          {isMobile ? null : <TabsTrigger value="account">Account</TabsTrigger>}
-        </TabsList>
+        <TabsNavigation
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isMobile={isMobile}
+          activeJobs={activeJobs.length}
+          completedJobs={completedJobs.length}
+          unreadMessages={unreadMessages}
+          translations={t}
+        />
 
-        {isMobile && (
-          <div className="grid grid-cols-2 gap-2 mt-2 mb-2">
-            <Button 
-              variant="outline" 
-              className={activeTab === "new-job" ? "bg-muted" : ""} 
-              onClick={() => setActiveTab("new-job")}
-            >
-              {t.newJob}
-            </Button>
-            <Button 
-              variant="outline" 
-              className={activeTab === "customers" ? "bg-muted" : ""} 
-              onClick={() => setActiveTab("customers")}
-            >
-              {t.customers}
-            </Button>
-          </div>
-        )}
-
-        {isMobile && (
-          <div className="grid grid-cols-2 gap-2 mb-2">
-            <Button 
-              variant="outline" 
-              className={activeTab === "messages" ? "bg-muted" : ""} 
-              onClick={() => setActiveTab("messages")}
-            >
-              <MessageSquare className="mr-1 h-4 w-4" />
-              Messages
-              {unreadMessages > 0 && (
-                <span className="ml-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {unreadMessages}
-                </span>
-              )}
-            </Button>
-            <Button 
-              variant="outline" 
-              className={activeTab === "account" ? "bg-muted" : ""} 
-              onClick={() => setActiveTab("account")}
-            >
-              <User className="mr-1 h-4 w-4" />
-              Account
-            </Button>
-          </div>
-        )}
-
-        <TabsContent value="active-jobs">
-          <JobList jobs={activeJobs} type="active" setJobs={setJobs} allJobs={jobs} />
-        </TabsContent>
-
-        <TabsContent value="completed-jobs">
-          <JobList jobs={completedJobs} type="completed" setJobs={setJobs} allJobs={jobs} />
-        </TabsContent>
-
-        <TabsContent value="new-job">
-          <NewJobForm onSubmit={handleAddJob} />
-        </TabsContent>
-
-        <TabsContent value="customers">
-          <SearchCustomers jobs={jobs} />
-        </TabsContent>
-        
-        <TabsContent value="messages">
-          <MessageList />
-        </TabsContent>
-        
-        <TabsContent value="account">
-          <AccountInfo userId={user?.id} />
-        </TabsContent>
+        <TabContent
+          activeJobs={activeJobs}
+          completedJobs={completedJobs}
+          allJobs={jobs}
+          setJobs={setJobs}
+          handleAddJob={handleAddJob}
+          userId={user?.id}
+        />
       </Tabs>
     </div>
   );
