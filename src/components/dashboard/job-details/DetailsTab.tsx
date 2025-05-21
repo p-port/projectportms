@@ -19,7 +19,11 @@ const detailsTranslations = {
     created: "Created:",
     status: "Status:",
     completed: "Completed:",
-    notCompleted: "Not completed"
+    notCompleted: "Not completed",
+    pending: "Pending",
+    inProgress: "In Progress",
+    onHold: "On Hold",
+    completed_status: "Completed"
   },
   ko: {
     customerInfo: "고객 정보",
@@ -36,7 +40,11 @@ const detailsTranslations = {
     created: "생성일:",
     status: "상태:",
     completed: "완료일:",
-    notCompleted: "완료되지 않음"
+    notCompleted: "완료되지 않음",
+    pending: "대기 중",
+    inProgress: "진행 중",
+    onHold: "보류 중",
+    completed_status: "완료됨"
   }
 };
 
@@ -47,6 +55,12 @@ interface DetailsTabProps {
 export const DetailsTab = ({ currentJob }: DetailsTabProps) => {
   const [language] = useLocalStorage("language", "en");
   const t = detailsTranslations[language as keyof typeof detailsTranslations];
+  
+  const translateStatus = (status: string) => {
+    // Convert kebab-case to camelCase for lookup in translations
+    const statusKey = status.replace(/-([a-z])/g, (g) => g[1].toUpperCase()) as keyof typeof t;
+    return t[statusKey] || status.replace("-", " ");
+  };
   
   return (
     <div className="space-y-4 mt-4">
@@ -98,7 +112,7 @@ export const DetailsTab = ({ currentJob }: DetailsTabProps) => {
           
           <div>
             <span className="text-muted-foreground block">{t.status}</span>
-            <span className="capitalize">{currentJob.status.replace("-", " ")}</span>
+            <span className="capitalize">{translateStatus(currentJob.status)}</span>
           </div>
           
           <div>

@@ -9,6 +9,51 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      jobs: {
+        Row: {
+          created_at: string | null
+          customer: Json
+          date_completed: string | null
+          date_created: string | null
+          id: string
+          job_id: string
+          motorcycle: Json
+          notes: Json | null
+          photos: Json | null
+          service_type: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer: Json
+          date_completed?: string | null
+          date_created?: string | null
+          id?: string
+          job_id: string
+          motorcycle: Json
+          notes?: Json | null
+          photos?: Json | null
+          service_type: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer?: Json
+          date_completed?: string | null
+          date_created?: string | null
+          id?: string
+          job_id?: string
+          motorcycle?: Json
+          notes?: Json | null
+          photos?: Json | null
+          service_type?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -102,6 +147,30 @@ export type Database = {
         }
         Relationships: []
       }
+      support_chat_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_from_support: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_from_support?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_from_support?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           assigned_to: string | null
@@ -166,6 +235,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      translations: {
+        Row: {
+          id: string
+          key: string
+          language: string
+          namespace: string
+          value: string
+        }
+        Insert: {
+          id?: string
+          key: string
+          language: string
+          namespace: string
+          value: string
+        }
+        Update: {
+          id?: string
+          key?: string
+          language?: string
+          namespace?: string
+          value?: string
+        }
+        Relationships: []
       }
     }
     Views: {

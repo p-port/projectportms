@@ -59,6 +59,32 @@ export const JobList = ({ jobs, type, setJobs, allJobs }: JobListProps) => {
       job.id === updatedJob.id ? updatedJob : job
     );
     setJobs(updatedJobs);
+    
+    // Also sync to Supabase if user is authenticated
+    if (user) {
+      syncJobToSupabase(updatedJob, user.id);
+    }
+  };
+
+  const syncJobToSupabase = async (job: any, userId: string) => {
+    try {
+      const { error } = await supabase.from('jobs').upsert({
+        job_id: job.id,
+        customer: job.customer,
+        motorcycle: job.motorcycle,
+        service_type: job.serviceType,
+        status: job.status,
+        date_created: job.dateCreated,
+        date_completed: job.dateCompleted,
+        notes: job.notes,
+        photos: job.photos,
+        user_id: userId
+      });
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error syncing job to database:", error);
+    }
   };
 
   // Reset selectedJob when dialog closes

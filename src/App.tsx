@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import TrackJob from "./pages/TrackJob";
 import NotFound from "./pages/NotFound";
+import { SupportChat } from "./components/SupportChat";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        <SupportChat />
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>

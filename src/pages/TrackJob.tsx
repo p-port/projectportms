@@ -5,11 +5,12 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, Clock, Globe, ArrowLeft, ArrowRight } from "lucide-react";
+import { Check, Clock, Globe, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
 import { getStatusColor } from "@/components/dashboard/job-details/JobUtils";
 import { Button } from "@/components/ui/button";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
 
 // Define languages for translation
 const translations = {
@@ -31,7 +32,8 @@ const translations = {
     pending: "Your motorcycle is in the queue and waiting to be serviced.",
     inProgress: "Our mechanics are currently working on your motorcycle.",
     onHold: "Work on your motorcycle is temporarily paused. We'll resume shortly.",
-    completed_status: "Good news! Your motorcycle service is completed and ready for pickup."
+    completed_status: "Good news! Your motorcycle service is completed and ready for pickup.",
+    retry: "Retry"
   },
   ko: {
     title: "프로젝트 포트 - 서비스 상태 추적기",
@@ -51,7 +53,8 @@ const translations = {
     pending: "오토바이가 대기열에 있으며 서비스를 기다리고 있습니다.",
     inProgress: "우리 정비사들이 현재 귀하의 오토바이를 작업 중입니다.",
     onHold: "오토바이 작업이 일시적으로 중단되었습니다. 곧 재개될 예정입니다.",
-    completed_status: "좋은 소식입니다! 오토바이 서비스가 완료되어 픽업할 준비가 되었습니다."
+    completed_status: "좋은 소식입니다! 오토바이 서비스가 완료되어 픽업할 준비가 되었습니다.",
+    retry: "재시도"
   }
 };
 
@@ -80,13 +83,46 @@ const TrackJob = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  useEffect(() => {
-    // In a real app, this would fetch from your API
-    // For demo, we'll retrieve job data from localStorage
+  const loadJobData = async () => {
+    if (!jobId) {
+      setError("No job ID provided");
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
+    setError(null);
     
     try {
-      // Get all jobs from localStorage
+      // First try to get job from Supabase
+      const { data: supabaseJobs, error: supabaseError } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('job_id', jobId);
+      
+      if (supabaseError) throw supabaseError;
+      
+      if (supabaseJobs && supabaseJobs.length > 0) {
+        // Format the job from Supabase
+        const supabaseJob = supabaseJobs[0];
+        const formattedJob = {
+          id: supabaseJob.job_id,
+          customer: supabaseJob.customer,
+          motorcycle: supabaseJob.motorcycle,
+          serviceType: supabaseJob.service_type,
+          status: supabaseJob.status,
+          dateCreated: supabaseJob.date_created ? new Date(supabaseJob.date_created).toISOString().split('T')[0] : null,
+          dateCompleted: supabaseJob.date_completed ? new Date(supabaseJob.date_completed).toISOString().split('T')[0] : null,
+          notes: supabaseJob.notes || [],
+          photos: supabaseJob.photos || { start: [], completion: [] }
+        };
+        
+        setJob(formattedJob);
+        setError(null);
+        return;
+      }
+      
+      // If not found in Supabase, try localStorage
       const storedJobsString = localStorage.getItem('projectPortJobs');
       const jobs = storedJobsString ? JSON.parse(storedJobsString) : [];
       
@@ -115,6 +151,10 @@ const TrackJob = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    loadJobData();
   }, [jobId]);
 
   const getStatusMessage = (status: string) => {
@@ -177,6 +217,14 @@ const TrackJob = () => {
                 <p className="mt-4 text-sm text-muted-foreground">
                   {t.errorCheck}
                 </p>
+                <Button 
+                  onClick={loadJobData} 
+                  variant="outline"
+                  className="mt-4 flex items-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  {t.retry}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -193,7 +241,10 @@ const TrackJob = () => {
                   </p>
                 </div>
                 <Badge className={`${getStatusColor(job.status)} capitalize mt-2 sm:mt-0`}>
-                  {job.status.replace("-", " ")}
+                  {job.status === "in-progress" ? t.inProgress : 
+                   job.status === "on-hold" ? t.onHold :
+                   job.status === "completed" ? t.completed_status :
+                   t.pending}
                 </Badge>
               </div>
             </CardHeader>
@@ -210,7 +261,13 @@ const TrackJob = () => {
                 {job.dateCompleted ? (
                   <p><span className="font-medium">{t.dateCompleted}:</span> {job.dateCompleted}</p>
                 ) : (
-                  <p><span className="font-medium">{t.status}:</span> {job.status.replace("-", " ")}</p>
+                  <p>
+                    <span className="font-medium">{t.status}:</span> 
+                    {job.status === "in-progress" ? t.inProgress : 
+                     job.status === "on-hold" ? t.onHold :
+                     job.status === "completed" ? t.completed_status :
+                     t.pending}
+                  </p>
                 )}
               </div>
               
@@ -228,7 +285,7 @@ const TrackJob = () => {
                   <div className="space-y-4 relative before:absolute before:top-3 before:bottom-0 before:left-1.5 before:w-px before:bg-muted-foreground/20">
                     {job.notes && job.notes.map((note: any, index: number) => {
                       const date = new Date(note.timestamp);
-                      const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                      const formattedDate = `${date.toLocaleDateString(language === 'en' ? 'en-US' : 'ko-KR')} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                       
                       return (
                         <div key={index} className="pl-6 relative">

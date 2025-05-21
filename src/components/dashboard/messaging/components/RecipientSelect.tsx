@@ -12,6 +12,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 interface User {
   id: string;
@@ -27,6 +28,35 @@ interface RecipientSelectProps {
   replyToName?: string;
 }
 
+const translations = {
+  en: {
+    to: "To",
+    selectRecipient: "Select a recipient",
+    recipients: "Recipients",
+    replyingTo: "Replying to",
+    loading: "Loading recipients...",
+    errorLoadingRecipients: "Unable to load recipient list",
+    noRecipients: "No recipients found",
+    admin: "Admin",
+    support: "Support",
+    mechanic: "Mechanic",
+    customer: "Customer"
+  },
+  ko: {
+    to: "받는 사람",
+    selectRecipient: "수신자 선택",
+    recipients: "수신자 목록",
+    replyingTo: "회신 대상",
+    loading: "수신자 목록 로딩 중...",
+    errorLoadingRecipients: "수신자 목록을 로드할 수 없습니다",
+    noRecipients: "수신자를 찾을 수 없습니다",
+    admin: "관리자",
+    support: "지원팀",
+    mechanic: "정비사",
+    customer: "고객"
+  }
+};
+
 export const RecipientSelect = ({ 
   value, 
   onChange, 
@@ -36,6 +66,13 @@ export const RecipientSelect = ({
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const [language] = useLocalStorage("language", "en");
+  const t = translations[language as keyof typeof translations];
+
+  const translateRole = (role: string) => {
+    const roleKey = role.toLowerCase() as keyof typeof t;
+    return t[roleKey] || role;
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -52,8 +89,8 @@ export const RecipientSelect = ({
       } catch (error) {
         console.error('Error fetching users:', error);
         toast({
-          title: "Error loading recipients",
-          description: "Unable to load recipient list",
+          title: t.errorLoadingRecipients,
+          description: String(error),
           variant: "destructive"
         });
       } finally {
@@ -62,33 +99,44 @@ export const RecipientSelect = ({
     };
 
     fetchUsers();
-  }, [toast]);
+  }, [toast, language]);
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="recipient">To</Label>
+      <Label htmlFor="recipient">{t.to}</Label>
       <Select 
         value={value} 
         onValueChange={onChange}
         disabled={disabled || loading}
       >
-        <SelectTrigger>
-          <SelectValue placeholder="Select a recipient" />
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={t.selectRecipient} />
         </SelectTrigger>
         <SelectContent>
-          <SelectGroup>
-            <SelectLabel>Recipients</SelectLabel>
-            {users.map(user => (
-              <SelectItem key={user.id} value={user.id}>
-                {user.name} ({user.role})
-              </SelectItem>
-            ))}
-          </SelectGroup>
+          {loading ? (
+            <div className="py-2 px-2 text-center">
+              <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+              <p className="text-sm text-muted-foreground">{t.loading}</p>
+            </div>
+          ) : users.length > 0 ? (
+            <SelectGroup>
+              <SelectLabel>{t.recipients}</SelectLabel>
+              {users.map(user => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.name} ({translateRole(user.role)})
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          ) : (
+            <div className="py-2 px-2 text-center">
+              <p className="text-sm text-muted-foreground">{t.noRecipients}</p>
+            </div>
+          )}
         </SelectContent>
       </Select>
       {replyToName && (
         <div className="text-sm text-muted-foreground">
-          Replying to {replyToName}
+          {t.replyingTo} {replyToName}
         </div>
       )}
     </div>

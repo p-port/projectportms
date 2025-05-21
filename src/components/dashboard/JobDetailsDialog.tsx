@@ -25,12 +25,14 @@ export const JobDetailsDialog = ({
   onUpdateJob,
 }: JobDetailsDialogProps) => {
   const [activeTab, setActiveTab] = useState("details");
-  const [currentJob, setCurrentJob] = useState({ ...job });
+  const [currentJob, setCurrentJob] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
 
   // Update currentJob whenever job prop changes
   useEffect(() => {
-    setCurrentJob({ ...job });
+    if (job) {
+      setCurrentJob({ ...job });
+    }
   }, [job]);
 
   useEffect(() => {
@@ -46,6 +48,8 @@ export const JobDetailsDialog = ({
   }, []);
 
   const handleStatusChange = async (newStatus: string) => {
+    if (!currentJob) return;
+    
     const updatedJob = {
       ...currentJob,
       status: newStatus,
@@ -58,16 +62,26 @@ export const JobDetailsDialog = ({
     setCurrentJob(updatedJob);
     onUpdateJob(updatedJob);
     
-    // Update the job in localStorage
+    // Update the job in localStorage and Supabase if possible
     updateJobInLocalStorage(updatedJob);
     
-    // If user is authenticated, we could also update in Supabase here
-    // This is optional and depends on whether we want to sync jobs to the database
+    // If user is authenticated, update in Supabase
     if (user) {
       try {
-        // This is a placeholder for future Supabase integration
-        // const { error } = await supabase.from('jobs').upsert(updatedJob);
-        // if (error) throw error;
+        const { error } = await supabase.from('jobs').upsert({
+          job_id: updatedJob.id,
+          customer: updatedJob.customer,
+          motorcycle: updatedJob.motorcycle,
+          service_type: updatedJob.serviceType,
+          status: updatedJob.status,
+          date_created: updatedJob.dateCreated,
+          date_completed: updatedJob.dateCompleted,
+          notes: updatedJob.notes,
+          photos: updatedJob.photos,
+          user_id: user.id
+        });
+        
+        if (error) throw error;
       } catch (error) {
         console.error("Error updating job in database:", error);
       }
@@ -75,6 +89,9 @@ export const JobDetailsDialog = ({
     
     toast.success(`Job status updated to ${newStatus}`);
   };
+
+  // Don't render anything if job is not available
+  if (!currentJob) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
