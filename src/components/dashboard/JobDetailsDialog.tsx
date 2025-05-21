@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { NotesTab } from "./job-details/NotesTab";
 import { PhotosTab } from "./job-details/PhotosTab";
 import { QrCodeDisplay } from "./QrCodeDisplay";
 import { getStatusColor, updateJobInLocalStorage } from "./job-details/JobUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface JobDetailsDialogProps {
   job: any;
@@ -25,8 +26,21 @@ export const JobDetailsDialog = ({
 }: JobDetailsDialogProps) => {
   const [activeTab, setActiveTab] = useState("details");
   const [currentJob, setCurrentJob] = useState({ ...job });
+  const [user, setUser] = useState<any>(null);
 
-  const handleStatusChange = (newStatus: string) => {
+  useEffect(() => {
+    // Check for authenticated user
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        setUser(data.session.user);
+      }
+    };
+    
+    checkUser();
+  }, []);
+
+  const handleStatusChange = async (newStatus: string) => {
     const updatedJob = {
       ...currentJob,
       status: newStatus,
@@ -41,6 +55,18 @@ export const JobDetailsDialog = ({
     
     // Update the job in localStorage
     updateJobInLocalStorage(updatedJob);
+    
+    // If user is authenticated, we could also update in Supabase here
+    // This is optional and depends on whether we want to sync jobs to the database
+    if (user) {
+      try {
+        // This is a placeholder for future Supabase integration
+        // const { error } = await supabase.from('jobs').upsert(updatedJob);
+        // if (error) throw error;
+      } catch (error) {
+        console.error("Error updating job in database:", error);
+      }
+    }
     
     toast.success(`Job status updated to ${newStatus}`);
   };

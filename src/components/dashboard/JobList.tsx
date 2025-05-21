@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { JobDetailsDialog } from "./JobDetailsDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface JobListProps {
   jobs: any[];
@@ -22,6 +23,30 @@ interface JobListProps {
 export const JobList = ({ jobs, type, setJobs, allJobs }: JobListProps) => {
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Check for authenticated user
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        setUser(data.session.user);
+      }
+    };
+    
+    checkUser();
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
