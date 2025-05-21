@@ -115,6 +115,20 @@ export const DetailsTab = ({ currentJob }: DetailsTabProps) => {
             
             <span className="text-muted-foreground">{t.email}</span>
             <span>{currentJob.customer.email}</span>
+            
+            {currentJob.customer.englishName && (
+              <>
+                <span className="text-muted-foreground">{t.englishName}</span>
+                <span>{currentJob.customer.englishName}</span>
+              </>
+            )}
+            
+            {currentJob.customer.koreanName && (
+              <>
+                <span className="text-muted-foreground">{t.koreanName}</span>
+                <span>{currentJob.customer.koreanName}</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -132,20 +146,6 @@ export const DetailsTab = ({ currentJob }: DetailsTabProps) => {
             
             <span className="text-muted-foreground">{t.vin}</span>
             <span className="font-mono">{currentJob.motorcycle.vin}</span>
-
-            {currentJob.motorcycle.englishName && (
-              <>
-                <span className="text-muted-foreground">{t.englishName}</span>
-                <span>{currentJob.motorcycle.englishName}</span>
-              </>
-            )}
-            
-            {currentJob.motorcycle.koreanName && (
-              <>
-                <span className="text-muted-foreground">{t.koreanName}</span>
-                <span>{currentJob.motorcycle.koreanName}</span>
-              </>
-            )}
             
             {currentJob.motorcycle.mileage && (
               <>
