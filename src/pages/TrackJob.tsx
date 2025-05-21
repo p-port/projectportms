@@ -153,6 +153,28 @@ const TrackJob = () => {
     }
   };
 
+  // Listen for real-time updates to the job
+  useEffect(() => {
+    if (jobId) {
+      // Subscribe to changes on the specific job
+      const channel = supabase
+        .channel('public:jobs')
+        .on('postgres_changes', 
+            { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `job_id=eq.${jobId}` },
+            (payload) => {
+              console.log('Job updated:', payload);
+              loadJobData(); // Reload the job data when the job is updated
+            }
+        )
+        .subscribe();
+        
+      return () => {
+        // Unsubscribe when component unmounts
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [jobId]);
+
   useEffect(() => {
     loadJobData();
   }, [jobId]);

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NotesTabProps {
   currentJob: any;
@@ -18,12 +19,15 @@ export const NotesTab = ({
   updateJobInLocalStorage
 }: NotesTabProps) => {
   const [newNote, setNewNote] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!newNote.trim()) {
       toast.error("Note cannot be empty");
       return;
     }
+
+    setIsSubmitting(true);
 
     const updatedJob = {
       ...currentJob,
@@ -36,13 +40,31 @@ export const NotesTab = ({
       ],
     };
 
-    setNewNote("");
-    onUpdateJob(updatedJob);
-    
-    // Update the job in localStorage
-    updateJobInLocalStorage(updatedJob);
-    
-    toast.success("Note added successfully");
+    try {
+      // Update in Supabase if possible
+      const { data: session } = await supabase.auth.getSession();
+      if (session?.session?.user) {
+        const { error } = await supabase.from('jobs').update({
+          notes: updatedJob.notes
+        }).eq('job_id', currentJob.id);
+        
+        if (error) {
+          console.error("Error updating notes in Supabase:", error);
+          throw error;
+        }
+      }
+      
+      // Update locally
+      setNewNote("");
+      onUpdateJob(updatedJob);
+      updateJobInLocalStorage(updatedJob);
+      toast.success("Note added successfully");
+    } catch (error) {
+      console.error("Error adding note:", error);
+      toast.error("Failed to add note. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -57,8 +79,12 @@ export const NotesTab = ({
             onChange={(e) => setNewNote(e.target.value)}
             rows={3}
           />
-          <Button onClick={handleAddNote} className="self-end">
-            Add Note
+          <Button 
+            onClick={handleAddNote} 
+            className="self-end"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Adding..." : "Add Note"}
           </Button>
         </div>
 

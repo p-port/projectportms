@@ -92,11 +92,6 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "Logging in..." : "Login"}
       </Button>
-      <div className="text-sm text-center text-muted-foreground">
-        <p>Demo credentials:</p>
-        <p>Email: admin@projectport.com</p>
-        <p>Password: password123</p>
-      </div>
     </form>
   );
 };
