@@ -11,6 +11,21 @@ interface AuthFormProps {
   onLogin: (userData: any) => void;
 }
 
+// Sample user accounts for demo purposes
+// In a real app, these would be stored securely in a backend database
+const DEMO_USERS = [
+  {
+    email: "admin@projectport.com",
+    password: "password123",
+    name: "Admin User"
+  },
+  {
+    email: "mechanic@projectport.com",
+    password: "mechanic123",
+    name: "Mechanic User"
+  }
+];
+
 export const AuthForm = ({ onLogin }: AuthFormProps) => {
   const [activeTab, setActiveTab] = useState("login");
   const [loginData, setLoginData] = useState({ email: "", password: "" });
@@ -20,9 +35,12 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
     password: "",
     confirmPassword: ""
   });
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
+    // Clear any previous login error when the user starts typing
+    setLoginError(null);
   };
 
   const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,9 +56,18 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
       return;
     }
     
-    // In a real app, you would authenticate with your backend here
-    toast.success("Login successful!");
-    onLogin({ email: loginData.email, name: "Mechanic User" });
+    // Check against demo users
+    const user = DEMO_USERS.find(
+      user => user.email === loginData.email && user.password === loginData.password
+    );
+    
+    if (user) {
+      toast.success("Login successful!");
+      onLogin({ email: user.email, name: user.name });
+    } else {
+      setLoginError("Invalid email or password");
+      toast.error("Login failed. Please check your credentials.");
+    }
   };
 
   const handleSignup = (e: React.FormEvent) => {
@@ -57,10 +84,17 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
       return;
     }
     
-    // In a real app, you would register with your backend here
-    toast.success("Account created successfully!");
+    // Check if email already exists
+    if (DEMO_USERS.some(user => user.email === signupData.email)) {
+      toast.error("Email already registered");
+      return;
+    }
+    
+    // In a real app, we would register the user in a database
+    // For demo, we'll just show a success message and switch to login
+    toast.success("Account created successfully! Please login with your credentials.");
     setActiveTab("login");
-    setLoginData({ email: signupData.email, password: signupData.password });
+    setLoginData({ email: signupData.email, password: "" });
   };
 
   return (
@@ -104,8 +138,16 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
                     onChange={handleLoginChange}
                     required
                   />
+                  {loginError && (
+                    <p className="text-sm text-red-500 mt-1">{loginError}</p>
+                  )}
                 </div>
                 <Button type="submit" className="w-full">Login</Button>
+                <div className="text-sm text-center text-muted-foreground">
+                  <p>Demo credentials:</p>
+                  <p>Email: admin@projectport.com</p>
+                  <p>Password: password123</p>
+                </div>
               </form>
             </TabsContent>
             
