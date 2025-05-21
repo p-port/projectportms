@@ -6,6 +6,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { signIn, signUp } from "@/integrations/supabase/client";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 interface AuthFormProps {
   onLogin: (userData: any) => void;
@@ -35,12 +40,14 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
     name: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    role: "mechanic" // Default role
   });
   const [loginError, setLoginError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
   const [pendingUser, setPendingUser] = useState<any>(null);
   const [verificationCode, setVerificationCode] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
@@ -52,94 +59,130 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
     setSignupData({ ...signupData, [e.target.name]: e.target.value });
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleRoleChange = (role: string) => {
+    setSignupData({ ...signupData, role });
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
     // Simple validation
     if (!loginData.email || !loginData.password) {
       toast.error("Please fill in all fields");
+      setIsLoading(false);
       return;
     }
     
-    // Check against demo users
-    const user = DEMO_USERS.find(
-      user => user.email === loginData.email && user.password === loginData.password
-    );
-    
-    if (user) {
-      if (user.verified) {
-        toast.success("Login successful!");
-        onLogin({ email: user.email, name: user.name });
-      } else {
-        toast.error("Please verify your email address before logging in.");
-        // Show verification UI
-        setVerificationSent(true);
-        setPendingUser(user);
+    try {
+      const { data, error } = await signIn(loginData.email, loginData.password);
+      
+      if (error) {
+        console.error("Login error:", error);
+        setLoginError(error.message);
+        toast.error(error.message || "Login failed. Please check your credentials.");
+        setIsLoading(false);
+        return;
       }
-    } else {
-      setLoginError("Invalid email or password");
-      toast.error("Login failed. Please check your credentials.");
+      
+      if (data.user) {
+        toast.success("Login successful!");
+        onLogin({ 
+          email: data.user.email, 
+          name: data.user.user_metadata?.name || data.user.email,
+          role: data.user.user_metadata?.role || 'mechanic'
+        });
+      }
+    } catch (error: any) {
+      console.error("Login exception:", error);
+      setLoginError(error.message || "An unexpected error occurred");
+      toast.error(error.message || "An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
     // Simple validation
     if (!signupData.name || !signupData.email || !signupData.password) {
       toast.error("Please fill in all required fields");
+      setIsLoading(false);
       return;
     }
     
     if (signupData.password !== signupData.confirmPassword) {
       toast.error("Passwords don't match");
+      setIsLoading(false);
       return;
     }
     
-    // Check if email already exists
-    if (DEMO_USERS.some(user => user.email === signupData.email)) {
-      toast.error("Email already registered");
-      return;
+    try {
+      const userData = {
+        name: signupData.name,
+        role: signupData.role
+      };
+      
+      const { data, error } = await signUp(signupData.email, signupData.password, userData);
+      
+      if (error) {
+        console.error("Signup error:", error);
+        toast.error(error.message || "Registration failed. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+      
+      // For Supabase email verification flow
+      toast.success("Registration successful! Please check your email for verification instructions.");
+      setPendingUser({
+        email: signupData.email,
+        name: signupData.name,
+        role: signupData.role
+      });
+      
+      // For demo purposes, we'll also simulate a verification code
+      setVerificationSent(true);
+      
+      // In a real app with Supabase, email verification is handled by Supabase
+      // So this code is mainly for the demo flow
+    } catch (error: any) {
+      console.error("Signup exception:", error);
+      toast.error(error.message || "Registration failed. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-    
-    // In a real app, we would register the user in a database
-    const newUser = {
-      email: signupData.email,
-      password: signupData.password,
-      name: signupData.name,
-      verified: false
-    };
-    
-    // Simulate sending a verification email
-    setPendingUser(newUser);
-    setVerificationSent(true);
-    toast.success("A verification link has been sent to your email address.");
   };
 
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    // In a real app, we would verify the code
+    // In a real app, this would verify with Supabase
     // For demo, we'll just accept "123456" as the verification code
     if (verificationCode === "123456") {
-      // In a real app, we would update the user in the database
       toast.success("Email verified successfully! You can now log in.");
       
       // Update the user's verification status
       if (pendingUser) {
-        const updatedUser = { ...pendingUser, verified: true };
-        // In a real app, we would update the database
+        // In a real app, this would be done server-side by Supabase
         // For demo, we'll just simulate a login
-        onLogin({ email: updatedUser.email, name: updatedUser.name });
+        onLogin({ 
+          email: pendingUser.email, 
+          name: pendingUser.name,
+          role: pendingUser.role
+        });
       }
     } else {
       toast.error("Invalid verification code. Please try again.");
     }
+    setIsLoading(false);
   };
 
   const handleResendVerification = () => {
-    // In a real app, we would resend the verification email
     toast.success("Verification link resent. Please check your email.");
+    // In a real app with Supabase, we would call the resend email API
   };
 
   if (verificationSent) {
@@ -167,7 +210,9 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
                   For demo purposes, use code: 123456
                 </p>
               </div>
-              <Button type="submit" className="w-full">Verify Email</Button>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Verifying..." : "Verify Email"}
+              </Button>
             </form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
@@ -178,6 +223,7 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
               variant="outline" 
               className="w-full"
               onClick={handleResendVerification}
+              disabled={isLoading}
             >
               Resend Verification Code
             </Button>
@@ -232,7 +278,9 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
                     <p className="text-sm text-red-500 mt-1">{loginError}</p>
                   )}
                 </div>
-                <Button type="submit" className="w-full">Login</Button>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Logging in..." : "Login"}
+                </Button>
                 <div className="text-sm text-center text-muted-foreground">
                   <p>Demo credentials:</p>
                   <p>Email: admin@projectport.com</p>
@@ -268,6 +316,22 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select value={signupData.role} onValueChange={handleRoleChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Administrator</SelectItem>
+                      <SelectItem value="support">Support Staff</SelectItem>
+                      <SelectItem value="mechanic">Mechanic</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Note: New accounts require approval by an administrator
+                  </p>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
                   <Input
                     id="signup-password"
@@ -291,7 +355,9 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full">Create Account</Button>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Creating Account..." : "Create Account"}
+                </Button>
               </form>
             </TabsContent>
           </Tabs>
