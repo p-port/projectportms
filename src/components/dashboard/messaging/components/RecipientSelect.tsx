@@ -82,7 +82,7 @@ export const RecipientSelect = ({
   const t = translations[language as keyof typeof translations];
 
   const translateRole = (role: string) => {
-    const roleKey = role.toLowerCase() as keyof typeof t;
+    const roleKey = role?.toLowerCase() as keyof typeof t;
     return t[roleKey] || role;
   };
 
@@ -97,7 +97,8 @@ export const RecipientSelect = ({
 
         if (error) throw error;
         
-        setUsers(data || []); // Ensure users is always an array, even when data is null
+        // Always ensure users is an array
+        setUsers(Array.isArray(data) ? data : []); 
       } catch (error) {
         console.error('Error fetching users:', error);
         toast({
@@ -116,19 +117,20 @@ export const RecipientSelect = ({
 
   // Filter users based on search query
   const filteredUsers = useMemo(() => {
-    if (!users || users.length === 0) return []; // Ensure we always return an array
+    // Always return an array
+    if (!Array.isArray(users) || users.length === 0) return []; 
     if (!searchQuery) return users;
     
     const query = searchQuery.toLowerCase();
     return users.filter(user => 
-      user.name?.toLowerCase().includes(query) || 
-      user.email?.toLowerCase().includes(query)
+      (user.name && user.name.toLowerCase().includes(query)) || 
+      (user.email && user.email.toLowerCase().includes(query))
     );
   }, [users, searchQuery]);
 
   // Find selected user to display their name
   const selectedUser = useMemo(() => {
-    if (!users || !value) return null;
+    if (!Array.isArray(users) || users.length === 0 || !value) return null;
     return users.find(user => user.id === value);
   }, [users, value]);
 
@@ -167,7 +169,8 @@ export const RecipientSelect = ({
             ) : (
               <>
                 <CommandEmpty>{t.noRecipients}</CommandEmpty>
-                {filteredUsers.length > 0 && (
+                {/* Only render CommandGroup when there are actually items to show */}
+                {Array.isArray(filteredUsers) && filteredUsers.length > 0 && (
                   <CommandGroup heading={t.recipients}>
                     {filteredUsers.map(user => (
                       <CommandItem
@@ -184,14 +187,14 @@ export const RecipientSelect = ({
                             "mr-2",
                             user.id === value && "font-bold"
                           )}>
-                            {user.name}
+                            {user.name || "Unknown"}
                           </span>
                           <span className="text-sm text-muted-foreground">
-                            ({user.email})
+                            ({user.email || "No email"})
                           </span>
                         </div>
                         <span className="text-xs bg-muted px-2 py-1 rounded">
-                          {translateRole(user.role)}
+                          {translateRole(user.role || "user")}
                         </span>
                       </CommandItem>
                     ))}
