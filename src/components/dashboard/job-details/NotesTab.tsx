@@ -5,6 +5,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Trash2 } from "lucide-react";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface NotesTabProps {
   currentJob: any;
@@ -29,7 +40,14 @@ const notesTranslations = {
     completed: "Completed",
     noteEmpty: "Note cannot be empty",
     noteAdded: "Note added successfully",
-    noteFailed: "Failed to add note. Please try again."
+    noteFailed: "Failed to add note. Please try again.",
+    deleteNote: "Delete note",
+    deleteConfirmTitle: "Delete Note",
+    deleteConfirmDescription: "Are you sure you want to delete this note? This action cannot be undone.",
+    cancel: "Cancel",
+    delete: "Delete",
+    noteDeleted: "Note deleted successfully",
+    deleteNoteFailed: "Failed to delete note. Please try again."
   },
   ko: {
     jobNotes: "작업 노트",
@@ -45,7 +63,14 @@ const notesTranslations = {
     completed: "완료됨",
     noteEmpty: "노트는 비워둘 수 없습니다",
     noteAdded: "노트가 성공적으로 추가되었습니다",
-    noteFailed: "노트 추가에 실패했습니다. 다시 시도해 주세요."
+    noteFailed: "노트 추가에 실패했습니다. 다시 시도해 주세요.",
+    deleteNote: "노트 삭제",
+    deleteConfirmTitle: "노트 삭제",
+    deleteConfirmDescription: "이 노트를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+    cancel: "취소",
+    delete: "삭제",
+    noteDeleted: "노트가 성공적으로 삭제되었습니다",
+    deleteNoteFailed: "노트 삭제에 실패했습니다. 다시 시도해 주세요."
   },
   ru: {
     jobNotes: "Заметки о заказе",
@@ -61,7 +86,14 @@ const notesTranslations = {
     completed: "Завершено",
     noteEmpty: "Заметка не может быть пустой",
     noteAdded: "Заметка успешно добавлена",
-    noteFailed: "Не удалось добавить заметку. Пожалуйста, попробуйте снова."
+    noteFailed: "Не удалось добавить заметку. Пожалуйста, попробуйте снова.",
+    deleteNote: "Удалить заметку",
+    deleteConfirmTitle: "Удалить заметку",
+    deleteConfirmDescription: "Вы уверены, что хотите удалить эту заметку? Это действие нельзя отменить.",
+    cancel: "Отмена",
+    delete: "Удалить",
+    noteDeleted: "Заметка успешно удалена",
+    deleteNoteFailed: "Не удалось удалить заметку. Пожалуйста, попробуйте снова."
   }
 };
 
@@ -74,6 +106,7 @@ export const NotesTab = ({
   const [newNote, setNewNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [language] = useLocalStorage("language", "en");
+  const [noteToDelete, setNoteToDelete] = useState<{ index: number; text: string } | null>(null);
   
   const t = notesTranslations[language as keyof typeof notesTranslations];
 
@@ -132,6 +165,44 @@ export const NotesTab = ({
     }
   };
 
+  const handleDeleteNote = async () => {
+    if (noteToDelete === null) return;
+
+    try {
+      // Create a copy of the notes array without the deleted note
+      const updatedNotes = [...currentJob.notes];
+      updatedNotes.splice(noteToDelete.index, 1);
+
+      const updatedJob = {
+        ...currentJob,
+        notes: updatedNotes,
+      };
+
+      // Update in Supabase if possible
+      const { data: session } = await supabase.auth.getSession();
+      if (session?.session?.user) {
+        const { error } = await supabase.from('jobs').update({
+          notes: updatedNotes
+        }).eq('job_id', currentJob.id);
+        
+        if (error) {
+          console.error("Error deleting note in Supabase:", error);
+          throw error;
+        }
+      }
+
+      // Update locally
+      onUpdateJob(updatedJob);
+      updateJobInLocalStorage(updatedJob);
+      toast.success(t.noteDeleted);
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      toast.error(t.deleteNoteFailed);
+    } finally {
+      setNoteToDelete(null);
+    }
+  };
+
   return (
     <div className="space-y-4 mt-4">
       <div className="flex flex-col gap-4">
@@ -175,7 +246,18 @@ export const NotesTab = ({
                 
                 return (
                   <div key={index} className="bg-muted p-3 rounded-md">
-                    <p className="text-sm">{displayText}</p>
+                    <div className="flex justify-between">
+                      <p className="text-sm">{displayText}</p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="text-red-500 h-6 w-6 p-0"
+                        onClick={() => setNoteToDelete({ index, text: displayText })}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">{t.deleteNote}</span>
+                      </Button>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       {formattedDate}
                     </p>
@@ -223,6 +305,25 @@ export const NotesTab = ({
           </Button>
         </div>
       </div>
+
+      {/* Delete Note Confirmation Dialog */}
+      <AlertDialog open={noteToDelete !== null} onOpenChange={(open) => !open && setNoteToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.deleteConfirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{t.deleteConfirmDescription}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteNote}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {t.delete}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
