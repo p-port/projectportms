@@ -40,13 +40,18 @@ export const Layout = ({ children }: LayoutProps) => {
 
   const t = layoutTranslations[language as keyof typeof layoutTranslations];
   
+  // Set logo based on theme
+  const logoSrc = theme === "dark" 
+    ? "/lovable-uploads/28dd3615-eb59-4a33-ae85-3a1e81c82540.png" 
+    : "/lovable-uploads/263071da-5dd5-4f23-9074-ff28f3a3408f.png";
+  
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-secondary shadow-md">
         <div className="container mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-2">
           <div className="flex items-center">
             <img 
-              src="/lovable-uploads/28dd3615-eb59-4a33-ae85-3a1e81c82540.png" 
+              src={logoSrc} 
               alt="Project Port Logo" 
               className="h-8 w-auto mr-2"
             />
@@ -71,7 +76,7 @@ export const Layout = ({ children }: LayoutProps) => {
         <div className="container mx-auto px-4 text-center text-sm">
           <div className="flex justify-center items-center mb-2">
             <img 
-              src="/lovable-uploads/28dd3615-eb59-4a33-ae85-3a1e81c82540.png" 
+              src={logoSrc} 
               alt="Project Port Logo" 
               className="h-6 w-auto mr-2"
             />
