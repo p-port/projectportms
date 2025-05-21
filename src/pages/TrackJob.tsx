@@ -286,6 +286,21 @@ const TrackJob = () => {
     }));
   };
 
+  const translateStatus = (status: string) => {
+    switch (status) {
+      case "pending":
+        return t.pending;
+      case "in-progress":
+        return t.inProgress;
+      case "on-hold":
+        return t.onHold;
+      case "completed":
+        return t.completed_status;
+      default:
+        return "";
+    }
+  };
+
   return (
     <Layout>
       <div className="max-w-2xl mx-auto">
