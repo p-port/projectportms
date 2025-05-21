@@ -165,17 +165,20 @@ const TrackJob = () => {
         const supabaseJob = supabaseJobs[0];
         console.log("Found job in Supabase:", supabaseJob);
         
-        // Extract initialCost and finalCost from the job data
+        // Extract initialCost and finalCost from the notes
         let initialCost = null;
         let finalCost = null;
         
-        // Check if notes contains cost information
-        if (supabaseJob.notes && typeof supabaseJob.notes === 'object') {
-          if ('initialCost' in supabaseJob.notes) {
-            initialCost = supabaseJob.notes.initialCost;
-          }
-          if ('finalCost' in supabaseJob.notes) {
-            finalCost = supabaseJob.notes.finalCost;
+        // Check notes for cost information
+        if (supabaseJob.notes && Array.isArray(supabaseJob.notes)) {
+          // Look through notes for cost information
+          for (const note of supabaseJob.notes) {
+            if (note.text && note.text.includes('Initial cost estimate set to:')) {
+              initialCost = note.text.split('Initial cost estimate set to:')[1].trim();
+            }
+            if (note.text && note.text.includes('Final cost updated to:')) {
+              finalCost = note.text.split('Final cost updated to:')[1].trim();
+            }
           }
         }
         
