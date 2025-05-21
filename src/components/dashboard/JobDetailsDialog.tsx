@@ -153,6 +153,14 @@ export const JobDetailsDialog = ({
       status: newStatus,
     };
 
+    // Add initial cost note when job changes to in-progress
+    if (newStatus === "in-progress" && currentJob.initialCost) {
+      const initialCostNote = addInitialCostNote(currentJob);
+      if (initialCostNote) {
+        updatedJob.notes = [...currentJob.notes, initialCostNote];
+      }
+    }
+
     if (newStatus === "completed" && !currentJob.dateCompleted) {
       updatedJob.dateCompleted = new Date().toISOString().split("T")[0];
     }
@@ -165,7 +173,8 @@ export const JobDetailsDialog = ({
         // Here we need to ensure we're using the correct column names for Supabase
         const { error } = await supabase.from('jobs').update({
           status: newStatus,
-          date_completed: updatedJob.dateCompleted
+          date_completed: updatedJob.dateCompleted,
+          notes: updatedJob.notes
         }).eq('job_id', updatedJob.id);
         
         if (error) {
@@ -195,10 +204,7 @@ export const JobDetailsDialog = ({
     }
     
     // Create a note about the final cost update
-    const finalCostNote = {
-      text: `Final cost updated to: ${finalCost}`,
-      timestamp: new Date().toISOString()
-    };
+    const finalCostNote = addFinalCostNote(finalCost);
     
     const updatedJob = {
       ...currentJob,
@@ -212,12 +218,8 @@ export const JobDetailsDialog = ({
     try {
       // Update in Supabase if user is authenticated
       if (user) {
-        // Store the final cost in the notes object since there's no dedicated column for it
-        const notes = updatedJob.notes || {};
-        
         const { error } = await supabase.from('jobs').update({
           notes: updatedJob.notes,
-          // Add the finalCost to a field that can be queried
           finalCost: finalCost
         }).eq('job_id', updatedJob.id);
         

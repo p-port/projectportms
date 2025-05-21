@@ -133,3 +133,22 @@ export const canCompleteJob = (job: any): { valid: boolean; message?: string } =
   
   return { valid: true };
 };
+
+// Create a note for initial cost estimate when job status changes to in-progress
+export const addInitialCostNote = (job: any) => {
+  if (job.initialCost) {
+    return {
+      text: `Initial cost estimate set to: ${job.initialCost}`,
+      timestamp: new Date().toISOString()
+    };
+  }
+  return null;
+};
+
+// Create a note for final cost update
+export const addFinalCostNote = (finalCost: string) => {
+  return {
+    text: `Final cost updated to: ${finalCost}`,
+    timestamp: new Date().toISOString()
+  };
+};
