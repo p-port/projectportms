@@ -52,22 +52,28 @@ export const updateJobInLocalStorage = async (job: any) => {
     // Check if the user is authenticated
     const { data } = await supabase.auth.getSession();
     if (data.session?.user) {
-      // Prepare notes object to include final cost if needed
-      const notes = job.notes || {};
-      if (job.finalCost) {
-        notes.finalCost = job.finalCost;
-      }
-      
-      // Sync job data to Supabase with the correct column names
-      const { error } = await supabase.from('jobs').update({
+      // Prepare update data for Supabase
+      const updateData = {
         customer: job.customer,
         motorcycle: job.motorcycle,
         service_type: job.serviceType,
         status: job.status,
         date_completed: job.dateCompleted,
-        notes: notes,
+        notes: job.notes,
         photos: job.photos
-      }).eq('job_id', job.id);
+      };
+      
+      // Add initialCost and finalCost if they exist
+      if (job.initialCost) {
+        updateData.initialCost = job.initialCost;
+      }
+      
+      if (job.finalCost) {
+        updateData.finalCost = job.finalCost;
+      }
+      
+      // Sync job data to Supabase with the correct column names
+      const { error } = await supabase.from('jobs').update(updateData).eq('job_id', job.id);
       
       if (error) {
         console.error("Error syncing job to Supabase:", error);

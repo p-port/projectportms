@@ -194,9 +194,16 @@ export const JobDetailsDialog = ({
       return;
     }
     
+    // Create a note about the final cost update
+    const finalCostNote = {
+      text: `Final cost updated to: ${finalCost}`,
+      timestamp: new Date().toISOString()
+    };
+    
     const updatedJob = {
       ...currentJob,
-      finalCost: finalCost
+      finalCost: finalCost,
+      notes: [...currentJob.notes, finalCostNote]
     };
     
     // Update the job with final cost
@@ -209,7 +216,9 @@ export const JobDetailsDialog = ({
         const notes = updatedJob.notes || {};
         
         const { error } = await supabase.from('jobs').update({
-          notes: { ...notes, finalCost: finalCost }
+          notes: updatedJob.notes,
+          // Add the finalCost to a field that can be queried
+          finalCost: finalCost
         }).eq('job_id', updatedJob.id);
         
         if (error) {
