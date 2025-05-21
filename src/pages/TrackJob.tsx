@@ -94,6 +94,8 @@ const TrackJob = () => {
     setError(null);
     
     try {
+      console.log("Looking up job with ID:", jobId);
+      
       // First try to get job from Supabase
       const { data: supabaseJobs, error: supabaseError } = await supabase
         .from('jobs')
@@ -105,6 +107,8 @@ const TrackJob = () => {
       if (supabaseJobs && supabaseJobs.length > 0) {
         // Format the job from Supabase
         const supabaseJob = supabaseJobs[0];
+        console.log("Found job in Supabase:", supabaseJob);
+        
         const formattedJob = {
           id: supabaseJob.job_id,
           customer: supabaseJob.customer,
@@ -126,23 +130,24 @@ const TrackJob = () => {
       const storedJobsString = localStorage.getItem('projectPortJobs');
       const jobs = storedJobsString ? JSON.parse(storedJobsString) : [];
       
-      console.log("Looking for job with ID:", jobId);
-      console.log("Available jobs:", jobs);
+      console.log("Available jobs in localStorage:", jobs);
       
-      // Find the job with the matching ID - use case-insensitive matching and check for encoded URLs
-      const decodedJobId = decodeURIComponent(jobId || "");
-      const foundJob = jobs.find((job: any) => 
-        job.id === jobId || 
-        job.id === decodedJobId ||
-        job.id.toLowerCase() === decodedJobId.toLowerCase()
-      );
+      // Try to find the job with exact match first
+      let foundJob = jobs.find((job: any) => job.id === jobId);
+      
+      // If not found with exact match, try case-insensitive match
+      if (!foundJob) {
+        foundJob = jobs.find((job: any) => 
+          job.id.toLowerCase() === jobId.toLowerCase()
+        );
+      }
       
       if (foundJob) {
-        console.log("Found job:", foundJob);
+        console.log("Found job in localStorage:", foundJob);
         setJob(foundJob);
         setError(null);
       } else {
-        console.log("Job not found");
+        console.log("Job not found in localStorage or Supabase");
         setError(`No job found with ID: ${jobId}`);
       }
     } catch (err) {
@@ -156,13 +161,15 @@ const TrackJob = () => {
   // Listen for real-time updates to the job
   useEffect(() => {
     if (jobId) {
+      console.log("Setting up real-time subscription for job ID:", jobId);
+      
       // Subscribe to changes on the specific job
       const channel = supabase
         .channel('public:jobs')
         .on('postgres_changes', 
             { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `job_id=eq.${jobId}` },
             (payload) => {
-              console.log('Job updated:', payload);
+              console.log('Real-time update received:', payload);
               loadJobData(); // Reload the job data when the job is updated
             }
         )
@@ -171,6 +178,7 @@ const TrackJob = () => {
       return () => {
         // Unsubscribe when component unmounts
         supabase.removeChannel(channel);
+        console.log("Removed real-time subscription for job ID:", jobId);
       };
     }
   }, [jobId]);

@@ -59,35 +59,33 @@ export const JobDetailsDialog = ({
       updatedJob.dateCompleted = new Date().toISOString().split("T")[0];
     }
 
-    setCurrentJob(updatedJob);
-    onUpdateJob(updatedJob);
-    
-    // Update the job in localStorage and Supabase if possible
-    updateJobInLocalStorage(updatedJob);
-    
-    // If user is authenticated, update in Supabase
-    if (user) {
-      try {
-        const { error } = await supabase.from('jobs').upsert({
-          job_id: updatedJob.id,
-          customer: updatedJob.customer,
-          motorcycle: updatedJob.motorcycle,
-          service_type: updatedJob.serviceType,
-          status: updatedJob.status,
-          date_created: updatedJob.dateCreated,
-          date_completed: updatedJob.dateCompleted,
-          notes: updatedJob.notes,
-          photos: updatedJob.photos,
-          user_id: user.id
-        });
+    try {
+      // If user is authenticated, update in Supabase first
+      if (user) {
+        console.log("Updating job status in Supabase:", updatedJob.id, newStatus);
+        const { error } = await supabase.from('jobs').update({
+          status: newStatus,
+          date_completed: updatedJob.dateCompleted
+        }).eq('job_id', updatedJob.id);
         
-        if (error) throw error;
-      } catch (error) {
-        console.error("Error updating job in database:", error);
+        if (error) {
+          console.error("Error updating job status in Supabase:", error);
+          throw error;
+        }
       }
+      
+      // Update the job locally
+      setCurrentJob(updatedJob);
+      onUpdateJob(updatedJob);
+      
+      // Update the job in localStorage
+      updateJobInLocalStorage(updatedJob);
+      
+      toast.success(`Job status updated to ${newStatus}`);
+    } catch (error) {
+      console.error("Error updating job status:", error);
+      toast.error("Failed to update job status. Please try again.");
     }
-    
-    toast.success(`Job status updated to ${newStatus}`);
   };
 
   // Don't render anything if job is not available
