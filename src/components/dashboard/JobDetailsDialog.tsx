@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -205,8 +206,10 @@ export const JobDetailsDialog = ({
       // Update in Supabase if user is authenticated
       if (user) {
         // Store the final cost in the notes object since there's no dedicated column for it
+        const notes = updatedJob.notes || {};
+        
         const { error } = await supabase.from('jobs').update({
-          notes: { ...updatedJob.notes, finalCost: finalCost }
+          notes: { ...notes, finalCost: finalCost }
         }).eq('job_id', updatedJob.id);
         
         if (error) {
