@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, User, MotorcycleBattery, Ticket } from "lucide-react";
+import { Search, User, Battery, Ticket } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -120,7 +120,7 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                   Customers
                 </TabsTrigger>
                 <TabsTrigger value="motorcycle">
-                  <MotorcycleBattery className="mr-2 h-4 w-4" />
+                  <Battery className="mr-2 h-4 w-4" />
                   Motorcycles
                 </TabsTrigger>
                 <TabsTrigger value="job">
