@@ -4,7 +4,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, Clock, Globe, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
+import { Check, Clock, Globe, ArrowLeft, ArrowRight, RefreshCw, Image, DollarSign } from "lucide-react";
 import { getStatusColor } from "@/components/dashboard/job-details/JobUtils";
 import { Button } from "@/components/ui/button";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -45,7 +45,11 @@ const translations = {
     switchToEnglish: "Switch to English",
     initialCost: "Initial Cost",
     finalCost: "Final Cost",
-    costEstimate: "Cost Estimate"
+    costEstimate: "Cost Estimate",
+    startPhotos: "Initial Service Photos",
+    completionPhotos: "Completion Photos",
+    noPhotos: "No photos available",
+    viewLarger: "View larger"
   },
   ko: {
     title: "프로젝트 포트 - 서비스 상태 추적기",
@@ -72,7 +76,11 @@ const translations = {
     switchToEnglish: "영어로 전환",
     initialCost: "초기 견적",
     finalCost: "최종 비용",
-    costEstimate: "비용 견적"
+    costEstimate: "비용 견적",
+    startPhotos: "초기 서비스 사진",
+    completionPhotos: "완료 사진",
+    noPhotos: "사진이 없습니다",
+    viewLarger: "크게 보기"
   },
   ru: {
     title: "Проект Порт - Отслеживание статуса услуги",
@@ -90,7 +98,7 @@ const translations = {
     readyPickup: "Ваш мотоцикл готов к выдаче",
     switchLanguage: "Сменить язык",
     pending: "Ваш мотоцикл в очереди и ожидает обслуживания.",
-    inProgress: "Наши механики сейчас работают над вашим мотоциклом.",
+    inProgress: "Наши механики сейчас работают над вашим мotoциклом.",
     onHold: "Работа над вашим мотоциклом временно приостановлена. Мы скоро продолжим.",
     completed_status: "Хорошие новости! Обслуживание вашего мотоцикла завершено, и он готов к выдаче.",
     retry: "Повторить",
@@ -99,7 +107,11 @@ const translations = {
     switchToEnglish: "Переключиться на английский",
     initialCost: "Начальная стоимость",
     finalCost: "Итоговая стоимость",
-    costEstimate: "Оценка стоимости"
+    costEstimate: "Оценка стоимости",
+    startPhotos: "Начальные фотографии",
+    completionPhotos: "Фотографии завершения",
+    noPhotos: "Нет доступных фотографий",
+    viewLarger: "Увеличить"
   }
 };
 
@@ -110,6 +122,7 @@ const TrackJob = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useLocalStorage("language", "en");
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const t = translations[language as keyof typeof translations];
@@ -263,8 +276,6 @@ const TrackJob = () => {
 
   // Translate notes based on selected language
   const translateNotes = (notes: any[]) => {
-    // For real translation, you would use an API like Google Translate
-    // This is a simple mock implementation for demonstration
     if (!notes) return [];
     
     return notes.map(note => ({
@@ -357,7 +368,7 @@ const TrackJob = () => {
               </div>
             </CardHeader>
             
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="bg-muted p-4 rounded-md">
                 <p>{getStatusMessage(job.status)}</p>
               </div>
@@ -378,17 +389,98 @@ const TrackJob = () => {
                   </p>
                 )}
                 
-                {job.initialCost && (
-                  <p><span className="font-medium">{t.initialCost}:</span> {job.initialCost}</p>
-                )}
-                
-                {job.finalCost && (
-                  <p><span className="font-medium">{t.finalCost}:</span> {job.finalCost}</p>
-                )}
-                {!job.finalCost && job.initialCost && job.status !== "completed" && (
-                  <p><span className="font-medium">{t.costEstimate}:</span> {job.initialCost}</p>
-                )}
+                {/* Cost Information */}
+                <div className="pt-2">
+                  {job.initialCost && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">{t.initialCost}:</span> {job.initialCost}
+                    </div>
+                  )}
+                  
+                  {job.finalCost && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <DollarSign className="h-4 w-4 text-green-500" />
+                      <span className="font-medium">{t.finalCost}:</span> {job.finalCost}
+                    </div>
+                  )}
+                  
+                  {!job.finalCost && job.initialCost && job.status !== "completed" && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <DollarSign className="h-4 w-4 text-yellow-500" />
+                      <span className="font-medium">{t.costEstimate}:</span> {job.initialCost}
+                    </div>
+                  )}
+                </div>
               </div>
+              
+              {/* Service Photos */}
+              {((job.photos?.start && job.photos.start.length > 0) || 
+                (job.photos?.completion && job.photos.completion.length > 0)) && (
+                <div className="space-y-4">
+                  <Separator />
+                  
+                  {/* Start Photos */}
+                  {job.photos?.start && job.photos.start.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium flex items-center gap-2">
+                        <Image className="h-4 w-4" />
+                        {t.startPhotos}
+                      </h3>
+                      <div className="grid grid-cols-3 gap-2">
+                        {job.photos.start.slice(0, 6).map((photo: string, index: number) => (
+                          <div 
+                            key={`start-${index}`} 
+                            className="aspect-square bg-muted rounded-md overflow-hidden relative cursor-pointer"
+                            onClick={() => setSelectedPhoto(photo)}
+                          >
+                            <img 
+                              src={photo}
+                              alt={`Service start photo ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      {job.photos.start.length > 6 && (
+                        <p className="text-sm text-muted-foreground text-center">
+                          +{job.photos.start.length - 6} more photos
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Completion Photos */}
+                  {job.photos?.completion && job.photos.completion.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium flex items-center gap-2">
+                        <Check className="h-4 w-4" />
+                        {t.completionPhotos}
+                      </h3>
+                      <div className="grid grid-cols-3 gap-2">
+                        {job.photos.completion.slice(0, 6).map((photo: string, index: number) => (
+                          <div 
+                            key={`completion-${index}`} 
+                            className="aspect-square bg-muted rounded-md overflow-hidden relative cursor-pointer"
+                            onClick={() => setSelectedPhoto(photo)}
+                          >
+                            <img 
+                              src={photo}
+                              alt={`Service completion photo ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      {job.photos.completion.length > 6 && (
+                        <p className="text-sm text-muted-foreground text-center">
+                          +{job.photos.completion.length - 6} more photos
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               
               <Separator className="my-4" />
               
@@ -437,6 +529,31 @@ const TrackJob = () => {
               </div>
             </CardContent>
           </Card>
+        )}
+        
+        {/* Photo Modal */}
+        {selectedPhoto && (
+          <div 
+            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedPhoto(null)}
+          >
+            <div className="relative max-w-4xl max-h-[90vh] w-full">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white z-10"
+                onClick={() => setSelectedPhoto(null)}
+              >
+                &times;
+              </Button>
+              <img 
+                src={selectedPhoto} 
+                alt="Enlarged service photo"
+                className="w-full h-auto max-h-[90vh] object-contain"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
         )}
       </div>
     </Layout>
