@@ -30,11 +30,10 @@ interface NewJobFormProps {
 
 const formSchema = z.object({
   customer: z.object({
-    name: z.string().min(2, "Name is required"),
+    englishName: z.string().min(2, "English name is required"),
+    koreanName: z.string().optional(),
     phone: z.string().min(5, "Phone number is required"),
     email: z.string().email("Invalid email address"),
-    englishName: z.string().optional(),
-    koreanName: z.string().optional(),
   }),
   motorcycle: z.object({
     make: z.string().min(1, "Make is required"),
@@ -53,11 +52,10 @@ export const NewJobForm = ({ onSubmit }: NewJobFormProps) => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       customer: {
-        name: "",
-        phone: "",
-        email: "",
         englishName: "",
         koreanName: "",
+        phone: "",
+        email: "",
       },
       motorcycle: {
         make: "",
@@ -73,7 +71,16 @@ export const NewJobForm = ({ onSubmit }: NewJobFormProps) => {
   });
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    onSubmit(values);
+    // Create a name property derived from englishName for backward compatibility
+    const formattedValues = {
+      ...values,
+      customer: {
+        ...values.customer,
+        name: values.customer.englishName
+      }
+    };
+    
+    onSubmit(formattedValues);
     form.reset();
     toast.success("New job created successfully");
   };
@@ -89,19 +96,35 @@ export const NewJobForm = ({ onSubmit }: NewJobFormProps) => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="customer.name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Customer Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Smith" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="customer.englishName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>English Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Smith" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="customer.koreanName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Korean Name (한글 이름)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="한글 이름" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
@@ -130,36 +153,6 @@ export const NewJobForm = ({ onSubmit }: NewJobFormProps) => {
                         type="email"
                         {...field}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="customer.englishName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>English Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="English Name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="customer.koreanName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Korean Name (한글 이름)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="한글 이름" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

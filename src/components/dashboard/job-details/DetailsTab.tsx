@@ -107,15 +107,6 @@ export const DetailsTab = ({ currentJob }: DetailsTabProps) => {
         <div className="space-y-4">
           <h3 className="text-lg font-medium">{t.customerInfo}</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted-foreground">{t.name}</span>
-            <span>{currentJob.customer.name}</span>
-            
-            <span className="text-muted-foreground">{t.phone}</span>
-            <span>{currentJob.customer.phone}</span>
-            
-            <span className="text-muted-foreground">{t.email}</span>
-            <span>{currentJob.customer.email}</span>
-            
             {currentJob.customer.englishName && (
               <>
                 <span className="text-muted-foreground">{t.englishName}</span>
@@ -129,6 +120,12 @@ export const DetailsTab = ({ currentJob }: DetailsTabProps) => {
                 <span>{currentJob.customer.koreanName}</span>
               </>
             )}
+            
+            <span className="text-muted-foreground">{t.phone}</span>
+            <span>{currentJob.customer.phone}</span>
+            
+            <span className="text-muted-foreground">{t.email}</span>
+            <span>{currentJob.customer.email}</span>
           </div>
         </div>
 
