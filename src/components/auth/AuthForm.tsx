@@ -17,12 +17,14 @@ const DEMO_USERS = [
   {
     email: "admin@projectport.com",
     password: "password123",
-    name: "Admin User"
+    name: "Admin User",
+    verified: true
   },
   {
     email: "mechanic@projectport.com",
     password: "mechanic123",
-    name: "Mechanic User"
+    name: "Mechanic User",
+    verified: true
   }
 ];
 
@@ -36,6 +38,9 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
     confirmPassword: ""
   });
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [pendingUser, setPendingUser] = useState<any>(null);
+  const [verificationCode, setVerificationCode] = useState("");
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
@@ -62,8 +67,15 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
     );
     
     if (user) {
-      toast.success("Login successful!");
-      onLogin({ email: user.email, name: user.name });
+      if (user.verified) {
+        toast.success("Login successful!");
+        onLogin({ email: user.email, name: user.name });
+      } else {
+        toast.error("Please verify your email address before logging in.");
+        // Show verification UI
+        setVerificationSent(true);
+        setPendingUser(user);
+      }
     } else {
       setLoginError("Invalid email or password");
       toast.error("Login failed. Please check your credentials.");
@@ -91,11 +103,89 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
     }
     
     // In a real app, we would register the user in a database
-    // For demo, we'll just show a success message and switch to login
-    toast.success("Account created successfully! Please login with your credentials.");
-    setActiveTab("login");
-    setLoginData({ email: signupData.email, password: "" });
+    const newUser = {
+      email: signupData.email,
+      password: signupData.password,
+      name: signupData.name,
+      verified: false
+    };
+    
+    // Simulate sending a verification email
+    setPendingUser(newUser);
+    setVerificationSent(true);
+    toast.success("A verification link has been sent to your email address.");
   };
+
+  const handleVerify = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // In a real app, we would verify the code
+    // For demo, we'll just accept "123456" as the verification code
+    if (verificationCode === "123456") {
+      // In a real app, we would update the user in the database
+      toast.success("Email verified successfully! You can now log in.");
+      
+      // Update the user's verification status
+      if (pendingUser) {
+        const updatedUser = { ...pendingUser, verified: true };
+        // In a real app, we would update the database
+        // For demo, we'll just simulate a login
+        onLogin({ email: updatedUser.email, name: updatedUser.name });
+      }
+    } else {
+      toast.error("Invalid verification code. Please try again.");
+    }
+  };
+
+  const handleResendVerification = () => {
+    // In a real app, we would resend the verification email
+    toast.success("Verification link resent. Please check your email.");
+  };
+
+  if (verificationSent) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-12rem)]">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center">Verify Your Email</CardTitle>
+            <CardDescription className="text-center">
+              We've sent a verification code to {pendingUser?.email}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleVerify} className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="verification-code">Verification Code</Label>
+                <Input
+                  id="verification-code"
+                  placeholder="Enter 6-digit code"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  For demo purposes, use code: 123456
+                </p>
+              </div>
+              <Button type="submit" className="w-full">Verify Email</Button>
+            </form>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-2">
+            <p className="text-sm text-muted-foreground text-center">
+              Didn't receive a code?
+            </p>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={handleResendVerification}
+            >
+              Resend Verification Code
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center items-center min-h-[calc(100vh-12rem)]">

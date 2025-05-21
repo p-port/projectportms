@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { QrCode } from "lucide-react";
+import { QrCode, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import QRCode from "react-qr-code";
 
@@ -15,8 +15,8 @@ export const QrCodeDisplay = ({ jobId }: QrCodeDisplayProps) => {
   
   // In a real app, this would be your actual domain
   const appDomain = window.location.origin;
-  // Make sure the jobId is correct without any modifications
-  const trackingUrl = `${appDomain}/track-job/${jobId}`;
+  // We'll use the job ID exactly as it is stored in the database
+  const trackingUrl = `${appDomain}/track-job/${encodeURIComponent(jobId)}`;
   
   const handleCopyLink = () => {
     navigator.clipboard.writeText(trackingUrl);
