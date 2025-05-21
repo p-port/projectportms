@@ -57,6 +57,33 @@ const detailsTranslations = {
     inProgress: "진행 중",
     onHold: "보류 중",
     completed_status: "완료됨"
+  },
+  ru: {
+    customerInfo: "Информация о клиенте",
+    motorcycleInfo: "Информация о мотоцикле",
+    serviceInfo: "Информация об услуге",
+    name: "Имя:",
+    phone: "Телефон:",
+    email: "Эл. почта:",
+    make: "Марка:",
+    model: "Модель:",
+    year: "Год:",
+    vin: "VIN:",
+    englishName: "Английское имя:",
+    koreanName: "Корейское имя:",
+    mileage: "Пробег:",
+    plateNumber: "Номерной знак:",
+    serviceType: "Тип услуги:",
+    created: "Создано:",
+    status: "Статус:",
+    completed: "Завершено:",
+    initialCost: "Начальная стоимость:",
+    finalCost: "Итоговая стоимость:",
+    notCompleted: "Не завершено",
+    pending: "В ожидании",
+    inProgress: "В процессе",
+    onHold: "На удержании",
+    completed_status: "Завершено"
   }
 };
 

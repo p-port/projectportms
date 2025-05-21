@@ -28,12 +28,15 @@ const translations = {
     noUpdates: "No updates yet",
     completed: "Service completed",
     readyPickup: "Your motorcycle is ready for pickup",
-    switchLanguage: "Switch to Korean",
+    switchLanguage: "Switch language",
     pending: "Your motorcycle is in the queue and waiting to be serviced.",
     inProgress: "Our mechanics are currently working on your motorcycle.",
     onHold: "Work on your motorcycle is temporarily paused. We'll resume shortly.",
     completed_status: "Good news! Your motorcycle service is completed and ready for pickup.",
-    retry: "Retry"
+    retry: "Retry",
+    switchToKorean: "Switch to Korean",
+    switchToRussian: "Switch to Russian",
+    switchToEnglish: "Switch to English"
   },
   ko: {
     title: "프로젝트 포트 - 서비스 상태 추적기",
@@ -49,28 +52,40 @@ const translations = {
     noUpdates: "아직 업데이트가 없습니다",
     completed: "서비스 완료",
     readyPickup: "오토바이를 픽업할 준비가 되었습니다",
-    switchLanguage: "영어로 전환",
+    switchLanguage: "언어 전환",
     pending: "오토바이가 대기열에 있으며 서비스를 기다리고 있습니다.",
     inProgress: "우리 정비사들이 현재 귀하의 오토바이를 작업 중입니다.",
     onHold: "오토바이 작업이 일시적으로 중단되었습니다. 곧 재개될 예정입니다.",
     completed_status: "좋은 소식입니다! 오토바이 서비스가 완료되어 픽업할 준비가 되었습니다.",
-    retry: "재시도"
+    retry: "재시도",
+    switchToKorean: "한국어로 전환",
+    switchToRussian: "러시아어로 전환",
+    switchToEnglish: "영어로 전환"
+  },
+  ru: {
+    title: "Проект Порт - Отслеживание статуса услуги",
+    jobStatus: "Статус заказа",
+    loading: "Загрузка данных заказа...",
+    errorTitle: "Ошибка",
+    errorCheck: "Пожалуйста, проверьте правильность URL или QR-кода для отслеживания.",
+    serviceType: "Тип услуги",
+    dateCreated: "Дата создания",
+    dateCompleted: "Дата завершения",
+    status: "Статус",
+    progress: "Ход выполнения услуги",
+    noUpdates: "Пока нет обновлений",
+    completed: "Услуга выполнена",
+    readyPickup: "Ваш мотоцикл готов к выдаче",
+    switchLanguage: "Сменить язык",
+    pending: "Ваш мотоцикл в очереди и ожидает обслуживания.",
+    inProgress: "Наши механики сейчас работают над вашим мотоциклом.",
+    onHold: "Работа над вашим мотоциклом временно приостановлена. Мы скоро продолжим.",
+    completed_status: "Хорошие новости! Обслуживание вашего мотоцикла завершено, и он готов к выдаче.",
+    retry: "Повторить",
+    switchToKorean: "Переключиться на корейский",
+    switchToRussian: "Переключиться на русский",
+    switchToEnglish: "Переключиться на английский"
   }
-};
-
-// Create a custom hook for language preference
-const useLanguage = () => {
-  const [language, setLanguage] = useLocalStorage("language", "en");
-  
-  const toggleLanguage = () => {
-    setLanguage(language === "en" ? "ko" : "en");
-  };
-  
-  return {
-    language,
-    t: translations[language as keyof typeof translations],
-    toggleLanguage
-  };
 };
 
 // This page would be shown to customers when they scan the QR code
@@ -79,9 +94,22 @@ const TrackJob = () => {
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { language, t, toggleLanguage } = useLanguage();
+  const [language, setLanguage] = useLocalStorage("language", "en");
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const t = translations[language as keyof typeof translations];
+
+  const toggleLanguage = () => {
+    if (language === "en") setLanguage("ko");
+    else if (language === "ko") setLanguage("ru");
+    else setLanguage("en");
+  };
+
+  const getLanguageButtonText = () => {
+    if (language === "en") return t.switchToKorean;
+    if (language === "ko") return t.switchToRussian;
+    return t.switchToEnglish;
+  };
 
   const loadJobData = async () => {
     if (!jobId) {
@@ -202,6 +230,20 @@ const TrackJob = () => {
     }
   };
 
+  // Translate notes based on selected language
+  const translateNotes = (notes: any[]) => {
+    // For real translation, you would use an API like Google Translate
+    // This is a simple mock implementation for demonstration
+    if (!notes) return [];
+    
+    return notes.map(note => ({
+      ...note,
+      text: note.originalTexts ? 
+        (note.originalTexts[language as keyof typeof translations] || note.text) : 
+        note.text
+    }));
+  };
+
   return (
     <Layout>
       <div className="max-w-2xl mx-auto">
@@ -214,17 +256,21 @@ const TrackJob = () => {
             size={isMobile ? "sm" : "default"}
           >
             <Globe className="h-4 w-4" />
-            {language === "en" ? t.switchLanguage : t.switchLanguage}
-            {language === "en" ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
+            {getLanguageButtonText()}
+            {language === "en" ? <ArrowRight className="h-4 w-4" /> : 
+             language === "ko" ? <ArrowRight className="h-4 w-4" /> : 
+             <ArrowLeft className="h-4 w-4" />}
           </Button>
         </div>
         
         <div className="text-center mb-6">
           <p className="text-muted-foreground text-sm">
             {language === "en" ? (
-              <>You can switch to Korean using the button above</>
+              <>You can switch languages using the button above</>
+            ) : language === "ko" ? (
+              <>위의 버튼을 사용하여 언어를 전환할 수 있습니다</>
             ) : (
-              <>위의 버튼을 사용하여 영어로 전환할 수 있습니다</>
+              <>Вы можете переключать языки, используя кнопку выше</>
             )}
           </p>
         </div>
@@ -313,9 +359,13 @@ const TrackJob = () => {
                   <p className="text-muted-foreground text-sm">{t.noUpdates}</p>
                 ) : (
                   <div className="space-y-4 relative before:absolute before:top-3 before:bottom-0 before:left-1.5 before:w-px before:bg-muted-foreground/20">
-                    {job.notes && job.notes.map((note: any, index: number) => {
+                    {job.notes && translateNotes(job.notes).map((note: any, index: number) => {
                       const date = new Date(note.timestamp);
-                      const formattedDate = `${date.toLocaleDateString(language === 'en' ? 'en-US' : 'ko-KR')} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                      const formattedDate = `${date.toLocaleDateString(
+                        language === 'en' ? 'en-US' : 
+                        language === 'ko' ? 'ko-KR' : 
+                        'ru-RU'
+                      )} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                       
                       return (
                         <div key={index} className="pl-6 relative">

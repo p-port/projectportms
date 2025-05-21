@@ -59,6 +59,27 @@ const translations = {
     completedJobsAppear: "완료된 작업이 여기에 표시됩니다",
     jobSynced: "작업이 클라우드 스토리지에 동기화되었습니다",
     jobSyncError: "작업을 클라우드에 동기화하지 못했습니다"
+  },
+  ru: {
+    dashboard: "Панель управления",
+    welcome: "С возвращением",
+    searchPlaceholder: "Поиск заказов по ID, имени клиента или мотоциклу...",
+    activeJobs: "Активные заказы",
+    completed: "Завершенные",
+    newJob: "Новый заказ",
+    customers: "Клиенты",
+    support: "Поддержка",
+    messages: "Сообщения",
+    account: "Аккаунт",
+    loading: "Загрузка заказов...",
+    error: "Ошибка при загрузке заказов",
+    retry: "Повторить",
+    noActiveJobs: "Активных заказов не найдено",
+    createNewJob: "Создайте новый заказ, чтобы начать",
+    noCompletedJobs: "Завершенных заказов не найдено",
+    completedJobsAppear: "Завершенные заказы будут отображаться здесь",
+    jobSynced: "Заказ синхронизирован с облачным хранилищем",
+    jobSyncError: "Не удалось синхронизировать заказ с облаком"
   }
 };
 

@@ -14,6 +14,65 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+
+// Add translations for JobDetailsDialog
+const jobDetailsTranslations = {
+  en: {
+    manageJob: "Manage job details, photos, and status",
+    finalCost: "Final Cost:",
+    enterFinalCost: "Enter final cost",
+    updateFinalCost: "Update Final Cost",
+    details: "Details",
+    notesStatus: "Notes & Status",
+    photos: "Photos",
+    qrCode: "QR Code",
+    enterFinalCostTitle: "Enter Final Cost",
+    enterFinalCostDescription: "Please enter the final cost for this job before marking it as completed.",
+    cancel: "Cancel",
+    save: "Save",
+    jobStatusUpdated: "Job status updated to",
+    failedToUpdate: "Failed to update job status. Please try again.",
+    invalidFinalCost: "Please enter a valid final cost",
+    finalCostUpdated: "Final cost updated successfully"
+  },
+  ko: {
+    manageJob: "작업 세부정보, 사진 및 상태 관리",
+    finalCost: "최종 비용:",
+    enterFinalCost: "최종 비용 입력",
+    updateFinalCost: "최종 비용 업데이트",
+    details: "세부정보",
+    notesStatus: "노트 및 상태",
+    photos: "사진",
+    qrCode: "QR 코드",
+    enterFinalCostTitle: "최종 비용 입력",
+    enterFinalCostDescription: "작업을 완료로 표시하기 전에 최종 비용을 입력해 주세요.",
+    cancel: "취소",
+    save: "저장",
+    jobStatusUpdated: "작업 상태가 다음으로 업데이트되었습니다",
+    failedToUpdate: "작업 상태 업데이트에 실패했습니다. 다시 시도해 주세요.",
+    invalidFinalCost: "유효한 최종 비용을 입력해 주세요",
+    finalCostUpdated: "최종 비용이 성공적으로 업데이트되었습니다"
+  },
+  ru: {
+    manageJob: "Управление деталями, фотографиями и статусом заказа",
+    finalCost: "Итоговая стоимость:",
+    enterFinalCost: "Введите итоговую стоимость",
+    updateFinalCost: "Обновить итоговую стоимость",
+    details: "Детали",
+    notesStatus: "Заметки и статус",
+    photos: "Фотографии",
+    qrCode: "QR-код",
+    enterFinalCostTitle: "Введите итоговую стоимость",
+    enterFinalCostDescription: "Пожалуйста, введите итоговую стоимость заказа перед тем, как отметить его как завершенный.",
+    cancel: "Отмена",
+    save: "Сохранить",
+    jobStatusUpdated: "Статус заказа обновлен на",
+    failedToUpdate: "Не удалось обновить статус заказа. Пожалуйста, попробуйте еще раз.",
+    invalidFinalCost: "Пожалуйста, введите действительную итоговую стоимость",
+    finalCostUpdated: "Итоговая стоимость успешно обновлена"
+  }
+};
 
 interface JobDetailsDialogProps {
   job: any;
@@ -34,6 +93,9 @@ export const JobDetailsDialog = ({
   const [showFinalCostDialog, setShowFinalCostDialog] = useState(false);
   const [finalCost, setFinalCost] = useState("");
   const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
+  const [language] = useLocalStorage("language", "en");
+  
+  const t = jobDetailsTranslations[language as keyof typeof jobDetailsTranslations];
 
   // Update currentJob whenever job prop changes
   useEffect(() => {
@@ -99,7 +161,7 @@ export const JobDetailsDialog = ({
       // If user is authenticated, update in Supabase first
       if (user) {
         console.log("Updating job status in Supabase:", updatedJob.id, newStatus);
-        // Fix: Use snake_case field names for Supabase (matching database column names)
+        
         const { error } = await supabase.from('jobs').update({
           status: newStatus,
           date_completed: updatedJob.dateCompleted,
@@ -119,16 +181,16 @@ export const JobDetailsDialog = ({
       // Update the job in localStorage
       updateJobInLocalStorage(updatedJob);
       
-      toast.success(`Job status updated to ${newStatus}`);
+      toast.success(`${t.jobStatusUpdated} ${newStatus}`);
     } catch (error) {
       console.error("Error updating job status:", error);
-      toast.error("Failed to update job status. Please try again.");
+      toast.error(t.failedToUpdate);
     }
   };
 
   const handleFinalCostSubmit = async () => {
     if (!finalCost || isNaN(Number(finalCost))) {
-      toast.error("Please enter a valid final cost");
+      toast.error(t.invalidFinalCost);
       return;
     }
     
@@ -164,11 +226,11 @@ export const JobDetailsDialog = ({
         setPendingStatusChange(null);
         handleStatusChange("completed");
       } else {
-        toast.success("Final cost updated successfully");
+        toast.success(t.finalCostUpdated);
       }
     } catch (error) {
       console.error("Error updating final cost:", error);
-      toast.error("Failed to update final cost. Please try again.");
+      toast.error(t.failedToUpdate);
     }
   };
 
@@ -190,34 +252,34 @@ export const JobDetailsDialog = ({
               </Badge>
             </DialogTitle>
             <DialogDescription>
-              Manage job details, photos, and status
+              {t.manageJob}
             </DialogDescription>
           </DialogHeader>
 
           <div className="my-4">
             <div className="flex items-center gap-4 mb-4">
-              <Label htmlFor="finalCost">Final Cost:</Label>
+              <Label htmlFor="finalCost">{t.finalCost}</Label>
               <div className="relative flex-1">
                 <Input
                   id="finalCost"
                   type="text"
-                  placeholder="Enter final cost"
+                  placeholder={t.enterFinalCost}
                   value={finalCost}
                   onChange={(e) => setFinalCost(e.target.value)}
                 />
               </div>
               <Button onClick={handleFinalCostSubmit}>
-                Update Final Cost
+                {t.updateFinalCost}
               </Button>
             </div>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid grid-cols-4">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="notes">Notes & Status</TabsTrigger>
-              <TabsTrigger value="photos">Photos</TabsTrigger>
-              <TabsTrigger value="qrcode">QR Code</TabsTrigger>
+              <TabsTrigger value="details">{t.details}</TabsTrigger>
+              <TabsTrigger value="notes">{t.notesStatus}</TabsTrigger>
+              <TabsTrigger value="photos">{t.photos}</TabsTrigger>
+              <TabsTrigger value="qrcode">{t.qrCode}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="details">
@@ -258,22 +320,22 @@ export const JobDetailsDialog = ({
       <AlertDialog open={showFinalCostDialog} onOpenChange={setShowFinalCostDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Enter Final Cost</AlertDialogTitle>
+            <AlertDialogTitle>{t.enterFinalCostTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              Please enter the final cost for this job before marking it as completed.
+              {t.enterFinalCostDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
             <Input
               type="text"
-              placeholder="Enter final cost"
+              placeholder={t.enterFinalCost}
               value={finalCost}
               onChange={(e) => setFinalCost(e.target.value)}
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingStatusChange(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleFinalCostSubmit}>Save</AlertDialogAction>
+            <AlertDialogCancel onClick={() => setPendingStatusChange(null)}>{t.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinalCostSubmit}>{t.save}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

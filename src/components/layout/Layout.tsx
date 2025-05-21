@@ -10,7 +10,7 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-// Korean translations for Layout component
+// Korean and Russian translations for Layout component
 const layoutTranslations = {
   en: {
     title: "Project Port",
@@ -19,6 +19,10 @@ const layoutTranslations = {
   ko: {
     title: "프로젝트 포트",
     footer: "프로젝트 포트 - 오토바이 서비스 관리",
+  },
+  ru: {
+    title: "Проект Порт",
+    footer: "Проект Порт - Управление сервисом мотоциклов",
   }
 };
 
@@ -28,7 +32,10 @@ export const Layout = ({ children }: LayoutProps) => {
   const [language, setLanguage] = useLocalStorage("language", "en");
   
   const toggleLanguage = () => {
-    setLanguage(language === "en" ? "ko" : "en");
+    // Cycle through languages: en -> ko -> ru -> en
+    if (language === "en") setLanguage("ko");
+    else if (language === "ko") setLanguage("ru");
+    else setLanguage("en");
   };
 
   const t = layoutTranslations[language as keyof typeof layoutTranslations];
