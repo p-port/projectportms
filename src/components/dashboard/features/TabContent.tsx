@@ -2,7 +2,7 @@
 import { TabsContent } from "@/components/ui/tabs";
 import { JobList } from "../JobList";
 import { NewJobForm } from "../NewJobForm";
-import { SearchCustomers } from "../SearchCustomers";
+import { SearchPanel } from "../SearchPanel";
 import { MessageList } from "../messaging/MessageList";
 import { AccountInfo } from "../account/AccountInfo";
 
@@ -51,8 +51,8 @@ export const TabContent = ({
         <NewJobForm onSubmit={handleAddJob} />
       </TabsContent>
 
-      <TabsContent value="customers">
-        <SearchCustomers jobs={allJobs} />
+      <TabsContent value="search">
+        <SearchPanel jobs={allJobs} translations={translations} />
       </TabsContent>
       
       <TabsContent value="messages">

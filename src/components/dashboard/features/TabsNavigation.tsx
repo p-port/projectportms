@@ -45,10 +45,10 @@ export const TabsNavigation = ({
           </Button>
           <Button 
             variant="outline" 
-            className={activeTab === "customers" ? "bg-muted" : ""} 
-            onClick={() => setActiveTab("customers")}
+            className={activeTab === "search" ? "bg-muted" : ""} 
+            onClick={() => setActiveTab("search")}
           >
-            {translations.customers}
+            Search
           </Button>
         </div>
         
@@ -84,7 +84,7 @@ export const TabsNavigation = ({
       <TabsTrigger value="active-jobs">{translations.activeJobs} ({activeJobs})</TabsTrigger>
       <TabsTrigger value="completed-jobs">{translations.completed} ({completedJobs})</TabsTrigger>
       <TabsTrigger value="new-job">{translations.newJob}</TabsTrigger>
-      <TabsTrigger value="customers">{translations.customers}</TabsTrigger>
+      <TabsTrigger value="search">Search</TabsTrigger>
       <TabsTrigger value="messages" className="relative">
         Messages
         {unreadMessages > 0 && (
