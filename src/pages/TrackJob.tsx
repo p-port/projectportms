@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
+import { Json } from '@/integrations/supabase/types';
 
 interface JobData {
   id: string;
@@ -80,18 +81,37 @@ const TrackJob = () => {
           }
         }
         
-        const formattedJob = {
+        // Type casting to ensure we handle the JSON types properly
+        const customer = supabaseJob.customer as {
+          name: string;
+          phone: string;
+          email: string;
+        };
+        
+        const motorcycle = supabaseJob.motorcycle as {
+          make: string;
+          model: string;
+          year: string;
+          vin: string;
+        };
+        
+        const photos = supabaseJob.photos as {
+          start: string[];
+          completion: string[];
+        } || { start: [], completion: [] };
+        
+        const formattedJob: JobData = {
           id: supabaseJob.job_id,
-          customer: supabaseJob.customer,
-          motorcycle: supabaseJob.motorcycle,
+          customer: customer,
+          motorcycle: motorcycle,
           serviceType: supabaseJob.service_type,
           status: supabaseJob.status,
           dateCreated: supabaseJob.date_created ? new Date(supabaseJob.date_created).toISOString().split('T')[0] : null,
           dateCompleted: supabaseJob.date_completed ? new Date(supabaseJob.date_completed).toISOString().split('T')[0] : null,
-          notes: supabaseJob.notes || [],
-          photos: supabaseJob.photos || { start: [], completion: [] },
-          initialCost: initialCost || supabaseJob.initialCost, // Try both locations
-          finalCost: finalCost || supabaseJob.finalCost // Try both locations
+          notes: supabaseJob.notes as any[] || [],
+          photos: photos,
+          initialCost: initialCost !== null ? initialCost : null,
+          finalCost: finalCost !== null ? finalCost : null
         };
         
         console.log("Formatted job with cost info:", formattedJob);
