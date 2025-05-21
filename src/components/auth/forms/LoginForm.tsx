@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { signIn } from "@/integrations/supabase/client";
 
@@ -14,6 +15,7 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
@@ -88,6 +90,16 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
         {loginError && (
           <p className="text-sm text-red-500 mt-1">{loginError}</p>
         )}
+      </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox 
+          id="remember-me" 
+          checked={rememberMe} 
+          onCheckedChange={(checked) => setRememberMe(checked === true)}
+        />
+        <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
+          Remember me
+        </Label>
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "Logging in..." : "Login"}
