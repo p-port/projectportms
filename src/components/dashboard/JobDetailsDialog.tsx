@@ -28,6 +28,11 @@ export const JobDetailsDialog = ({
   const [currentJob, setCurrentJob] = useState({ ...job });
   const [user, setUser] = useState<any>(null);
 
+  // Update currentJob whenever job prop changes
+  useEffect(() => {
+    setCurrentJob({ ...job });
+  }, [job]);
+
   useEffect(() => {
     // Check for authenticated user
     const checkUser = async () => {

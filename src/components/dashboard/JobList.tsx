@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { JobDetailsDialog } from "./JobDetailsDialog";
+import { getStatusColor } from "./job-details/JobUtils";
 import { supabase } from "@/integrations/supabase/client";
 
 interface JobListProps {
@@ -48,21 +49,6 @@ export const JobList = ({ jobs, type, setJobs, allJobs }: JobListProps) => {
     };
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "in-progress":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "on-hold":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      case "completed":
-        return "bg-green-100 text-green-800 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
   const handleViewDetails = (job: any) => {
     setSelectedJob(job);
     setIsDetailsOpen(true);
@@ -73,7 +59,14 @@ export const JobList = ({ jobs, type, setJobs, allJobs }: JobListProps) => {
       job.id === updatedJob.id ? updatedJob : job
     );
     setJobs(updatedJobs);
-    setIsDetailsOpen(false);
+  };
+
+  // Reset selectedJob when dialog closes
+  const handleOpenChange = (open: boolean) => {
+    setIsDetailsOpen(open);
+    if (!open) {
+      setSelectedJob(null);
+    }
   };
 
   return (
@@ -150,11 +143,11 @@ export const JobList = ({ jobs, type, setJobs, allJobs }: JobListProps) => {
         </div>
       )}
 
-      {selectedJob && (
+      {isDetailsOpen && selectedJob && (
         <JobDetailsDialog
           job={selectedJob}
           open={isDetailsOpen}
-          onOpenChange={setIsDetailsOpen}
+          onOpenChange={handleOpenChange}
           onUpdateJob={handleUpdateJob}
         />
       )}
