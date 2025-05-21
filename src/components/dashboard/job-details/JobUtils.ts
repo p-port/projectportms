@@ -53,7 +53,7 @@ export const updateJobInLocalStorage = async (job: any) => {
     const { data } = await supabase.auth.getSession();
     if (data.session?.user) {
       // Prepare update data for Supabase
-      const updateData = {
+      const updateData: any = {
         customer: job.customer,
         motorcycle: job.motorcycle,
         service_type: job.serviceType,
@@ -64,11 +64,11 @@ export const updateJobInLocalStorage = async (job: any) => {
       };
       
       // Add initialCost and finalCost if they exist
-      if (job.initialCost) {
+      if (job.initialCost !== undefined) {
         updateData.initialCost = job.initialCost;
       }
       
-      if (job.finalCost) {
+      if (job.finalCost !== undefined) {
         updateData.finalCost = job.finalCost;
       }
       
