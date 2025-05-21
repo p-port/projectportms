@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
@@ -387,6 +386,21 @@ const TrackJob = () => {
             <CardContent className="space-y-6">
               <div className="bg-muted p-4 rounded-md">
                 <p>{getStatusMessage(job.status)}</p>
+                
+                {/* Cost Information - Moved here to appear right after status message */}
+                {job.initialCost && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{t.initialCost}:</span> {job.initialCost}
+                  </div>
+                )}
+                
+                {job.finalCost && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <DollarSign className="h-4 w-4 text-green-500" />
+                    <span className="font-medium">{t.finalCost}:</span> {job.finalCost}
+                  </div>
+                )}
               </div>
               
               <div className="space-y-2">
@@ -405,29 +419,7 @@ const TrackJob = () => {
                   </p>
                 )}
                 
-                {/* Cost Information */}
-                <div className="pt-2">
-                  {job.initialCost && (
-                    <div className="flex items-center gap-2 mb-1">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{t.initialCost}:</span> {job.initialCost}
-                    </div>
-                  )}
-                  
-                  {job.finalCost && (
-                    <div className="flex items-center gap-2 mb-1">
-                      <DollarSign className="h-4 w-4 text-green-500" />
-                      <span className="font-medium">{t.finalCost}:</span> {job.finalCost}
-                    </div>
-                  )}
-                  
-                  {!job.finalCost && job.initialCost && job.status !== "completed" && (
-                    <div className="flex items-center gap-2 mb-1">
-                      <DollarSign className="h-4 w-4 text-yellow-500" />
-                      <span className="font-medium">{t.costEstimate}:</span> {job.initialCost}
-                    </div>
-                  )}
-                </div>
+                {/* Removed cost information from here since it's now displayed above */}
               </div>
               
               {/* Service Photos */}
