@@ -75,23 +75,89 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                (job.motorcycle.vin && job.motorcycle.vin.toLowerCase().includes(query)))) {
             
             const key = `${job.motorcycle.make}-${job.motorcycle.model}-${job.motorcycle.vin || ''}`;
+            
             if (!motorcycleMap.has(key)) {
+              // Create a new motorcycle entry with the first owner
               motorcycleMap.set(key, {
                 make: job.motorcycle.make,
                 model: job.motorcycle.model,
                 year: job.motorcycle.year || "N/A",
                 vin: job.motorcycle.vin || "N/A",
-                ownerName: job.customer ? censorName(job.customer.name) : "Unknown",
+                currentOwner: job.customer ? {
+                  name: censorName(job.customer.name),
+                  jobId: job.id,
+                  dateServiced: job.dateCreated
+                } : null,
+                previousOwners: [],
                 serviceHistory: [job]
               });
             } else {
               const motorcycle = motorcycleMap.get(key);
+              
+              // Check if this is a different owner than the current one
+              if (job.customer && motorcycle.currentOwner && 
+                  job.customer.name !== motorcycle.currentOwner.name) {
+                
+                // Find if this owner is already in previous owners
+                const existingOwnerIndex = motorcycle.previousOwners.findIndex(
+                  (owner: any) => owner.name === censorName(job.customer.name)
+                );
+                
+                // If current job is more recent than our stored current owner,
+                // update current owner and move the old one to previous owners
+                if (new Date(job.dateCreated) > new Date(motorcycle.currentOwner.dateServiced)) {
+                  // Add current owner to previous owners if not already there
+                  if (!motorcycle.previousOwners.some((owner: any) => 
+                      owner.name === motorcycle.currentOwner.name)) {
+                    motorcycle.previousOwners.push({
+                      name: motorcycle.currentOwner.name,
+                      jobId: motorcycle.currentOwner.jobId,
+                      dateServiced: motorcycle.currentOwner.dateServiced
+                    });
+                  }
+                  
+                  // Set new current owner
+                  motorcycle.currentOwner = {
+                    name: censorName(job.customer.name),
+                    jobId: job.id,
+                    dateServiced: job.dateCreated
+                  };
+                  
+                  // Remove from previous owners if it exists there
+                  if (existingOwnerIndex >= 0) {
+                    motorcycle.previousOwners.splice(existingOwnerIndex, 1);
+                  }
+                } else if (existingOwnerIndex < 0) {
+                  // This is a different owner but not more recent - add to previous owners
+                  motorcycle.previousOwners.push({
+                    name: censorName(job.customer.name),
+                    jobId: job.id,
+                    dateServiced: job.dateCreated
+                  });
+                }
+              }
+              
+              // Add this job to service history
               motorcycle.serviceHistory.push(job);
               motorcycleMap.set(key, motorcycle);
             }
           }
         });
-        results = Array.from(motorcycleMap.values());
+        
+        // Sort previous owners by most recent service date for each motorcycle
+        const motorcycleResults = Array.from(motorcycleMap.values());
+        motorcycleResults.forEach(motorcycle => {
+          motorcycle.previousOwners.sort((a: any, b: any) => 
+            new Date(b.dateServiced).getTime() - new Date(a.dateServiced).getTime()
+          );
+          
+          // Sort service history by date (newest first)
+          motorcycle.serviceHistory.sort((a: any, b: any) => 
+            new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
+          );
+        });
+        
+        results = motorcycleResults;
         break;
         
       case "job":
@@ -196,9 +262,39 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                           <div>
                             <h4 className="text-md font-semibold">{motorcycle.make} {motorcycle.model} {motorcycle.year}</h4>
                             <p className="text-sm text-muted-foreground">VIN: {motorcycle.vin}</p>
-                            <p className="text-sm text-muted-foreground">Owner: {motorcycle.ownerName}</p>
                           </div>
                           <Badge variant="outline">Services: {motorcycle.serviceHistory.length}</Badge>
+                        </div>
+                        
+                        {/* Ownership History Section */}
+                        <div className="mb-4">
+                          <h5 className="font-medium text-sm mb-2">Ownership History</h5>
+                          <div className="space-y-2">
+                            {motorcycle.currentOwner && (
+                              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded text-sm border border-green-200 dark:border-green-800">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium">Current Owner: {motorcycle.currentOwner.name}</span>
+                                  <Badge variant="outline" className="bg-green-100 dark:bg-green-800 border-green-200 dark:border-green-700">
+                                    Current
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Last Service: {motorcycle.currentOwner.dateServiced}</p>
+                              </div>
+                            )}
+                            
+                            {motorcycle.previousOwners && motorcycle.previousOwners.length > 0 && (
+                              <div className="space-y-2">
+                                {motorcycle.previousOwners.map((owner: any, ownerIndex: number) => (
+                                  <div key={ownerIndex} className="bg-muted p-3 rounded text-sm">
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-medium">Previous Owner: {owner.name}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Service Date: {owner.dateServiced}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         
                         <h5 className="font-medium text-sm mb-2">Service History</h5>
@@ -211,6 +307,7 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                               </div>
                               <p>{job.serviceType}</p>
                               <p className="text-muted-foreground">Status: {job.status}</p>
+                              <p className="text-xs text-muted-foreground">Owner: {job.customer ? censorName(job.customer.name) : 'Unknown'}</p>
                             </div>
                           ))}
                         </div>
