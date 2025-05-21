@@ -1,9 +1,9 @@
-
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, Check, Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { capturePhoto, updateJobInLocalStorage } from "./JobUtils";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +29,19 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
   const [photoToDelete, setPhotoToDelete] = useState<{ type: "start" | "completion", index: number } | null>(null);
   const [completionConfirmOpen, setCompletionConfirmOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [user, setUser] = useState<any>(null);
+
+  // Fetch authenticated user
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        setUser(data.session.user);
+      }
+    };
+    
+    checkUser();
+  }, []);
 
   // Status checks for job stage
   const canStartJob = currentJob.status === "pending";
@@ -195,8 +208,8 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
     toast.success("Photo deleted successfully");
   };
 
-  // Complete job function
-  const completeJob = () => {
+  // Complete job function - Updated to sync with Supabase
+  const completeJob = async () => {
     if (!hasEnoughCompletionPhotos) {
       toast.error(`You need at least ${minPhotosRequired} completion photos to complete the job`);
       return;
@@ -215,10 +228,31 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, mi
       ]
     };
     
-    onUpdateJob(updatedJob);
-    updateJobInLocalStorage(updatedJob);
-    setCompletionConfirmOpen(false);
-    toast.success("Job marked as completed!");
+    try {
+      // If user is authenticated, update in Supabase first
+      if (user) {
+        console.log("Completing job in Supabase:", updatedJob.id);
+        const { error } = await supabase.from('jobs').update({
+          status: "completed",
+          date_completed: updatedJob.dateCompleted,
+          notes: updatedJob.notes
+        }).eq('job_id', updatedJob.id);
+        
+        if (error) {
+          console.error("Error completing job in Supabase:", error);
+          throw error;
+        }
+      }
+      
+      // Update job in state and localStorage
+      onUpdateJob(updatedJob);
+      updateJobInLocalStorage(updatedJob);
+      setCompletionConfirmOpen(false);
+      toast.success("Job marked as completed!");
+    } catch (error) {
+      console.error("Error completing job:", error);
+      toast.error("Failed to complete job. Please try again.");
+    }
   };
 
   // Simulate multiple photo uploads for demo purposes

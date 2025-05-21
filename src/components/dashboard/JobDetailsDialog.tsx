@@ -76,6 +76,7 @@ export const JobDetailsDialog = ({
       // If user is authenticated, update in Supabase first
       if (user) {
         console.log("Updating job status in Supabase:", updatedJob.id, newStatus);
+        // Fix: Use snake_case field names for Supabase (matching database column names)
         const { error } = await supabase.from('jobs').update({
           status: newStatus,
           date_completed: updatedJob.dateCompleted

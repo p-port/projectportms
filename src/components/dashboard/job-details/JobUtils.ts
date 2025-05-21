@@ -1,4 +1,6 @@
 
+import { supabase } from "@/integrations/supabase/client";
+
 // Generate a unique job ID based on motorcycle make, model, and counter
 export const generateUniqueJobId = (make: string, model: string, counter: number) => {
   // Extract first two letters of make and model, convert to uppercase
@@ -33,8 +35,8 @@ export const getStatusColor = (status: string) => {
   }
 };
 
-// Update a job in localStorage
-export const updateJobInLocalStorage = (job: any) => {
+// Update a job in localStorage and Supabase if the user is authenticated
+export const updateJobInLocalStorage = async (job: any) => {
   try {
     // Get all jobs from localStorage
     const storedJobsString = localStorage.getItem('projectPortJobs');
@@ -46,8 +48,29 @@ export const updateJobInLocalStorage = (job: any) => {
     // Save back to localStorage
     localStorage.setItem('projectPortJobs', JSON.stringify(updatedJobs));
     console.log("Job updated in localStorage:", job);
+    
+    // Check if the user is authenticated
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.user) {
+      // Sync job data to Supabase
+      const { error } = await supabase.from('jobs').update({
+        customer: job.customer,
+        motorcycle: job.motorcycle,
+        service_type: job.serviceType,
+        status: job.status,
+        date_completed: job.dateCompleted,
+        notes: job.notes,
+        photos: job.photos
+      }).eq('job_id', job.id);
+      
+      if (error) {
+        console.error("Error syncing job to Supabase:", error);
+      } else {
+        console.log("Job updated in Supabase:", job.id);
+      }
+    }
   } catch (err) {
-    console.error("Error updating job in localStorage:", err);
+    console.error("Error updating job:", err);
   }
 };
 
