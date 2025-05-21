@@ -97,7 +97,7 @@ export const RecipientSelect = ({
 
         if (error) throw error;
         
-        setUsers(data);
+        setUsers(data || []); // Ensure users is always an array, even when data is null
       } catch (error) {
         console.error('Error fetching users:', error);
         toast({
@@ -105,6 +105,7 @@ export const RecipientSelect = ({
           description: String(error),
           variant: "destructive"
         });
+        setUsers([]); // Set to empty array on error
       } finally {
         setLoading(false);
       }
@@ -115,7 +116,9 @@ export const RecipientSelect = ({
 
   // Filter users based on search query
   const filteredUsers = useMemo(() => {
+    if (!users || users.length === 0) return []; // Ensure we always return an array
     if (!searchQuery) return users;
+    
     const query = searchQuery.toLowerCase();
     return users.filter(user => 
       user.name?.toLowerCase().includes(query) || 
@@ -125,6 +128,7 @@ export const RecipientSelect = ({
 
   // Find selected user to display their name
   const selectedUser = useMemo(() => {
+    if (!users || !value) return null;
     return users.find(user => user.id === value);
   }, [users, value]);
 
@@ -163,34 +167,36 @@ export const RecipientSelect = ({
             ) : (
               <>
                 <CommandEmpty>{t.noRecipients}</CommandEmpty>
-                <CommandGroup heading={t.recipients}>
-                  {filteredUsers.map(user => (
-                    <CommandItem
-                      key={user.id}
-                      value={user.id}
-                      onSelect={() => {
-                        onChange(user.id);
-                        setOpen(false);
-                      }}
-                      className="flex justify-between"
-                    >
-                      <div>
-                        <span className={cn(
-                          "mr-2",
-                          user.id === value && "font-bold"
-                        )}>
-                          {user.name}
+                {filteredUsers.length > 0 && (
+                  <CommandGroup heading={t.recipients}>
+                    {filteredUsers.map(user => (
+                      <CommandItem
+                        key={user.id}
+                        value={user.id}
+                        onSelect={() => {
+                          onChange(user.id);
+                          setOpen(false);
+                        }}
+                        className="flex justify-between"
+                      >
+                        <div>
+                          <span className={cn(
+                            "mr-2",
+                            user.id === value && "font-bold"
+                          )}>
+                            {user.name}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            ({user.email})
+                          </span>
+                        </div>
+                        <span className="text-xs bg-muted px-2 py-1 rounded">
+                          {translateRole(user.role)}
                         </span>
-                        <span className="text-sm text-muted-foreground">
-                          ({user.email})
-                        </span>
-                      </div>
-                      <span className="text-xs bg-muted px-2 py-1 rounded">
-                        {translateRole(user.role)}
-                      </span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
               </>
             )}
           </Command>
