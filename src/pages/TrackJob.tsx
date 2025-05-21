@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
@@ -153,10 +152,15 @@ const TrackJob = () => {
         const supabaseJob = supabaseJobs[0];
         console.log("Found job in Supabase:", supabaseJob);
         
-        // Extract finalCost from notes if it exists
+        // Extract initialCost and finalCost from the job data
+        let initialCost = null;
         let finalCost = null;
+        
+        // Check if notes contains cost information
         if (supabaseJob.notes && typeof supabaseJob.notes === 'object') {
-          // Check if notes is an object with finalCost property
+          if ('initialCost' in supabaseJob.notes) {
+            initialCost = supabaseJob.notes.initialCost;
+          }
           if ('finalCost' in supabaseJob.notes) {
             finalCost = supabaseJob.notes.finalCost;
           }
@@ -172,7 +176,7 @@ const TrackJob = () => {
           dateCompleted: supabaseJob.date_completed ? new Date(supabaseJob.date_completed).toISOString().split('T')[0] : null,
           notes: supabaseJob.notes || [],
           photos: supabaseJob.photos || { start: [], completion: [] },
-          initialCost: supabaseJob.initial_cost,
+          initialCost: initialCost,
           finalCost: finalCost
         };
         
