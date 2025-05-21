@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
@@ -396,7 +397,7 @@ const TrackJob = () => {
                   <p><span className="font-medium">{t.dateCompleted}:</span> {job.dateCompleted}</p>
                 ) : (
                   <p>
-                    <span className="font-medium">{t.status}:</span> 
+                    <span className="font-medium">{t.status}: </span> 
                     {job.status === "in-progress" ? t.inProgress : 
                      job.status === "on-hold" ? t.onHold :
                      job.status === "completed" ? t.completed_status :
