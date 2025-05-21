@@ -39,8 +39,11 @@ const formSchema = z.object({
     model: z.string().min(1, "Model is required"),
     year: z.string().min(4, "Year is required"),
     vin: z.string().optional(),
+    mileage: z.string().optional(),
+    plateNumber: z.string().optional(),
   }),
   serviceType: z.string().min(3, "Service type is required"),
+  initialCost: z.string().optional(),
 });
 
 export const NewJobForm = ({ onSubmit }: NewJobFormProps) => {
@@ -57,8 +60,11 @@ export const NewJobForm = ({ onSubmit }: NewJobFormProps) => {
         model: "",
         year: "",
         vin: "",
+        mileage: "",
+        plateNumber: "",
       },
       serviceType: "",
+      initialCost: "",
     },
   });
 
@@ -194,6 +200,36 @@ export const NewJobForm = ({ onSubmit }: NewJobFormProps) => {
                 )}
               />
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="motorcycle.mileage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mileage (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="12345" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="motorcycle.plateNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plate Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="ABC123" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -204,7 +240,7 @@ export const NewJobForm = ({ onSubmit }: NewJobFormProps) => {
               Enter the service details for this job
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <FormField
               control={form.control}
               name="serviceType"
@@ -215,6 +251,24 @@ export const NewJobForm = ({ onSubmit }: NewJobFormProps) => {
                     <Textarea
                       placeholder="Describe the service requested..."
                       rows={3}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="initialCost"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Initial Cost Estimate</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="0.00"
+                      type="text"
                       {...field}
                     />
                   </FormControl>

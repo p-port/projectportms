@@ -19,20 +19,25 @@ interface PhotosTabProps {
   currentJob: any;
   onUpdateJob: (updatedJob: any) => void;
   updateJobInLocalStorage: (job: any) => void;
+  minPhotosRequired?: number;
 }
 
-export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: PhotosTabProps) => {
+export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage, minPhotosRequired = 3 }: PhotosTabProps) => {
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [photoType, setPhotoType] = useState<"start" | "completion">("start");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [photoToDelete, setPhotoToDelete] = useState<{ type: "start" | "completion", index: number } | null>(null);
+  const [completionConfirmOpen, setCompletionConfirmOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canStartJob = currentJob.status === "pending" && currentJob.photos.start.length === 0;
   const canCompleteJob = 
     currentJob.status === "in-progress" && 
-    currentJob.photos.start.length > 0 && 
+    currentJob.photos.start.length >= minPhotosRequired && 
     currentJob.photos.completion.length === 0;
+
+  const hasEnoughStartPhotos = currentJob.photos.start.length >= minPhotosRequired;
+  const hasEnoughCompletionPhotos = currentJob.photos.completion.length >= minPhotosRequired;
 
   const handlePhotoCapture = (type: "start" | "completion", useCamera: boolean = true) => {
     setUploadingPhotos(true);
@@ -51,35 +56,29 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
         photos: updatedPhotos
       };
       
-      // If this is start photos, also change status to in-progress
-      if (type === "start" && currentJob.status === "pending") {
-        updatedJob = {
-          ...updatedJob,
-          status: "in-progress",
-          notes: [
-            ...updatedJob.notes,
-            {
-              text: "Job started - initial photos uploaded",
-              timestamp: new Date().toISOString()
-            }
-          ]
-        };
+      // If this is start photos, also change status to in-progress if we have enough photos
+      if (type === "start" && currentJob.status === "pending" && updatedPhotos.start.length >= minPhotosRequired) {
+        // Ask user if they want to start the job now
+        if (confirm("You have uploaded enough photos to start the job. Would you like to change the status to In Progress?")) {
+          updatedJob = {
+            ...updatedJob,
+            status: "in-progress",
+            notes: [
+              ...updatedJob.notes,
+              {
+                text: "Job started - initial photos uploaded",
+                timestamp: new Date().toISOString()
+              }
+            ]
+          };
+          toast.success("Job status changed to In Progress");
+        }
       }
       
-      // If this is completion photos and we have enough photos, offer to change status to completed
-      if (type === "completion" && updatedPhotos.completion.length >= 2) {
-        updatedJob = {
-          ...updatedJob,
-          status: "completed",
-          dateCompleted: new Date().toISOString().split("T")[0],
-          notes: [
-            ...updatedJob.notes,
-            {
-              text: "Job completed - final photos uploaded",
-              timestamp: new Date().toISOString()
-            }
-          ]
-        };
+      // If this is completion photos and we have enough photos
+      if (type === "completion" && updatedPhotos.completion.length >= minPhotosRequired) {
+        // Show completion confirmation dialog
+        setCompletionConfirmOpen(true);
       }
       
       // Update job in state and localStorage
@@ -123,19 +122,30 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
           photos: updatedPhotos
         };
         
-        // If this is start photos, also change status to in-progress
-        if (photoType === "start" && currentJob.status === "pending") {
-          updatedJob = {
-            ...updatedJob,
-            status: "in-progress",
-            notes: [
-              ...updatedJob.notes,
-              {
-                text: "Job started - initial photos uploaded",
-                timestamp: new Date().toISOString()
-              }
-            ]
-          };
+        // If this is start photos and we reach minimum required photos
+        if (photoType === "start" && currentJob.status === "pending" && 
+            updatedPhotos.start.length >= minPhotosRequired) {
+          // Ask user if they want to start the job
+          if (confirm("You have uploaded enough photos to start the job. Would you like to change the status to In Progress?")) {
+            updatedJob = {
+              ...updatedJob,
+              status: "in-progress",
+              notes: [
+                ...updatedJob.notes,
+                {
+                  text: "Job started - initial photos uploaded",
+                  timestamp: new Date().toISOString()
+                }
+              ]
+            };
+            toast.success("Job status changed to In Progress");
+          }
+        }
+        
+        // If this is completion photos and we reach minimum required photos
+        if (photoType === "completion" && updatedPhotos.completion.length >= minPhotosRequired) {
+          // Show completion confirmation dialog
+          setCompletionConfirmOpen(true);
         }
         
         // Update job in state and localStorage
@@ -187,6 +197,32 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
     toast.success("Photo deleted successfully");
   };
 
+  // Complete job function
+  const completeJob = () => {
+    if (!hasEnoughCompletionPhotos) {
+      toast.error(`You need at least ${minPhotosRequired} completion photos to complete the job`);
+      return;
+    }
+    
+    const updatedJob = {
+      ...currentJob,
+      status: "completed",
+      dateCompleted: new Date().toISOString().split("T")[0],
+      notes: [
+        ...currentJob.notes,
+        {
+          text: "Job completed - final photos uploaded",
+          timestamp: new Date().toISOString()
+        }
+      ]
+    };
+    
+    onUpdateJob(updatedJob);
+    updateJobInLocalStorage(updatedJob);
+    setCompletionConfirmOpen(false);
+    toast.success("Job marked as completed!");
+  };
+
   // Simulate multiple photo uploads for demo purposes
   const simulateMultiplePhotos = (type: "start" | "completion") => {
     setUploadingPhotos(true);
@@ -194,7 +230,7 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
     
     // Simulate photo upload delay
     setTimeout(() => {
-      const photoCount = Math.floor(Math.random() * 4) + 3; // Random between 3 and 6
+      const photoCount = Math.floor(Math.random() * 2) + minPhotosRequired; // Random between min and min+2
       const newPhotos = Array(photoCount).fill("/placeholder.svg");
       
       const updatedJob = {
@@ -207,27 +243,22 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
       
       // If this is start photos, also change status to in-progress
       if (type === "start" && currentJob.status === "pending") {
-        updatedJob.status = "in-progress";
-        updatedJob.notes = [
-          ...updatedJob.notes,
-          {
-            text: "Job started - initial photos uploaded",
-            timestamp: new Date().toISOString()
-          }
-        ];
+        if (confirm("You have uploaded enough photos to start the job. Would you like to change the status to In Progress?")) {
+          updatedJob.status = "in-progress";
+          updatedJob.notes = [
+            ...updatedJob.notes,
+            {
+              text: "Job started - initial photos uploaded",
+              timestamp: new Date().toISOString()
+            }
+          ];
+          toast.success("Job status changed to In Progress");
+        }
       }
       
-      // If this is completion photos, also change status to completed
-      if (type === "completion") {
-        updatedJob.status = "completed";
-        updatedJob.dateCompleted = new Date().toISOString().split("T")[0];
-        updatedJob.notes = [
-          ...updatedJob.notes,
-          {
-            text: "Job completed - final photos uploaded",
-            timestamp: new Date().toISOString()
-          }
-        ];
+      // If this is completion photos, ask if they want to complete the job
+      if (type === "completion" && currentJob.status === "in-progress") {
+        setCompletionConfirmOpen(true);
       }
       
       onUpdateJob(updatedJob);
@@ -252,12 +283,17 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
 
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Start Photos ({currentJob.photos.start.length}/6)</h3>
+          <h3 className="text-lg font-medium">
+            Start Photos ({currentJob.photos.start.length}/{minPhotosRequired}+)
+            {hasEnoughStartPhotos && (
+              <span className="text-green-500 ml-2">✓ Minimum photos met</span>
+            )}
+          </h3>
           {canStartJob || currentJob.status === "in-progress" ? (
             <div className="flex gap-2">
               <Button 
                 onClick={() => handlePhotoCapture("start", true)}
-                disabled={uploadingPhotos}
+                disabled={uploadingPhotos || currentJob.status === "completed"}
                 variant="outline"
               >
                 <Camera className="h-4 w-4 mr-2" />
@@ -265,7 +301,7 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
               </Button>
               <Button 
                 onClick={() => handleFileUpload("start")}
-                disabled={uploadingPhotos}
+                disabled={uploadingPhotos || currentJob.status === "completed"}
                 variant="outline"
               >
                 <Upload className="h-4 w-4 mr-2" />
@@ -274,7 +310,7 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
               {canStartJob && (
                 <Button 
                   onClick={() => simulateMultiplePhotos("start")}
-                  disabled={uploadingPhotos}
+                  disabled={uploadingPhotos || currentJob.status !== "pending"}
                 >
                   {uploadingPhotos && photoType === "start" ? (
                     <span className="flex items-center gap-2">
@@ -284,7 +320,7 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
                   ) : (
                     <span className="flex items-center gap-2">
                       <Camera className="h-4 w-4" />
-                      Upload All Photos to Start Job
+                      Upload {minPhotosRequired}+ Photos to Start Job
                     </span>
                   )}
                 </Button>
@@ -324,7 +360,12 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
 
       <div className="space-y-4 mt-6 border-t pt-4">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Completion Photos ({currentJob.photos.completion.length}/6)</h3>
+          <h3 className="text-lg font-medium">
+            Completion Photos ({currentJob.photos.completion.length}/{minPhotosRequired}+)
+            {hasEnoughCompletionPhotos && (
+              <span className="text-green-500 ml-2">✓ Minimum photos met</span>
+            )}
+          </h3>
           {canCompleteJob || currentJob.status === "completed" ? (
             <div className="flex gap-2">
               <Button 
@@ -346,7 +387,7 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
               {canCompleteJob && (
                 <Button 
                   onClick={() => simulateMultiplePhotos("completion")}
-                  disabled={uploadingPhotos}
+                  disabled={uploadingPhotos || currentJob.status !== "in-progress"}
                 >
                   {uploadingPhotos && photoType === "completion" ? (
                     <span className="flex items-center gap-2">
@@ -355,8 +396,8 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
-                      <Check className="h-4 w-4" />
-                      Upload All Photos to Complete Job
+                      <Camera className="h-4 w-4" />
+                      Upload {minPhotosRequired}+ Photos for Completion
                     </span>
                   )}
                 </Button>
@@ -379,6 +420,7 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
                     variant="destructive" 
                     size="sm"
                     onClick={() => handleDeletePhoto("completion", index)}
+                    disabled={currentJob.status === "completed"}
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
                     Delete
@@ -389,6 +431,18 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
           </div>
         ) : (
           <p className="text-muted-foreground text-sm">No completion photos uploaded yet</p>
+        )}
+        
+        {hasEnoughCompletionPhotos && currentJob.status === "in-progress" && (
+          <div className="mt-4">
+            <Button 
+              onClick={() => setCompletionConfirmOpen(true)} 
+              className="bg-green-500 hover:bg-green-600"
+            >
+              <Check className="h-4 w-4 mr-2" />
+              Complete Job with These Photos
+            </Button>
+          </div>
         )}
       </div>
 
@@ -404,6 +458,25 @@ export const PhotosTab = ({ currentJob, onUpdateJob, updateJobInLocalStorage }: 
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setPhotoToDelete(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeletePhoto} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Job Completion Confirmation Dialog */}
+      <AlertDialog open={completionConfirmOpen} onOpenChange={setCompletionConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Complete Job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have uploaded {currentJob.photos.completion.length} completion photos. 
+              Would you like to mark this job as completed now, or do you want to add more photos first?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Add More Photos</AlertDialogCancel>
+            <AlertDialogAction onClick={completeJob} className="bg-green-600 hover:bg-green-700">
+              Complete Job
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

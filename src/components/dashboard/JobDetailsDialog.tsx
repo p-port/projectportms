@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -49,6 +49,17 @@ export const JobDetailsDialog = ({
 
   const handleStatusChange = async (newStatus: string) => {
     if (!currentJob) return;
+    
+    // Check photo requirements
+    if (newStatus === "in-progress" && (!currentJob.photos.start || currentJob.photos.start.length < 3)) {
+      toast.error("You need to upload at least 3 start photos before changing status to In Progress");
+      return;
+    }
+
+    if (newStatus === "completed" && (!currentJob.photos.completion || currentJob.photos.completion.length < 3)) {
+      toast.error("You need to upload at least 3 completion photos before marking this job as Complete");
+      return;
+    }
     
     const updatedJob = {
       ...currentJob,
@@ -104,6 +115,9 @@ export const JobDetailsDialog = ({
               {currentJob.status.replace("-", " ")}
             </Badge>
           </DialogTitle>
+          <DialogDescription>
+            Manage job details, photos, and status
+          </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
@@ -138,6 +152,7 @@ export const JobDetailsDialog = ({
                 onUpdateJob(updatedJob);
               }}
               updateJobInLocalStorage={updateJobInLocalStorage}
+              minPhotosRequired={3}
             />
           </TabsContent>
 
