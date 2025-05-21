@@ -23,13 +23,19 @@ export async function signIn(email: string, password: string) {
   return { data, error };
 }
 
-export async function signUp(email: string, password: string, userData: { name: string, role?: string }) {
+export async function signUp(email: string, password: string, userData: { name: string, role?: string }, redirectTo?: string) {
+  const options: any = {
+    data: userData
+  };
+  
+  if (redirectTo) {
+    options.emailRedirectTo = redirectTo;
+  }
+  
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      data: userData
-    }
+    options
   });
   return { data, error };
 }

@@ -52,7 +52,13 @@ export const SignupForm = ({ onSignupSuccess }: SignupFormProps) => {
         role: signupData.role
       };
       
-      const { data, error } = await signUp(signupData.email, signupData.password, userData);
+      // Set redirectTo to the verification success page
+      const { data, error } = await signUp(
+        signupData.email, 
+        signupData.password, 
+        userData,
+        `${window.location.origin}/verification-success`
+      );
       
       if (error) {
         console.error("Signup error:", error);
@@ -61,7 +67,6 @@ export const SignupForm = ({ onSignupSuccess }: SignupFormProps) => {
         return;
       }
       
-      // For Supabase email verification flow
       toast.success("Registration successful! Please check your email for verification instructions.");
       
       const pendingUser = {

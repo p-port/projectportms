@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -13,7 +13,12 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface User {
   id: string;
@@ -42,7 +47,8 @@ const translations = {
     admin: "Admin",
     support: "Support",
     mechanic: "Mechanic",
-    customer: "Customer"
+    customer: "Customer",
+    search: "Search by name or email"
   },
   ko: {
     to: "받는 사람",
@@ -56,7 +62,8 @@ const translations = {
     admin: "관리자",
     support: "지원팀",
     mechanic: "정비사",
-    customer: "고객"
+    customer: "고객",
+    search: "이름 또는 이메일로 검색"
   }
 };
 
@@ -68,6 +75,8 @@ export const RecipientSelect = ({
 }: RecipientSelectProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const [language] = useLocalStorage("language", "en");
   const t = translations[language as keyof typeof translations];
@@ -104,39 +113,90 @@ export const RecipientSelect = ({
     fetchUsers();
   }, [toast, language]);
 
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery) return users;
+    const query = searchQuery.toLowerCase();
+    return users.filter(user => 
+      user.name?.toLowerCase().includes(query) || 
+      user.email?.toLowerCase().includes(query)
+    );
+  }, [users, searchQuery]);
+
+  // Find selected user to display their name
+  const selectedUser = useMemo(() => {
+    return users.find(user => user.id === value);
+  }, [users, value]);
+
   return (
     <div className="space-y-2">
       <Label htmlFor="recipient">{t.to}</Label>
-      <Select 
-        value={value} 
-        onValueChange={onChange}
-        disabled={disabled || loading}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder={t.selectRecipient} />
-        </SelectTrigger>
-        <SelectContent>
-          {loading ? (
-            <div className="py-2 px-2 text-center">
-              <Loader2 className="animate-spin w-4 h-4 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">{t.loading}</p>
-            </div>
-          ) : users.length > 0 ? (
-            <SelectGroup>
-              <SelectLabel>{t.recipients}</SelectLabel>
-              {users.map(user => (
-                <SelectItem key={user.id} value={user.id}>
-                  {user.name} ({translateRole(user.role)})
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          ) : (
-            <div className="py-2 px-2 text-center">
-              <p className="text-sm text-muted-foreground">{t.noRecipients}</p>
-            </div>
-          )}
-        </SelectContent>
-      </Select>
+      
+      {/* Use Popover with Command component for better search UX */}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between"
+            disabled={disabled || loading}
+          >
+            {value && selectedUser
+              ? `${selectedUser.name} (${translateRole(selectedUser.role)})`
+              : t.selectRecipient}
+            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-full p-0" align="start">
+          <Command>
+            <CommandInput 
+              placeholder={t.search} 
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+            />
+            {loading ? (
+              <div className="py-6 text-center">
+                <Loader2 className="animate-spin w-4 h-4 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">{t.loading}</p>
+              </div>
+            ) : (
+              <>
+                <CommandEmpty>{t.noRecipients}</CommandEmpty>
+                <CommandGroup heading={t.recipients}>
+                  {filteredUsers.map(user => (
+                    <CommandItem
+                      key={user.id}
+                      value={user.id}
+                      onSelect={() => {
+                        onChange(user.id);
+                        setOpen(false);
+                      }}
+                      className="flex justify-between"
+                    >
+                      <div>
+                        <span className={cn(
+                          "mr-2",
+                          user.id === value && "font-bold"
+                        )}>
+                          {user.name}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          ({user.email})
+                        </span>
+                      </div>
+                      <span className="text-xs bg-muted px-2 py-1 rounded">
+                        {translateRole(user.role)}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            )}
+          </Command>
+        </PopoverContent>
+      </Popover>
+
       {!value && !replyToName && (
         <p className="text-sm text-amber-500">{t.pleaseSelect}</p>
       )}

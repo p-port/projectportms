@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import TrackJob from "./pages/TrackJob";
 import NotFound from "./pages/NotFound";
+import VerificationSuccess from "./pages/VerificationSuccess";
 import { SupportChat } from "./components/SupportChat";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/track-job/:jobId" element={<TrackJob />} />
+            <Route path="/verification-success" element={<VerificationSuccess />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
