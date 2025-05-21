@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,13 +13,36 @@ interface SearchPanelProps {
   translations?: any;
 }
 
-// Helper function to censor part of a string
+// Helper function to censor part of a string in a less restrictive way
 const censorName = (name: string) => {
-  if (!name || name.length <= 3) return name;
-  const firstChar = name.charAt(0);
+  if (!name || name.length <= 2) return name;
+  
+  // For names with multiple parts (first name, last name)
+  if (name.includes(" ")) {
+    const parts = name.split(" ");
+    return parts.map(part => {
+      if (part.length <= 2) return part; // Don't censor very short name parts
+      
+      // Show first two letters and last letter, censor middle
+      const firstChars = part.substring(0, 2);
+      const lastChar = part.charAt(part.length - 1);
+      const middleLength = Math.max(1, part.length - 3); // At least 1 asterisk
+      const middle = '*'.repeat(middleLength);
+      
+      return `${firstChars}${middle}${lastChar}`;
+    }).join(" ");
+  }
+  
+  // For single names
+  if (name.length <= 3) return name; // Don't censor very short names
+  
+  // Show first two letters and last letter, censor middle
+  const firstChars = name.substring(0, 2);
   const lastChar = name.charAt(name.length - 1);
-  const middle = '*'.repeat(Math.min(name.length - 2, 3));
-  return `${firstChar}${middle}${lastChar}`;
+  const middleLength = Math.max(1, name.length - 3); // At least 1 asterisk
+  const middle = '*'.repeat(middleLength);
+  
+  return `${firstChars}${middle}${lastChar}`;
 };
 
 export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
