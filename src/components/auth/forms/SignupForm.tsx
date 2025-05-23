@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -15,6 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { supabase } from "@/integrations/supabase/client";
 
 // Define the form schema with validation rules
 const signUpFormSchema = z.object({
@@ -69,6 +71,39 @@ export default function SignupForm({ onSignupSuccess }: SignupFormProps) {
         console.error("Sign up error:", error);
         toast.error(error.message);
       } else {
+        // If shop identifier was provided, try to link user to shop
+        if (values.shopIdentifier && values.shopIdentifier.trim() !== '') {
+          try {
+            // Look up shop by unique identifier
+            const { data: shopData, error: shopError } = await supabase
+              .from('shops')
+              .select('id')
+              .eq('unique_identifier', values.shopIdentifier.trim())
+              .single();
+              
+            if (shopError) {
+              console.error("Shop lookup error:", shopError);
+              // Don't show error to user as this is just an additional feature
+            } else if (shopData && data?.user?.id) {
+              // Update the user's profile with the shop_id
+              const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ shop_id: shopData.id })
+                .eq('id', data.user.id);
+                
+              if (updateError) {
+                console.error("Error linking user to shop:", updateError);
+              } else {
+                console.log("User successfully linked to shop");
+              }
+            } else {
+              console.log("Invalid shop identifier provided");
+            }
+          } catch (err) {
+            console.error("Error during shop assignment:", err);
+          }
+        }
+        
         toast.success("Signup successful! Please check your email to verify your account.");
         onSignupSuccess(data);
       }
@@ -168,13 +203,13 @@ export default function SignupForm({ onSignupSuccess }: SignupFormProps) {
           )}
         />
 
-        {watchRole === "mechanic" && (
+        {(watchRole === "mechanic") && (
           <FormField
             control={form.control}
             name="shopIdentifier"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Shop Identifier (Optional)</FormLabel>
+                <FormLabel>Shop Identifier</FormLabel>
                 <FormControl>
                   <Input 
                     placeholder="Enter your shop's unique identifier" 

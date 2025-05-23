@@ -2,7 +2,7 @@
 import { TabsContent } from "@/components/ui/tabs";
 import { JobList } from "@/components/dashboard/JobList";
 import { NewJobForm } from "@/components/dashboard/NewJobForm";
-import { SearchCustomers } from "@/components/dashboard/SearchCustomers";
+import { SearchPanel } from "@/components/dashboard/SearchPanel";
 import { TicketList } from "@/components/dashboard/tickets/TicketList";
 import { AccountInfo } from "@/components/dashboard/account/AccountInfo";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
@@ -11,7 +11,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { ShopManagement } from "../shops/ShopManagement";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { SearchPanel } from "../SearchPanel";
 import { Store } from "lucide-react";
 
 interface TabContentProps {
