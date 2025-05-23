@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -145,9 +144,10 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
   const handleEmailChange = async (values: { email: string; currentPassword: string }) => {
     setIsChangingEmail(true);
     try {
+      // Fix: Pass the current password as options correctly
       const { error } = await supabase.auth.updateUser(
         { email: values.email },
-        { password: values.currentPassword }
+        { authOptions: { password: values.currentPassword } }
       );
 
       if (error) throw error;
@@ -169,9 +169,10 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
 
     setIsChangingPassword(true);
     try {
+      // Fix: Pass the current password as options correctly
       const { error } = await supabase.auth.updateUser(
         { password: values.newPassword },
-        { password: values.currentPassword }
+        { authOptions: { password: values.currentPassword } }
       );
 
       if (error) throw error;
@@ -429,7 +430,7 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
         </CardContent>
       </Card>
 
-      {/* Shop Information Card (Combined version) */}
+      {/* Shop Information Card */}
       {shopDetails && (
         <Card className="md:col-span-2">
           <CardHeader className="pb-2">
@@ -547,16 +548,6 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
           />
         </div>
       )}
-
-      {/* Email Change Dialog */}
-      <Dialog open={changeEmailOpen} onOpenChange={setChangeEmailOpen}>
-        {/* Dialog content already defined above */}
-      </Dialog>
-
-      {/* Password Change Dialog */}
-      <Dialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen}>
-        {/* Dialog content already defined above */}
-      </Dialog>
     </div>
   );
 };
