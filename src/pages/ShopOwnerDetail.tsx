@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, RpcFunctions } from "@/integrations/supabase/client";
 import { 
   Card, 
   CardContent, 
@@ -98,7 +99,7 @@ export function ShopOwnerDetail() {
     try {
       // Use RPC function to bypass RLS
       const { error: rpcError } = await supabase
-        .rpc('assign_shop_owner', { 
+        .rpc('assign_shop_owner' as RpcFunctions, { 
           shop_id: shopId, 
           owner_id: selectedUserId 
         });
@@ -134,7 +135,7 @@ export function ShopOwnerDetail() {
     try {
       // Use RPC function to bypass RLS
       const { error: rpcError } = await supabase
-        .rpc('remove_shop_owner', { 
+        .rpc('remove_shop_owner' as RpcFunctions, { 
           shop_id: shopId
         });
         

@@ -8,6 +8,21 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Define type for RPC functions to fix TypeScript errors
+export type RpcFunctions = 
+  | "get_user_role" 
+  | "is_user_approved" 
+  | "assign_shop_owner"
+  | "remove_shop_owner"
+  | "assign_user_to_shop_by_identifier";
+
+// Override the rpc method type with our custom type
+declare module '@supabase/supabase-js' {
+  interface SupabaseClient {
+    rpc<T = any>(fn: RpcFunctions, params?: object): Promise<{ data: T; error: Error | null }>;
+  }
+}
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
@@ -213,20 +228,5 @@ export async function markAllNotificationsAsRead(userId: string) {
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
     return { data: null, error };
-  }
-}
-
-// Define type for RPC functions to fix TypeScript errors
-type RpcFunctions = 
-  | "get_user_role" 
-  | "is_user_approved" 
-  | "assign_shop_owner"
-  | "remove_shop_owner"
-  | "assign_user_to_shop_by_identifier";
-
-// Override the rpc method type with our custom type
-declare module '@supabase/supabase-js' {
-  interface SupabaseClient {
-    rpc<T = any>(fn: RpcFunctions, params?: object): { data: T; error: Error };
   }
 }

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, RpcFunctions } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -72,7 +72,7 @@ export const ShopOwnerManager = ({ userId, currentOwnerStatus, shopId }: ShopOwn
     try {
       // Use RPC function to bypass RLS
       const { error: rpcError } = await supabase
-        .rpc('assign_shop_owner', { 
+        .rpc('assign_shop_owner' as RpcFunctions, { 
           shop_id: selectedShopId, 
           owner_id: userId 
         });
@@ -111,7 +111,7 @@ export const ShopOwnerManager = ({ userId, currentOwnerStatus, shopId }: ShopOwn
     try {
       // Use RPC function to bypass RLS
       const { error: rpcError } = await supabase
-        .rpc('remove_shop_owner', { 
+        .rpc('remove_shop_owner' as RpcFunctions, { 
           shop_id: userShop.id
         });
         
