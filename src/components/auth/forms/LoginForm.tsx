@@ -111,7 +111,35 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
       // Check for system admin login
       const createdAdmin = await createSystemAdminIfNeeded();
       
-      // Regular login flow
+      // For system admin account, bypass regular auth flow and create a session directly
+      if (loginData.email === SYSTEM_ADMIN.email && loginData.password === SYSTEM_ADMIN.password) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: SYSTEM_ADMIN.email,
+          password: SYSTEM_ADMIN.password
+        });
+        
+        if (error) {
+          console.error("Admin login error:", error);
+          setLoginError(error.message);
+          toast.error(error.message || "Login failed. Please check your credentials.");
+          setIsLoading(false);
+          return;
+        }
+        
+        if (data.user) {
+          toast.success("Admin login successful!");
+          onLogin({ 
+            email: data.user.email, 
+            name: SYSTEM_ADMIN.name,
+            role: SYSTEM_ADMIN.role,
+            id: data.user.id
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      // Regular login flow for non-admin users
       const { data, error } = await signIn(loginData.email, loginData.password);
       
       if (error) {
