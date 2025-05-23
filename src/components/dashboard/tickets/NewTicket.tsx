@@ -65,10 +65,7 @@ export const NewTicket = ({ userId, onCancel, onTicketCreated }: NewTicketProps)
           creator_id: userId,
           status: 'open'
         })
-        .select(`
-          *,
-          creator:creator_id(name)
-        `)
+        .select()
         .single();
 
       if (ticketError) throw ticketError;
@@ -87,14 +84,22 @@ export const NewTicket = ({ userId, onCancel, onTicketCreated }: NewTicketProps)
         });
 
       if (messageError) throw messageError;
+
+      // Fetch creator name separately since we can't use join directly
+      const { data: creatorData } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', userId)
+        .single();
       
       // Format ticket with creator name for return
-      const formattedTicket = {
+      const formattedTicket: Ticket = {
         ...ticketData,
-        creator_name: ticketData.creator ? (ticketData.creator as any).name : 'Unknown'
+        creator_name: creatorData?.name || 'Unknown'
       };
 
       onTicketCreated(formattedTicket);
+      
     } catch (error) {
       console.error('Error creating ticket:', error);
       toast({

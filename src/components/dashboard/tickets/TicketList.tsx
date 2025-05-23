@@ -49,13 +49,10 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
     try {
       setLoading(true);
       
+      // First fetch the tickets
       let query = supabase
         .from('support_tickets')
-        .select(`
-          *,
-          creator:creator_id(name),
-          assignee:assigned_to(name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
       // Filter tickets based on user role
@@ -73,15 +70,39 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
         query = query.eq('status', 'closed');
       }
       
-      const { data, error } = await query;
+      const { data: ticketsData, error } = await query;
         
       if (error) throw error;
       
+      if (!ticketsData || ticketsData.length === 0) {
+        setTickets([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Now fetch creator names
+      const creatorIds = [...new Set(ticketsData.map(t => t.creator_id))].filter(Boolean);
+      const assigneeIds = [...new Set(ticketsData.map(t => t.assigned_to))].filter(Boolean);
+      const allUserIds = [...new Set([...creatorIds, ...assigneeIds])].filter(Boolean);
+      
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', allUserIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Create a map of user IDs to names
+      const userNameMap = (profilesData || []).reduce((map, profile) => {
+        map[profile.id] = profile.name;
+        return map;
+      }, {} as Record<string, string>);
+      
       // Format tickets with creator and assignee names
-      const formattedTickets = data.map(ticket => ({
+      const formattedTickets = ticketsData.map(ticket => ({
         ...ticket,
-        creator_name: ticket.creator ? (ticket.creator as any).name : 'Unknown',
-        assigned_name: ticket.assignee ? (ticket.assignee as any).name : undefined
+        creator_name: ticket.creator_id ? userNameMap[ticket.creator_id] || 'Unknown' : 'Unknown',
+        assigned_name: ticket.assigned_to ? userNameMap[ticket.assigned_to] : undefined
       }));
       
       setTickets(formattedTickets);
@@ -141,22 +162,39 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
 
   const fetchTicketById = async (ticketId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data: ticketData, error } = await supabase
         .from('support_tickets')
-        .select(`
-          *,
-          creator:creator_id(name),
-          assignee:assigned_to(name)
-        `)
+        .select('*')
         .eq('id', ticketId)
         .single();
       
       if (error) throw error;
       
+      // Fetch creator name
+      const { data: creatorData } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', ticketData.creator_id)
+        .single();
+        
+      // Fetch assignee name if there is one
+      let assigneeName: string | undefined = undefined;
+      if (ticketData.assigned_to) {
+        const { data: assigneeData } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', ticketData.assigned_to)
+          .single();
+          
+        if (assigneeData) {
+          assigneeName = assigneeData.name;
+        }
+      }
+      
       const formattedTicket = {
-        ...data,
-        creator_name: data.creator ? (data.creator as any).name : 'Unknown',
-        assigned_name: data.assignee ? (data.assignee as any).name : undefined
+        ...ticketData,
+        creator_name: creatorData?.name || 'Unknown',
+        assigned_name: assigneeName
       };
       
       // Add to tickets if not already present
