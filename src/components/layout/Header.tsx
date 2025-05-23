@@ -30,6 +30,12 @@ export const Header = () => {
     };
   }, []);
 
+  // Function to handle logout
+  const handleLogout = () => {
+    // This function will be called after successful logout
+    // No additional action needed as the auth state change will update isLoggedIn
+  };
+
   return (
     <header className="bg-primary text-white py-4 shadow-md">
       <div className="container mx-auto px-4 flex justify-between items-center">
@@ -40,7 +46,7 @@ export const Header = () => {
         </div>
         <div className="flex items-center gap-4">
           {isLoggedIn && (
-            <LogoutButton variant="link" className="text-white hover:text-gray-200" />
+            <LogoutButton onLogout={handleLogout} variant="link" />
           )}
         </div>
       </div>
