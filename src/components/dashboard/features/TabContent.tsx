@@ -3,7 +3,7 @@ import { TabsContent } from "@/components/ui/tabs";
 import { JobList } from "../JobList";
 import { NewJobForm } from "../NewJobForm";
 import { SearchPanel } from "../SearchPanel";
-import { MessageList } from "../messaging/MessageList";
+import { TicketList } from "../tickets/TicketList";
 import { AccountInfo } from "../account/AccountInfo";
 
 interface TabContentProps {
@@ -13,6 +13,7 @@ interface TabContentProps {
   setJobs: React.Dispatch<React.SetStateAction<any[]>>;
   handleAddJob: (jobData: any) => void;
   userId?: string;
+  userRole?: string;
   translations?: any;
 }
 
@@ -23,6 +24,7 @@ export const TabContent = ({
   setJobs,
   handleAddJob,
   userId,
+  userRole,
   translations
 }: TabContentProps) => {
   return (
@@ -55,8 +57,8 @@ export const TabContent = ({
         <SearchPanel jobs={allJobs} translations={translations} />
       </TabsContent>
       
-      <TabsContent value="messages">
-        <MessageList />
+      <TabsContent value="tickets">
+        <TicketList userId={userId} userRole={userRole} />
       </TabsContent>
       
       <TabsContent value="account">

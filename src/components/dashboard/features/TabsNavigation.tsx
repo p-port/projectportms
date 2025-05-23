@@ -1,7 +1,7 @@
 
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, User } from "lucide-react";
+import { Ticket, User } from "lucide-react";
 
 interface TabsNavigationProps {
   activeTab: string;
@@ -9,7 +9,7 @@ interface TabsNavigationProps {
   isMobile: boolean;
   activeJobs: number;
   completedJobs: number;
-  unreadMessages: number;
+  unreadTickets: number;
   translations: {
     activeJobs: string;
     completed: string;
@@ -24,7 +24,7 @@ export const TabsNavigation = ({
   isMobile,
   activeJobs,
   completedJobs,
-  unreadMessages,
+  unreadTickets,
   translations
 }: TabsNavigationProps) => {
   if (isMobile) {
@@ -55,14 +55,14 @@ export const TabsNavigation = ({
         <div className="grid grid-cols-2 gap-2 mb-2">
           <Button 
             variant="outline" 
-            className={activeTab === "messages" ? "bg-muted" : ""} 
-            onClick={() => setActiveTab("messages")}
+            className={activeTab === "tickets" ? "bg-muted" : ""} 
+            onClick={() => setActiveTab("tickets")}
           >
-            <MessageSquare className="mr-1 h-4 w-4" />
-            Messages
-            {unreadMessages > 0 && (
+            <Ticket className="mr-1 h-4 w-4" />
+            Tickets
+            {unreadTickets > 0 && (
               <span className="ml-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {unreadMessages}
+                {unreadTickets}
               </span>
             )}
           </Button>
@@ -85,11 +85,11 @@ export const TabsNavigation = ({
       <TabsTrigger value="completed-jobs">{translations.completed} ({completedJobs})</TabsTrigger>
       <TabsTrigger value="new-job">{translations.newJob}</TabsTrigger>
       <TabsTrigger value="search">Search</TabsTrigger>
-      <TabsTrigger value="messages" className="relative">
-        Messages
-        {unreadMessages > 0 && (
+      <TabsTrigger value="tickets" className="relative">
+        Tickets
+        {unreadTickets > 0 && (
           <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-            {unreadMessages}
+            {unreadTickets}
           </span>
         )}
       </TabsTrigger>

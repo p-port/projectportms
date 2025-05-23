@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { generateUniqueJobId } from "./job-details/JobUtils";
 import { DashboardHeader } from "./features/DashboardHeader";
 import { TabsNavigation } from "./features/TabsNavigation";
 import { TabContent } from "./features/TabContent";
-import { fetchUnreadMessagesCount, subscribeToMessageUpdates } from "./services/UnreadMessagesService";
+import { fetchUnreadTicketsCount, subscribeToTicketUpdates } from "./services/UnreadTicketsService";
 import { toast } from "sonner";
 
 interface DashboardProps {
@@ -27,7 +26,7 @@ const translations = {
     newJob: "New Job",
     customers: "Customers",
     support: "Support",
-    messages: "Messages",
+    tickets: "Tickets",
     account: "Account",
     loading: "Loading jobs...",
     error: "Error loading jobs",
@@ -48,7 +47,7 @@ const translations = {
     newJob: "새 작업",
     customers: "고객",
     support: "지원",
-    messages: "메시지",
+    tickets: "티켓",
     account: "계정",
     loading: "작업 로딩 중...",
     error: "작업을 불러오는 중 오류가 발생했습니다",
@@ -69,7 +68,7 @@ const translations = {
     newJob: "Новый заказ",
     customers: "Клиенты",
     support: "Поддержка",
-    messages: "Сообщения",
+    tickets: "Тикеты",
     account: "Аккаунт",
     loading: "Загрузка заказов...",
     error: "Ошибка при загрузке заказов",
@@ -92,34 +91,55 @@ export const Dashboard = ({ user }: DashboardProps) => {
   const isMobile = useIsMobile();
   const [language] = useLocalStorage("language", "en");
   const t = translations[language as keyof typeof translations];
+  const [userRole, setUserRole] = useState<string>('mechanic');
   
-  // Add unread messages count
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  // Add unread tickets count
+  const [unreadTickets, setUnreadTickets] = useState(0);
   
-  // Load unread messages count
+  // Load user role
   useEffect(() => {
     if (!user?.id) return;
     
-    const loadUnreadMessagesCount = async () => {
-      const count = await fetchUnreadMessagesCount(user.id);
-      setUnreadMessages(count);
+    const fetchUserRole = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (!error && data) {
+        setUserRole(data.role);
+      }
     };
     
-    loadUnreadMessagesCount();
+    fetchUserRole();
+  }, [user?.id]);
+  
+  // Load unread tickets count
+  useEffect(() => {
+    if (!user?.id) return;
     
-    // Subscribe to message updates
-    const channel = subscribeToMessageUpdates(
+    const loadUnreadTicketsCount = async () => {
+      const count = await fetchUnreadTicketsCount(user.id, userRole);
+      setUnreadTickets(count);
+    };
+    
+    loadUnreadTicketsCount();
+    
+    // Subscribe to ticket updates
+    const channel = subscribeToTicketUpdates(
       user.id,
-      // On new message
-      () => setUnreadMessages(prev => prev + 1),
-      // On message read
-      () => setUnreadMessages(prev => Math.max(0, prev - 1))
+      userRole,
+      // On new ticket or message
+      () => setUnreadTickets(prev => prev + 1),
+      // On ticket read
+      () => setUnreadTickets(prev => Math.max(0, prev - 1))
     );
       
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [user?.id, userRole]);
 
   // Load jobs from Supabase if user is authenticated, otherwise use localStorage
   useEffect(() => {
@@ -318,7 +338,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
           isMobile={isMobile}
           activeJobs={activeJobs.length}
           completedJobs={completedJobs.length}
-          unreadMessages={unreadMessages}
+          unreadTickets={unreadTickets}
           translations={t}
         />
 
@@ -329,6 +349,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
           setJobs={setJobs}
           handleAddJob={handleAddJob}
           userId={user?.id}
+          userRole={userRole}
           translations={t}
         />
       </Tabs>
