@@ -10,8 +10,8 @@ import { NewTicket } from "./NewTicket";
 export interface Ticket {
   id: string;
   title: string;
-  status: string;
-  priority: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
   creator_id: string;
   created_at: string;
   updated_at: string;
@@ -369,7 +369,7 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
   if (selectedTicket) {
     return (
       <TicketDetail 
-        ticket={selectedTicket} 
+        ticketId={selectedTicket.id}
         onBack={() => setSelectedTicket(null)}
         onStatusChange={handleTicketStatusChange}
         onAssignTicket={handleAssignTicket}

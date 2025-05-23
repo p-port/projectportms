@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -50,15 +49,18 @@ interface TicketDetailProps {
   ticketId: string;
   onBack: () => void;
   userRole: string;
+  onStatusChange?: (ticketId: string, status: string) => Promise<void>;
+  onAssignTicket?: (ticketId: string, assignedTo: string | null) => Promise<void>;
+  currentUserId?: string;
 }
 
-export const TicketDetail = ({ ticketId, onBack, userRole }: TicketDetailProps) => {
+export const TicketDetail = ({ ticketId, onBack, userRole, onStatusChange, onAssignTicket, currentUserId }: TicketDetailProps) => {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [staffMembers, setStaffMembers] = useState([]);
+  const [staffMembers, setStaffMembers] = useState<Array<{id: string, name: string, email?: string}>>([]);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState('');
   const [assigning, setAssigning] = useState(false);
@@ -78,21 +80,49 @@ export const TicketDetail = ({ ticketId, onBack, userRole }: TicketDetailProps) 
     try {
       const { data, error } = await supabase
         .from('support_tickets')
-        .select(`
-          *,
-          creator:creator_id(name),
-          assignee:assigned_to(name)
-        `)
+        .select('*')
         .eq('id', ticketId)
         .single();
         
       if (error) throw error;
       
+      // Fetch creator name
+      let creatorName = 'Unknown';
+      if (data.creator_id) {
+        const { data: creatorData } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', data.creator_id)
+          .single();
+          
+        if (creatorData?.name) {
+          creatorName = creatorData.name;
+        }
+      }
+      
+      // Fetch assignee name if there is one
+      let assigneeName: string | undefined = undefined;
+      if (data.assigned_to) {
+        const { data: assigneeData } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', data.assigned_to)
+          .single();
+          
+        if (assigneeData?.name) {
+          assigneeName = assigneeData.name;
+        }
+      }
+      
+      // Make sure status is one of the allowed values
+      const status = data.status as 'open' | 'in_progress' | 'resolved' | 'closed';
+      
       setTicket({
         ...data,
-        creator_name: data.creator?.name,
-        assigned_name: data.assignee?.name
-      });
+        status: status,
+        creator_name: creatorName,
+        assigned_name: assigneeName,
+      } as Ticket);
     } catch (error) {
       console.error('Error fetching ticket details:', error);
       toast.error("Failed to load ticket details");
@@ -105,19 +135,37 @@ export const TicketDetail = ({ ticketId, onBack, userRole }: TicketDetailProps) 
     try {
       const { data, error } = await supabase
         .from('ticket_messages')
-        .select(`
-          *,
-          sender:sender_id(name)
-        `)
+        .select('*')
         .eq('ticket_id', ticketId)
         .order('created_at', { ascending: true });
         
       if (error) throw error;
       
-      setMessages(data.map(msg => ({
-        ...msg,
-        sender_name: msg.sender?.name
-      })));
+      // Fetch sender names for each message
+      const messagesWithNames = await Promise.all(
+        data.map(async (msg) => {
+          let senderName = 'Unknown';
+          
+          if (msg.sender_id) {
+            const { data: senderData } = await supabase
+              .from('profiles')
+              .select('name')
+              .eq('id', msg.sender_id)
+              .single();
+              
+            if (senderData?.name) {
+              senderName = senderData.name;
+            }
+          }
+          
+          return {
+            ...msg,
+            sender_name: senderName
+          };
+        })
+      );
+      
+      setMessages(messagesWithNames);
     } catch (error) {
       console.error('Error fetching ticket messages:', error);
       toast.error("Failed to load ticket messages");
@@ -133,7 +181,7 @@ export const TicketDetail = ({ ticketId, onBack, userRole }: TicketDetailProps) 
         .eq('approved', true);
         
       if (error) throw error;
-      setStaffMembers(data);
+      setStaffMembers(data || []);
     } catch (error) {
       console.error('Error fetching support staff:', error);
     }
@@ -169,12 +217,31 @@ export const TicketDetail = ({ ticketId, onBack, userRole }: TicketDetailProps) 
 
   const assignTicket = async () => {
     if (!selectedStaff) return;
+    if (!onAssignTicket) {
+      // If no handler is provided, update directly
+      updateTicketAssignment(selectedStaff);
+      return;
+    }
     
+    setAssigning(true);
+    try {
+      await onAssignTicket(ticketId, selectedStaff);
+      toast.success("Ticket assigned successfully");
+      setShowAssignDialog(false);
+    } catch (error) {
+      console.error('Error assigning ticket:', error);
+      toast.error("Failed to assign ticket");
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const updateTicketAssignment = async (assignedTo: string | null) => {
     setAssigning(true);
     try {
       const { error } = await supabase
         .from('support_tickets')
-        .update({ assigned_to: selectedStaff })
+        .update({ assigned_to: assignedTo })
         .eq('id', ticketId);
         
       if (error) throw error;
@@ -190,7 +257,14 @@ export const TicketDetail = ({ ticketId, onBack, userRole }: TicketDetailProps) 
     }
   };
 
-  const updateTicketStatus = async (status: string) => {
+  const updateTicketStatus = async (status: 'open' | 'in_progress' | 'resolved' | 'closed') => {
+    if (onStatusChange) {
+      // Use the provided handler
+      await onStatusChange(ticketId, status);
+      return;
+    }
+    
+    // Otherwise, update directly
     setStatusUpdating(true);
     try {
       const { error } = await supabase
@@ -393,7 +467,7 @@ export const TicketDetail = ({ ticketId, onBack, userRole }: TicketDetailProps) 
               <SelectValue placeholder="Select staff member" />
             </SelectTrigger>
             <SelectContent>
-              {staffMembers.map((staff: any) => (
+              {staffMembers.map((staff) => (
                 <SelectItem key={staff.id} value={staff.id}>
                   {staff.name || staff.email}
                 </SelectItem>

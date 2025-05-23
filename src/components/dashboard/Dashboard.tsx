@@ -49,21 +49,35 @@ const translations = {
   }
 };
 
-export const Dashboard = () => {
+interface DashboardProps {
+  user?: any;
+}
+
+export const Dashboard = ({ user }: DashboardProps) => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [language] = useLocalStorage("language", "en");
   const isMobile = useIsMobile();
   const [jobs, setJobs] = useState([]);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(user?.id || null);
   const [userRole, setUserRole] = useState("mechanic"); // Default role
   const [activeTab, setActiveTab] = useState("active-jobs");
   const [unreadTickets, setUnreadTickets] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(user?.name || "");
   const [isShopOwner, setIsShopOwner] = useState(false);
   
   const t = translations[language as keyof typeof translations];
+
+  // Set user from props if provided
+  useEffect(() => {
+    if (user?.id) {
+      setUserId(user.id);
+      if (user.name) {
+        setUsername(user.name);
+      }
+    }
+  }, [user]);
 
   // Set tab based on URL param if provided
   useEffect(() => {
