@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, User, Battery, Ticket } from "lucide-react";
+import { Search, User, Battery, Ticket, History, List } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -51,6 +51,7 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [hasSearched, setHasSearched] = useState<boolean>(false);
+  const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
 
   const handleSearch = () => {
     if (!searchQuery.trim()) {
@@ -59,6 +60,7 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
     }
 
     setHasSearched(true);
+    setSelectedOwner(null);
     const query = searchQuery.toLowerCase().trim();
     let results: any[] = [];
 
@@ -112,13 +114,25 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                   dateServiced: job.dateCreated,
                   lastDateServiced: job.dateCreated
                 }] : [],
-                serviceHistory: [job]
+                serviceHistory: [job],
+                allServicesByOwner: job.customer ? {
+                  [censorName(job.customer.name)]: [job]
+                } : {}
               });
             } else {
               const motorcycle = motorcycleMap.get(key);
               
               // Add this job to service history
               motorcycle.serviceHistory.push(job);
+              
+              // Group services by owner
+              if (job.customer) {
+                const ownerName = censorName(job.customer.name);
+                if (!motorcycle.allServicesByOwner[ownerName]) {
+                  motorcycle.allServicesByOwner[ownerName] = [];
+                }
+                motorcycle.allServicesByOwner[ownerName].push(job);
+              }
               
               // Check if this is a different owner than the last one in ownership history
               if (job.customer) {
@@ -165,6 +179,13 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
             motorcycle.currentOwner = null;
             motorcycle.previousOwners = [];
           }
+
+          // For each owner, sort their services by date (newest first)
+          Object.keys(motorcycle.allServicesByOwner).forEach(owner => {
+            motorcycle.allServicesByOwner[owner].sort((a: any, b: any) => 
+              new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
+            );
+          });
         });
         
         results = motorcycleResults;
@@ -182,6 +203,22 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
     if (results.length === 0) {
       toast.info("No results found for your search");
     }
+  };
+
+  // Function to handle owner selection to filter service history
+  const handleOwnerSelect = (motorcycle: any, ownerName: string) => {
+    setSelectedOwner(ownerName === selectedOwner ? null : ownerName);
+  };
+
+  // Function to get filtered service history based on selected owner
+  const getFilteredServiceHistory = (motorcycle: any) => {
+    if (!selectedOwner) {
+      // If no owner selected, return the last 10 services
+      return motorcycle.serviceHistory.slice(0, 10);
+    }
+    
+    // Return services for the selected owner (up to 10)
+    return motorcycle.allServicesByOwner[selectedOwner]?.slice(0, 10) || [];
   };
 
   return (
@@ -273,41 +310,69 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                             <h4 className="text-md font-semibold">{motorcycle.make} {motorcycle.model} {motorcycle.year}</h4>
                             <p className="text-sm text-muted-foreground">VIN: {motorcycle.vin}</p>
                           </div>
-                          <Badge variant="outline">Services: {motorcycle.serviceHistory.length}</Badge>
+                          <Badge variant="outline" className="flex gap-1 items-center">
+                            <History className="h-3 w-3" />
+                            Services: {motorcycle.serviceHistory.length}
+                          </Badge>
                         </div>
                         
-                        {/* Ownership History Section */}
+                        {/* Ownership History Section with Selectable Buttons */}
                         <div className="mb-4">
                           <h5 className="font-medium text-sm mb-2">Ownership History</h5>
                           <div className="space-y-2">
                             {motorcycle.currentOwner && (
-                              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded text-sm border border-green-200 dark:border-green-800">
+                              <div className={`p-3 rounded text-sm border cursor-pointer transition-colors ${selectedOwner === motorcycle.currentOwner.name ? 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-800' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'}`}
+                                onClick={() => handleOwnerSelect(motorcycle, motorcycle.currentOwner.name)}>
                                 <div className="flex justify-between items-center">
                                   <span className="font-medium">Current Owner: {motorcycle.currentOwner.name}</span>
-                                  <Badge variant="outline" className="bg-green-100 dark:bg-green-800 border-green-200 dark:border-green-700">
-                                    Current
-                                  </Badge>
+                                  <div className="flex gap-2">
+                                    <Badge variant="outline" className="bg-green-100 dark:bg-green-800 border-green-200 dark:border-green-700">
+                                      Current
+                                    </Badge>
+                                    {selectedOwner === motorcycle.currentOwner.name && (
+                                      <Badge variant="secondary">
+                                        Selected
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                   First Seen: {motorcycle.currentOwner.dateServiced}
                                   {motorcycle.currentOwner.dateServiced !== motorcycle.currentOwner.lastDateServiced && 
                                     ` • Last Seen: ${motorcycle.currentOwner.lastDateServiced}`}
                                 </p>
+                                {selectedOwner === motorcycle.currentOwner.name && (
+                                  <div className="mt-2 text-xs text-muted-foreground">
+                                    Services: {motorcycle.allServicesByOwner[motorcycle.currentOwner.name]?.length || 0}
+                                  </div>
+                                )}
                               </div>
                             )}
                             
                             {motorcycle.previousOwners && motorcycle.previousOwners.length > 0 ? (
                               <div className="space-y-2">
                                 {motorcycle.previousOwners.map((owner: any, ownerIndex: number) => (
-                                  <div key={ownerIndex} className="bg-muted p-3 rounded text-sm">
+                                  <div key={ownerIndex} 
+                                    className={`p-3 rounded text-sm cursor-pointer transition-colors ${selectedOwner === owner.name ? 'bg-muted/80 border border-muted-foreground/20' : 'bg-muted border border-transparent'}`}
+                                    onClick={() => handleOwnerSelect(motorcycle, owner.name)}>
                                     <div className="flex justify-between items-center">
                                       <span className="font-medium">Previous Owner: {owner.name}</span>
+                                      {selectedOwner === owner.name && (
+                                        <Badge variant="secondary">
+                                          Selected
+                                        </Badge>
+                                      )}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
                                       First Seen: {owner.dateServiced}
                                       {owner.dateServiced !== owner.lastDateServiced && 
                                         ` • Last Seen: ${owner.lastDateServiced}`}
                                     </p>
+                                    {selectedOwner === owner.name && (
+                                      <div className="mt-2 text-xs text-muted-foreground">
+                                        Services: {motorcycle.allServicesByOwner[owner.name]?.length || 0}
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -317,19 +382,65 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                           </div>
                         </div>
                         
-                        <h5 className="font-medium text-sm mb-2">Service History</h5>
-                        <div className="space-y-2">
-                          {motorcycle.serviceHistory.map((job: any, jobIndex: number) => (
-                            <div key={jobIndex} className="bg-muted/50 p-3 rounded text-sm">
-                              <div className="flex justify-between">
-                                <span className="font-medium">Job ID: {job.id}</span>
-                                <span>{job.dateCreated}</span>
-                              </div>
-                              <p>{job.serviceType}</p>
-                              <p className="text-muted-foreground">Status: {job.status}</p>
-                              <p className="text-xs text-muted-foreground">Owner: {job.customer ? censorName(job.customer.name) : 'Unknown'}</p>
+                        {/* Service History Section */}
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <h5 className="font-medium text-sm">Service History</h5>
+                            <div className="flex gap-2 items-center">
+                              {selectedOwner ? (
+                                <Badge variant="outline" className="flex gap-1 items-center">
+                                  <User className="h-3 w-3" /> 
+                                  Filtered by: {selectedOwner}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="flex gap-1 items-center">
+                                  <List className="h-3 w-3" /> 
+                                  Last 10 services
+                                </Badge>
+                              )}
+                              {selectedOwner && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-6 text-xs px-2" 
+                                  onClick={() => setSelectedOwner(null)}>
+                                  Clear
+                                </Button>
+                              )}
                             </div>
-                          ))}
+                          </div>
+                          
+                          <div className="space-y-2">
+                            {getFilteredServiceHistory(motorcycle).length > 0 ? (
+                              getFilteredServiceHistory(motorcycle).map((job: any, jobIndex: number) => (
+                                <div key={jobIndex} className="bg-muted/50 p-3 rounded text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="font-medium">Job ID: {job.id}</span>
+                                    <span>{job.dateCreated}</span>
+                                  </div>
+                                  <p>{job.serviceType}</p>
+                                  <p className="text-muted-foreground">Status: {job.status}</p>
+                                  <p className="text-xs text-muted-foreground">Owner: {job.customer ? censorName(job.customer.name) : 'Unknown'}</p>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="bg-muted/50 p-3 rounded text-sm text-center">
+                                No service history available for the selected filter.
+                              </div>
+                            )}
+                            
+                            {!selectedOwner && motorcycle.serviceHistory.length > 10 && (
+                              <div className="text-center text-xs text-muted-foreground mt-2">
+                                Showing 10 of {motorcycle.serviceHistory.length} services. Select an owner to filter.
+                              </div>
+                            )}
+                            
+                            {selectedOwner && motorcycle.allServicesByOwner[selectedOwner]?.length > 10 && (
+                              <div className="text-center text-xs text-muted-foreground mt-2">
+                                Showing 10 of {motorcycle.allServicesByOwner[selectedOwner].length} services for this owner.
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
