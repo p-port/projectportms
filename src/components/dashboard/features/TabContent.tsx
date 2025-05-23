@@ -12,7 +12,6 @@ import { ShopManagement } from "../shops/ShopManagement";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Store } from "lucide-react";
-import { ShopMemberManagementForOwners } from "../shops/ShopMemberManagementForOwners";
 
 interface TabContentProps {
   activeJobs: any[];
@@ -23,7 +22,6 @@ interface TabContentProps {
   userId?: string;
   userRole?: string;
   translations: any;
-  isShopOwner?: boolean;
 }
 
 export const TabContent = ({
@@ -35,7 +33,6 @@ export const TabContent = ({
   userId,
   userRole = 'mechanic',
   translations,
-  isShopOwner = false
 }: TabContentProps) => {
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -125,10 +122,6 @@ export const TabContent = ({
         )}
       </TabsContent>
 
-      <TabsContent value="my-shop" className="mt-6">
-        {userId && <ShopMemberManagementForOwners userId={userId} />}
-      </TabsContent>
-      
       <TabsContent value="users" className="mt-6">
         {isAdmin ? (
           <UserManagement />

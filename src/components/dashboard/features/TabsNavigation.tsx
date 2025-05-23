@@ -1,5 +1,5 @@
 
-import { Briefcase, Check, MessageSquarePlus, User, Wrench, Store, Users, Search, Building } from "lucide-react";
+import { Briefcase, Check, MessageSquarePlus, User, Wrench, Store, Users, Search } from "lucide-react";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TabsNavigationProps {
@@ -11,7 +11,6 @@ interface TabsNavigationProps {
   unreadTickets: number;
   translations: any;
   userRole?: string;
-  isShopOwner?: boolean;
 }
 
 export const TabsNavigation = ({
@@ -22,8 +21,7 @@ export const TabsNavigation = ({
   completedJobs,
   unreadTickets,
   translations,
-  userRole = 'mechanic',
-  isShopOwner = false
+  userRole = 'mechanic'
 }: TabsNavigationProps) => {
   const isAdmin = userRole === 'admin';
   
@@ -55,12 +53,6 @@ export const TabsNavigation = ({
         <TabsTrigger value="shops" onClick={() => setActiveTab("shops")} className="flex gap-2 items-center">
           <Store className="h-4 w-4" />
           {translations.shops || "Shops"}
-        </TabsTrigger>
-      )}
-      {isShopOwner && (
-        <TabsTrigger value="my-shop" onClick={() => setActiveTab("my-shop")} className="flex gap-2 items-center">
-          <Building className="h-4 w-4" />
-          {translations.myShop || "My Shop"}
         </TabsTrigger>
       )}
       {isAdmin && (

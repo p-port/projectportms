@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Ticket, TicketPriority, TicketStatus } from "./TicketList";
+import { Ticket } from "./TicketList";
 
 interface NewTicketProps {
   userId?: string;
@@ -25,7 +25,7 @@ interface NewTicketProps {
 export const NewTicket = ({ userId, onCancel, onTicketCreated }: NewTicketProps) => {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [priority, setPriority] = useState<TicketPriority>("normal");
+  const [priority, setPriority] = useState("normal");
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -63,7 +63,7 @@ export const NewTicket = ({ userId, onCancel, onTicketCreated }: NewTicketProps)
           title: title.trim(),
           priority,
           creator_id: userId,
-          status: 'open' as TicketStatus
+          status: 'open'
         })
         .select()
         .single();
@@ -101,8 +101,6 @@ export const NewTicket = ({ userId, onCancel, onTicketCreated }: NewTicketProps)
       // Format ticket with creator name for return
       const formattedTicket: Ticket = {
         ...ticketData,
-        status: ticketData.status as TicketStatus,
-        priority: ticketData.priority as TicketPriority,
         creator_name: creatorData?.name || 'Unknown'
       };
 
@@ -146,7 +144,7 @@ export const NewTicket = ({ userId, onCancel, onTicketCreated }: NewTicketProps)
             <Label htmlFor="priority">Priority</Label>
             <Select
               value={priority}
-              onValueChange={(value) => setPriority(value as TicketPriority)}
+              onValueChange={setPriority}
               disabled={submitting}
             >
               <SelectTrigger id="priority">
@@ -156,7 +154,6 @@ export const NewTicket = ({ userId, onCancel, onTicketCreated }: NewTicketProps)
                 <SelectItem value="low">Low</SelectItem>
                 <SelectItem value="normal">Normal</SelectItem>
                 <SelectItem value="high">High</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
               </SelectContent>
             </Select>
           </div>

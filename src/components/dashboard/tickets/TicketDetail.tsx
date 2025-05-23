@@ -1,223 +1,216 @@
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Send } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-import {
+import { ArrowLeft, Send, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Ticket, TicketMessage } from "./TicketList";
+import { format } from "date-fns";
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TicketMessage, Ticket, TicketStatus, TicketPriority } from "./TicketList";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { subscribeToTicketMessages } from "../messaging/services/MessageService";
+
+interface StaffMember {
+  id: string;
+  name: string;
+  role: string;
+}
 
 interface TicketDetailProps {
-  ticketId: string;
+  ticket: Ticket;
   onBack: () => void;
-  onStatusChange: (ticketId: string, status: TicketStatus) => Promise<void>;
-  onAssignTicket: (ticketId: string, assignedTo: string | null) => Promise<void>;
+  onStatusChange: (ticketId: string, status: string) => Promise<void>;
+  onAssignTicket: (ticketId: string, userId: string | null) => Promise<void>;
   currentUserId?: string;
   userRole?: string;
 }
 
 export const TicketDetail = ({
-  ticketId,
+  ticket,
   onBack,
   onStatusChange,
   onAssignTicket,
   currentUserId,
-  userRole = "mechanic",
+  userRole = 'mechanic'
 }: TicketDetailProps) => {
-  const [ticket, setTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<TicketMessage[]>([]);
-  const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [sendingMessage, setSendingMessage] = useState(false);
-  const [staffUsers, setStaffUsers] = useState<{ id: string; name: string }[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [supportStaff, setSupportStaff] = useState<StaffMember[]>([]);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [newStatus, setNewStatus] = useState<string>(ticket.status);
   const { toast } = useToast();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   
-  const isStaff = userRole === "admin" || userRole === "support";
-
-  useEffect(() => {
-    fetchTicketDetails();
-    
-    if (isStaff) {
-      fetchStaffUsers();
+  const isStaff = userRole === 'admin' || userRole === 'support';
+  
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-    
-    // Set up realtime subscription for new messages
-    const channel = supabase
-      .channel(`ticket-${ticketId}`)
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'ticket_messages', filter: `ticket_id=eq.${ticketId}` },
-        (payload) => {
-          // Fetch the new message with sender name
-          fetchNewMessage(payload.new.id);
-        })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [ticketId]);
-
-  const fetchTicketDetails = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch ticket data
-      const { data: ticketData, error: ticketError } = await supabase
-        .from('support_tickets')
-        .select('*')
-        .eq('id', ticketId)
-        .single();
+  };
+  
+  // Set up initial data and real-time subscription
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        setLoading(true);
         
-      if (ticketError) throw ticketError;
-      
-      // Fetch creator name
-      const { data: creatorData } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', ticketData.creator_id)
-        .single();
-      
-      // Fetch assignee name if assigned
-      let assigneeName = undefined;
-      if (ticketData.assigned_to) {
-        const { data: assigneeData } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', ticketData.assigned_to)
-          .single();
-          
-        if (assigneeData) {
-          assigneeName = assigneeData.name;
+        // Fetch messages for this ticket
+        const { data, error } = await supabase
+          .from('ticket_messages')
+          .select('*')
+          .eq('ticket_id', ticket.id)
+          .order('created_at', { ascending: true });
+        
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+          setMessages([]);
+          setLoading(false);
+          return;
         }
-      }
-      
-      // Format ticket with names
-      const formattedTicket: Ticket = {
-        ...ticketData,
-        status: ticketData.status as TicketStatus,
-        priority: ticketData.priority as TicketPriority,
-        creator_name: creatorData?.name || 'Unknown',
-        assigned_name: assigneeName
-      };
-      
-      setTicket(formattedTicket);
-      
-      // Fetch messages for this ticket
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('ticket_messages')
-        .select('*')
-        .eq('ticket_id', ticketId)
-        .order('created_at', { ascending: true });
         
-      if (messagesError) throw messagesError;
-      
-      if (messagesData && messagesData.length > 0) {
-        // Get all unique sender IDs
-        const senderIds = [...new Set(messagesData.map(m => m.sender_id))].filter(Boolean) as string[];
+        // Get unique sender IDs
+        const senderIds = [...new Set(data.map(message => message.sender_id))].filter(Boolean);
         
-        // Fetch all sender names in one query
-        const { data: profilesData } = await supabase
+        // Fetch sender names
+        const { data: sendersData, error: sendersError } = await supabase
           .from('profiles')
           .select('id, name')
           .in('id', senderIds);
           
+        if (sendersError) throw sendersError;
+        
         // Create a map of user IDs to names
-        const userNameMap = (profilesData || []).reduce((map, profile) => {
+        const userNameMap = (sendersData || []).reduce((map, profile) => {
           map[profile.id] = profile.name;
           return map;
         }, {} as Record<string, string>);
         
-        // Format messages with sender names
-        const formattedMessages = messagesData.map(message => ({
+        // Attach sender names to messages
+        const messagesWithSenders = data.map(message => ({
           ...message,
           sender_name: message.sender_id ? userNameMap[message.sender_id] || 'Unknown' : 'System'
         }));
         
-        setMessages(formattedMessages);
+        setMessages(messagesWithSenders);
+        
+        // Scroll to bottom after messages load
+        setTimeout(scrollToBottom, 100);
+      } catch (error) {
+        console.error('Error fetching ticket messages:', error);
+        toast({
+          title: "Error loading messages",
+          description: "Could not load ticket messages",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
       }
-      
-    } catch (error) {
-      console.error('Error fetching ticket details:', error);
-      toast({
-        title: "Error loading ticket",
-        description: "Please try again later",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchNewMessage = async (messageId: string) => {
-    try {
-      const { data: messageData, error } = await supabase
-        .from('ticket_messages')
-        .select('*')
-        .eq('id', messageId)
-        .single();
+    };
+    
+    fetchMessages();
+    
+    // Set up real-time subscription using the enhanced function
+    console.log(`Setting up real-time subscription for ticket ${ticket.id}`);
+    const channel = subscribeToTicketMessages(
+      ticket.id,
+      (newMessage) => {
+        console.log('New message received via subscription:', newMessage);
+        setMessages(prev => [...prev, newMessage]);
         
-      if (error) throw error;
+        // Auto-scroll to latest message
+        setTimeout(scrollToBottom, 100);
+      }
+    );
       
-      // Fetch sender name
-      const { data: senderData } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', messageData.sender_id)
-        .single();
-        
-      const formattedMessage: TicketMessage = {
-        ...messageData,
-        sender_name: senderData?.name || 'Unknown'
+    return () => {
+      console.log(`Cleaning up real-time subscription for ticket ${ticket.id}`);
+      supabase.removeChannel(channel);
+    };
+  }, [ticket.id, toast]);
+  
+  // Fetch support staff for assignment
+  useEffect(() => {
+    if (isStaff) {
+      const fetchStaff = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id, name, role')
+            .in('role', ['support', 'admin']);
+            
+          if (error) throw error;
+          
+          setSupportStaff(data as StaffMember[]);
+        } catch (error) {
+          console.error('Error fetching support staff:', error);
+        }
       };
       
-      setMessages(prev => [...prev, formattedMessage]);
-      
-    } catch (error) {
-      console.error('Error fetching new message:', error);
+      fetchStaff();
     }
-  };
-
-  const fetchStaffUsers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('role', ['support', 'admin'])
-        .eq('approved', true);
-        
-      if (error) throw error;
-      
-      setStaffUsers(data || []);
-      
-    } catch (error) {
-      console.error('Error fetching staff users:', error);
-    }
-  };
-
+  }, [isStaff]);
+  
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !currentUserId || !ticket) return;
+    if (!newMessage.trim()) return;
     
-    setSendingMessage(true);
     try {
+      setSubmitting(true);
+      
+      // Get current authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      // Create message
       const { error } = await supabase
         .from('ticket_messages')
         .insert({
           ticket_id: ticket.id,
           content: newMessage.trim(),
-          sender_id: currentUserId
+          sender_id: user.id
         });
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error sending message:', error);
+        throw error;
+      }
+
+      // If staff member is responding and ticket is 'open', automatically change status to 'in-progress'
+      if (isStaff && ticket.status === 'open') {
+        await onStatusChange(ticket.id, 'in-progress');
+        ticket.status = 'in-progress'; // Update local state
+      }
       
+      // Clear input after successful send
       setNewMessage("");
+      
+      // We don't need to manually add the message here anymore
+      // as the real-time subscription will handle it
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -227,150 +220,336 @@ export const TicketDetail = ({
         variant: "destructive"
       });
     } finally {
-      setSendingMessage(false);
+      setSubmitting(false);
     }
   };
-
-  const handleStatusChange = async (status: TicketStatus) => {
-    if (!ticket) return;
-    await onStatusChange(ticket.id, status);
+  
+  const handleAssign = async (userId: string) => {
+    // If selecting the same person, do nothing
+    if (ticket.assigned_to === userId) return;
+    
+    try {
+      await onAssignTicket(ticket.id, userId);
+      
+      // Update local state to reflect the change immediately
+      const assignedStaff = supportStaff.find(staff => staff.id === userId);
+      
+      // Add a system message about assignment
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('ticket_messages')
+          .insert({
+            ticket_id: ticket.id,
+            content: `Ticket assigned to ${assignedStaff?.name || 'staff member'}`,
+            sender_id: user.id
+          });
+      }
+      
+      toast({
+        title: "Ticket Assigned",
+        description: `Ticket has been assigned to ${assignedStaff?.name || 'staff member'}`,
+      });
+      
+    } catch (error) {
+      console.error('Error assigning ticket:', error);
+      toast({
+        title: "Error Assigning Ticket",
+        description: "Please try again later",
+        variant: "destructive"
+      });
+    }
   };
   
-  const handleAssignTicket = async (userId: string | null) => {
-    if (!ticket) return;
-    await onAssignTicket(ticket.id, userId);
+  const handleUnassign = async () => {
+    if (!ticket.assigned_to) return;
+    
+    try {
+      await onAssignTicket(ticket.id, null);
+      
+      // Add system message about unassignment
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('ticket_messages')
+          .insert({
+            ticket_id: ticket.id,
+            content: `Ticket unassigned`,
+            sender_id: user.id
+          });
+      }
+      
+      toast({
+        title: "Ticket Unassigned",
+        description: "Ticket has been unassigned"
+      });
+      
+    } catch (error) {
+      console.error('Error unassigning ticket:', error);
+      toast({
+        title: "Error Unassigning Ticket", 
+        description: "Please try again later",
+        variant: "destructive"
+      });
+    }
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center p-8">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-      </div>
-    );
-  }
-
-  if (!ticket) {
-    return (
-      <div className="p-8 text-center">
-        <p className="text-gray-500">Ticket not found</p>
-        <Button onClick={onBack} className="mt-4">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to tickets
-        </Button>
-      </div>
-    );
-  }
+  
+  const handleStatusChange = async (status: string) => {
+    if (status === ticket.status) return;
+    
+    setNewStatus(status);
+    setStatusDialogOpen(true);
+  };
+  
+  const confirmStatusChange = async () => {
+    try {
+      await onStatusChange(ticket.id, newStatus);
+      
+      // Add system message about status change
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const { error } = await supabase
+          .from('ticket_messages')
+          .insert({
+            ticket_id: ticket.id,
+            content: `Ticket status changed to ${newStatus}`,
+            sender_id: user.id
+          });
+          
+        if (error) {
+          console.error('Error adding status change message:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error changing ticket status:', error);
+    } finally {
+      setStatusDialogOpen(false);
+    }
+  };
+  
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'text-destructive';
+      case 'low': return 'text-muted-foreground';
+      default: return 'text-primary';
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to tickets
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to Tickets
+          </Button>
+          <span className="text-muted-foreground">|</span>
+          <h2 className="text-lg font-medium">Ticket #{ticket.id.substring(0, 8)}</h2>
+        </div>
         
         {isStaff && (
           <div className="flex items-center gap-2">
-            <Select 
-              value={ticket.status || "open"} 
-              onValueChange={(value) => handleStatusChange(value as TicketStatus)}
+            <Select
+              value={ticket.status}
+              onValueChange={handleStatusChange}
             >
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-32">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="in-progress">In Progress</SelectItem>
                 <SelectItem value="closed">Closed</SelectItem>
               </SelectContent>
             </Select>
-            
-            <Select 
-              value={ticket.assigned_to || "unassigned"} 
-              onValueChange={(value) => handleAssignTicket(value === "unassigned" ? null : value)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Assign to..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {staffUsers.map(user => (
-                  <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         )}
       </div>
-      
-      <div className="bg-card rounded-lg p-4 sm:p-6 border">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl font-semibold mb-1">{ticket.title}</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 space-y-6">
+          <div className="border rounded-md p-4 space-y-2">
+            <h3 className="font-medium">{ticket.title}</h3>
             <div className="text-sm text-muted-foreground">
-              Opened by {ticket.creator_name} · {new Date(ticket.created_at).toLocaleString()}
+              Created by {ticket.creator_name} on {format(new Date(ticket.created_at), 'MMM d, yyyy')}
+            </div>
+            <div className={`text-sm font-medium ${getPriorityColor(ticket.priority)}`}>
+              Priority: {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)}
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <Badge variant={ticket.priority === 'high' || ticket.priority === 'urgent' ? "destructive" : "outline"}>
-              {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)} Priority
-            </Badge>
+
+          <div className="border rounded-md">
+            <div className="p-4 border-b">
+              <h4 className="font-medium">Messages</h4>
+            </div>
             
-            <Badge variant={
-              ticket.status === 'open' ? "default" :
-              ticket.status === 'in_progress' ? "secondary" :
-              ticket.status === 'resolved' ? "success" : "outline"
-            }>
-              {ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1)}
-            </Badge>
+            <div 
+              ref={messagesContainerRef}
+              className="p-4 space-y-4 max-h-96 overflow-y-auto messages-container"
+            >
+              {loading ? (
+                <div className="flex justify-center">
+                  <div className="animate-spin h-6 w-6 border-4 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="text-center text-muted-foreground py-4">No messages yet</div>
+              ) : (
+                <>
+                  {messages.map((message) => (
+                    <div 
+                      key={message.id} 
+                      className={`p-3 rounded-md ${
+                        message.sender_id === currentUserId 
+                          ? 'bg-primary/10 ml-8' 
+                          : 'bg-muted/50 mr-8'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
+                        <span className="font-semibold">{message.sender_name}</span>
+                        <span>{format(new Date(message.created_at), 'MMM d, h:mm a')}</span>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} /> {/* Empty div for scrolling to bottom */}
+                </>
+              )}
+            </div>
+            
+            {ticket.status !== 'closed' && (
+              <div className="p-4 border-t">
+                <div className="flex gap-2">
+                  <Textarea
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type your message here..."
+                    className="flex-1"
+                    rows={3}
+                    disabled={submitting}
+                    onKeyDown={(e) => {
+                      // Send message on Ctrl+Enter or Cmd+Enter
+                      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newMessage.trim()) {
+                          handleSendMessage();
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={!newMessage.trim() || submitting}
+                  >
+                    {submitting ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  Press Ctrl+Enter to send
+                </div>
+              </div>
+            )}
           </div>
         </div>
         
-        {ticket.assigned_to && (
-          <div className="mb-6 text-sm bg-accent text-accent-foreground p-3 rounded-md">
-            Assigned to: {ticket.assigned_name || 'Support Agent'}
-          </div>
-        )}
-        
-        <div className="space-y-4 max-h-[500px] overflow-y-auto p-1">
-          {messages.map((message, index) => (
-            <div key={message.id} className="bg-muted p-4 rounded-lg">
-              <div className="flex justify-between items-start gap-4">
-                <div className="font-medium">{message.sender_name}</div>
-                <div className="text-xs text-muted-foreground">
-                  {new Date(message.created_at).toLocaleString()}
-                </div>
-              </div>
-              <div className="mt-1 whitespace-pre-wrap">{message.content}</div>
+        <div className="space-y-4">
+          <div className="border rounded-md p-4">
+            <h4 className="font-medium mb-3">Ticket Status</h4>
+            <div className="flex items-center gap-2 mb-2">
+              <StatusIndicator status={ticket.status} />
+              <span className="capitalize">{ticket.status.replace('-', ' ')}</span>
             </div>
-          ))}
+            
+            {ticket.status === 'closed' && (
+              <Alert variant="default" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  This ticket is closed. No further replies can be added.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
           
-          {messages.length === 0 && (
-            <div className="text-center p-4 text-muted-foreground">
-              No messages yet.
+          {isStaff && (
+            <div className="border rounded-md p-4">
+              <h4 className="font-medium mb-3">Assignment</h4>
+              {ticket.assigned_to ? (
+                <div>
+                  <p className="text-sm mb-2">
+                    Currently assigned to: <span className="font-medium">{ticket.assigned_name}</span>
+                  </p>
+                  <div className="flex gap-2">
+                    <Select onValueChange={handleAssign}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Reassign" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {supportStaff.map((staff) => (
+                          <SelectItem key={staff.id} value={staff.id}>
+                            {staff.name} ({staff.role})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button variant="outline" size="sm" onClick={handleUnassign}>
+                      Unassign
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Not currently assigned</p>
+                  <Select onValueChange={handleAssign}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Assign to staff member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {supportStaff.map((staff) => (
+                        <SelectItem key={staff.id} value={staff.id}>
+                          {staff.name} ({staff.role})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
         </div>
-        
-        <div className="mt-6">
-          <Textarea
-            placeholder="Type your message here..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            rows={4}
-            disabled={sendingMessage}
-          />
-          <div className="mt-2 flex justify-end">
-            <Button 
-              onClick={handleSendMessage} 
-              disabled={!newMessage.trim() || sendingMessage}
-            >
-              <Send className="mr-2 h-4 w-4" />
-              {sendingMessage ? "Sending..." : "Send Message"}
-            </Button>
-          </div>
-        </div>
       </div>
+      
+      <AlertDialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change Ticket Status</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to change the status of this ticket to {" "}
+              <span className="font-medium">{newStatus.replace('-', ' ')}</span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmStatusChange}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
+};
+
+const StatusIndicator = ({ status }: { status: string }) => {
+  switch (status) {
+    case 'open':
+      return <div className="w-3 h-3 rounded-full bg-blue-500" />;
+    case 'in-progress':
+      return <div className="w-3 h-3 rounded-full bg-yellow-500" />;
+    case 'closed':
+      return <div className="w-3 h-3 rounded-full bg-green-500" />;
+    default:
+      return <div className="w-3 h-3 rounded-full bg-gray-500" />;
+  }
 };
