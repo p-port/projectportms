@@ -1,5 +1,5 @@
 
-import { Briefcase, Check, MessageSquarePlus, User, Wrench, Store } from "lucide-react";
+import { Briefcase, Check, MessageSquarePlus, User, Wrench, Store, Users } from "lucide-react";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TabsNavigationProps {
@@ -53,6 +53,12 @@ export const TabsNavigation = ({
         <TabsTrigger value="shops" onClick={() => setActiveTab("shops")} className="flex gap-2 items-center">
           <Store className="h-4 w-4" />
           {translations.shops || "Shops"}
+        </TabsTrigger>
+      )}
+      {isAdmin && (
+        <TabsTrigger value="users" onClick={() => setActiveTab("users")} className="flex gap-2 items-center">
+          <Users className="h-4 w-4" />
+          {translations.users || "Users"}
         </TabsTrigger>
       )}
       <TabsTrigger value="support" onClick={() => setActiveTab("support")} className="flex gap-2 items-center">

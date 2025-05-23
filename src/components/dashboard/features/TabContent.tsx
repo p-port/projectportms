@@ -5,6 +5,7 @@ import { NewJobForm } from "@/components/dashboard/NewJobForm";
 import { SearchCustomers } from "@/components/dashboard/SearchCustomers";
 import { TicketList } from "@/components/dashboard/tickets/TicketList";
 import { AccountInfo } from "@/components/dashboard/account/AccountInfo";
+import { UserManagement } from "@/components/dashboard/admin/UserManagement";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ShopManagement } from "../shops/ShopManagement";
@@ -46,6 +47,8 @@ export const TabContent = ({
     setIsRedirecting(true);
     navigate('/shop-management');
   };
+
+  const isAdmin = userRole === 'admin';
 
   return (
     <>
@@ -96,6 +99,18 @@ export const TabContent = ({
           <Card>
             <CardContent className="py-10 text-center">
               <p className="text-muted-foreground">You need admin permissions to access shop management.</p>
+            </CardContent>
+          </Card>
+        )}
+      </TabsContent>
+
+      <TabsContent value="users" className="mt-6">
+        {isAdmin ? (
+          <UserManagement />
+        ) : (
+          <Card>
+            <CardContent className="py-10 text-center">
+              <p className="text-muted-foreground">You need admin permissions to access user management.</p>
             </CardContent>
           </Card>
         )}
