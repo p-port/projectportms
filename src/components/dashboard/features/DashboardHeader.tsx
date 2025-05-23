@@ -19,17 +19,12 @@ export const DashboardHeader = ({
   onSearchChange, 
   translations 
 }: DashboardHeaderProps) => {
-  // Extract first name only if userName contains spaces
-  const displayName = userName && userName.includes(" ") 
-    ? userName.split(" ")[0] 
-    : userName;
-
   return (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6">
       <div>
         <h2 className="text-2xl sm:text-3xl font-bold">{translations.dashboard}</h2>
         <p className="text-muted-foreground">
-          {translations.welcome}, {displayName || "User"}
+          {translations.welcome}, {userName || "User"}
         </p>
       </div>
       

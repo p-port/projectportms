@@ -5,14 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Bell, Info, RefreshCw } from "lucide-react";
+import { Bell, Info, RefreshCw, Store } from "lucide-react";
 import { toast } from "sonner";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { RoleSwitcher } from "./RoleSwitcher";
+import { Shop } from "@/types/shop";
 
 interface AccountInfoProps {
   userId?: string;
-  userRole?: string; // Added userRole to match the props in TabContent.tsx
+  userRole?: string;
 }
 
 interface UserActivity {
@@ -50,7 +51,9 @@ const translations = {
     roleSwitchDescription: "This allows you to test the application with different permission levels.",
     roleSwitchSuccess: "Role switched successfully",
     roleSwitchError: "Failed to switch role",
-    switching: "Switching..."
+    switching: "Switching...",
+    shop: "Shop",
+    noShop: "Not assigned to a shop",
   },
   ko: {
     accountInfo: "계정 정보",
@@ -80,7 +83,41 @@ const translations = {
     roleSwitchDescription: "다양한 권한 수준으로 응용 프로그램을 테스트할 수 있습니다.",
     roleSwitchSuccess: "역할이 성공적으로 전환되었습니다",
     roleSwitchError: "역할 전환 실패",
-    switching: "전환 중..."
+    switching: "전환 중...",
+    shop: "샵",
+    noShop: "샵에 배정되지 않음",
+  },
+  ru: {
+    accountInfo: "Информация о счете",
+    accountDetails: "Ваши детали счета и права",
+    recentActivity: "Недавняя активность",
+    activityDesc: "Ваши последние активности на счете и уведомления",
+    name: "Имя",
+    email: "Электронная почта",
+    role: "Роль",
+    accountStatus: "Статус счета",
+    memberSince: "Присоединился",
+    accountActivity: "Активность счета",
+    recentNotifications: "Недавние уведомления",
+    type: "Тип",
+    description: "Описание",
+    date: "Дата",
+    noActivity: "Нет записей активности",
+    noNotifications: "Нет уведомлений",
+    notSpecified: "Не указано",
+    approved: "Одобрено",
+    pendingApproval: "Ожидает одобрения",
+    loading: "Загрузка информации о счете...",
+    error: "Ошибка загрузки профиля",
+    retry: "Повторить",
+    adminTools: "Инструменты администратора",
+    switchRole: "Сменить роль",
+    roleSwitchDescription: "Это позволяет вам протестировать приложение с различными уровнями прав.",
+    roleSwitchSuccess: "Роль успешно изменена",
+    roleSwitchError: "Не удалось изменить роль",
+    switching: "Переключение...",
+    shop: "Магазин",
+    noShop: "Не привязан к магазину",
   }
 };
 
@@ -91,6 +128,7 @@ export const AccountInfo = ({ userId, userRole }: AccountInfoProps) => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [activities, setActivities] = useState<UserActivity[]>([]);
   const [language] = useLocalStorage("language", "en");
+  const [shopInfo, setShopInfo] = useState<Shop | null>(null);
   const t = translations[language as keyof typeof translations];
 
   const loadUserProfile = async () => {
@@ -131,6 +169,19 @@ export const AccountInfo = ({ userId, userRole }: AccountInfoProps) => {
         }
       } else {
         setUserProfile(profileData);
+        
+        // Fetch shop information if shop_id exists
+        if (profileData.shop_id) {
+          const { data: shopData, error: shopError } = await supabase
+            .from('shops')
+            .select('*')
+            .eq('id', profileData.shop_id)
+            .single();
+            
+          if (!shopError && shopData) {
+            setShopInfo(shopData);
+          }
+        }
       }
 
       // Fetch user's notifications
@@ -271,6 +322,21 @@ export const AccountInfo = ({ userId, userRole }: AccountInfoProps) => {
               <dt className="text-sm font-medium text-muted-foreground">{t.memberSince}</dt>
               <dd>
                 {userProfile.created_at ? format(new Date(userProfile.created_at), 'PPP') : 'N/A'}
+              </dd>
+            </div>
+            <div className="space-y-1">
+              <dt className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                <Store className="h-3.5 w-3.5" />
+                {t.shop}
+              </dt>
+              <dd>
+                {shopInfo ? (
+                  <Badge variant="outline" className="bg-secondary/50">
+                    {shopInfo.name}
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground text-sm italic">{t.noShop}</span>
+                )}
               </dd>
             </div>
           </dl>
