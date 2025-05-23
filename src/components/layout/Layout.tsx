@@ -1,5 +1,5 @@
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/button";
@@ -31,11 +31,33 @@ export const Layout = ({ children }: LayoutProps) => {
   const { theme, toggleTheme } = useTheme();
   const [language, setLanguage] = useLocalStorage("language", "en");
   
+  // Add effect to reload page when language changes
+  useEffect(() => {
+    // The key in sessionStorage is used to track if this is a language-change reload
+    const isLanguageReload = sessionStorage.getItem('language_reload');
+    
+    if (isLanguageReload) {
+      // Clear the flag after reload
+      sessionStorage.removeItem('language_reload');
+    }
+
+    // This will run on component mount and when language changes
+    return () => {
+      // This cleanup function runs when language changes
+    };
+  }, [language]);
+  
   const toggleLanguage = () => {
+    // Set a flag to indicate this is a language-change reload
+    sessionStorage.setItem('language_reload', 'true');
+    
     // Cycle through languages: en -> ko -> ru -> en
     if (language === "en") setLanguage("ko");
     else if (language === "ko") setLanguage("ru");
     else setLanguage("en");
+    
+    // Reload the page to apply language changes everywhere
+    window.location.reload();
   };
 
   const t = layoutTranslations[language as keyof typeof layoutTranslations];

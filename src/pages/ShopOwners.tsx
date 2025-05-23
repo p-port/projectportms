@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Building, Store, Shield } from "lucide-react";
+import { ArrowLeft, Building, Store, Shield, Home } from "lucide-react";
 import { Shop } from "@/types/shop";
 
 interface ShopOwnerData {
@@ -102,15 +102,24 @@ export function ShopOwners() {
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-2"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
+          <div className="flex space-x-2 mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/dashboard")}
+            >
+              <Home className="h-4 w-4 mr-2" />
+              Home
+            </Button>
+          </div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Store className="h-6 w-6" />
             Shop Owners Management

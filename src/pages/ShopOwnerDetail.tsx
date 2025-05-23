@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, Store, UserSearch, Shield } from "lucide-react";
+import { ArrowLeft, Store, UserSearch, Shield, Home } from "lucide-react";
 import { Shop } from "@/types/shop";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -97,13 +97,14 @@ export function ShopOwnerDetail() {
     }
 
     try {
-      // Update the shop to set the new owner
-      const { error: shopError } = await supabase
-        .from('shops')
-        .update({ owner_id: selectedUserId })
-        .eq('id', shopId);
+      // Use RPC function to bypass RLS
+      const { error: rpcError } = await supabase
+        .rpc('assign_shop_owner', { 
+          shop_id: shopId, 
+          owner_id: selectedUserId 
+        });
         
-      if (shopError) throw shopError;
+      if (rpcError) throw rpcError;
       
       // Update the user profile to assign to this shop
       const { error: profileError } = await supabase
@@ -132,13 +133,13 @@ export function ShopOwnerDetail() {
     }
     
     try {
-      // Update the shop to remove the owner
-      const { error: shopError } = await supabase
-        .from('shops')
-        .update({ owner_id: null })
-        .eq('id', shopId);
+      // Use RPC function to bypass RLS
+      const { error: rpcError } = await supabase
+        .rpc('remove_shop_owner', { 
+          shop_id: shopId
+        });
         
-      if (shopError) throw shopError;
+      if (rpcError) throw rpcError;
       
       toast.success("Shop owner successfully removed");
       
@@ -165,15 +166,24 @@ export function ShopOwnerDetail() {
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-2"
-            onClick={() => navigate("/shop-owners")}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Shop Owners
-          </Button>
+          <div className="flex space-x-2 mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/shop-owners")}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Shop Owners
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/dashboard")}
+            >
+              <Home className="h-4 w-4 mr-2" />
+              Home
+            </Button>
+          </div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <Store className="h-6 w-6" />
             Shop Owner Management
@@ -290,4 +300,4 @@ export function ShopOwnerDetail() {
       )}
     </div>
   );
-}
+};

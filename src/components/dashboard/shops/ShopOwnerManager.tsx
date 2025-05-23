@@ -70,13 +70,14 @@ export const ShopOwnerManager = ({ userId, currentOwnerStatus, shopId }: ShopOwn
     
     setIsLoading(true);
     try {
-      // Update the shop to set the user as owner
-      const { error: shopError } = await supabase
-        .from('shops')
-        .update({ owner_id: userId })
-        .eq('id', selectedShopId);
+      // Use RPC function to bypass RLS
+      const { error: rpcError } = await supabase
+        .rpc('assign_shop_owner', { 
+          shop_id: selectedShopId, 
+          owner_id: userId 
+        });
         
-      if (shopError) throw shopError;
+      if (rpcError) throw rpcError;
       
       // Update the user profile to assign to this shop
       const { error: profileError } = await supabase
@@ -108,13 +109,13 @@ export const ShopOwnerManager = ({ userId, currentOwnerStatus, shopId }: ShopOwn
     
     setIsLoading(true);
     try {
-      // Update the shop to remove the owner
-      const { error: shopError } = await supabase
-        .from('shops')
-        .update({ owner_id: null })
-        .eq('id', userShop.id);
+      // Use RPC function to bypass RLS
+      const { error: rpcError } = await supabase
+        .rpc('remove_shop_owner', { 
+          shop_id: userShop.id
+        });
         
-      if (shopError) throw shopError;
+      if (rpcError) throw rpcError;
       
       setIsOwner(false);
       toast.success("User removed as shop owner");

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, UserCog } from "lucide-react";
+import { ArrowLeft, Save, UserCog, Home } from "lucide-react";
 import { ShopOwnerManager } from "../shops/ShopOwnerManager";
 import { ShopMemberManagement } from "../shops/ShopMemberManagement";
 
@@ -119,15 +119,24 @@ export const UserDetails = () => {
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-2"
-            onClick={() => navigate("/user-management")}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
+          <div className="flex space-x-2 mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/user-management")}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/dashboard")}
+            >
+              <Home className="h-4 w-4 mr-2" />
+              Home
+            </Button>
+          </div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             <UserCog className="h-6 w-6" />
             User Details
