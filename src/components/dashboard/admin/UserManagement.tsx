@@ -228,14 +228,14 @@ export const UserManagement = () => {
                     <TableCell>
                       {user.isEditing ? (
                         <Select 
-                          value={user.shop_id || ''} 
-                          onValueChange={(value) => handleChange(user.id, 'shop_id', value)}
+                          value={user.shop_id || 'none'} 
+                          onValueChange={(value) => handleChange(user.id, 'shop_id', value === 'none' ? null : value)}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select shop" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="none">None</SelectItem>
                             {renderShopOptions()}
                           </SelectContent>
                         </Select>
