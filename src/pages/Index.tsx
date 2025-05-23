@@ -7,16 +7,9 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 import { getSession, supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface User {
-  email: string;
-  name: string;
-  role: string;
-  id: string;
-}
-
 const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check for existing session on page load
@@ -35,8 +28,8 @@ const Index = () => {
         if (data?.session?.user) {
           setIsAuthenticated(true);
           const userData = {
-            email: data.session.user.email || '',
-            name: data.session.user.user_metadata?.name || data.session.user.email || '',
+            email: data.session.user.email,
+            name: data.session.user.user_metadata?.name || data.session.user.email,
             role: data.session.user.user_metadata?.role || 'mechanic',
             id: data.session.user.id
           };
@@ -61,8 +54,8 @@ const Index = () => {
       (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
           const userData = {
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name || session.user.email || '',
+            email: session.user.email,
+            name: session.user.user_metadata?.name || session.user.email,
             role: session.user.user_metadata?.role || 'mechanic',
             id: session.user.id
           };
@@ -81,7 +74,7 @@ const Index = () => {
     };
   }, []);
 
-  const handleLogin = (userData: User) => {
+  const handleLogin = (userData: any) => {
     setIsAuthenticated(true);
     setUser(userData);
   };
@@ -113,7 +106,7 @@ const Index = () => {
           <div className="flex justify-end mb-4">
             <LogoutButton onLogout={handleLogout} />
           </div>
-          <Dashboard />
+          <Dashboard user={user} />
         </>
       )}
     </Layout>

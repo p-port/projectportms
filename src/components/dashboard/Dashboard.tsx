@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,8 +11,9 @@ import { Layout } from "@/components/layout/Layout";
 import { DashboardHeader } from "@/components/dashboard/features/DashboardHeader";
 import { TabsNavigation } from "@/components/dashboard/features/TabsNavigation";
 import { TabContent } from "@/components/dashboard/features/TabContent";
-import { fetchUnreadTicketsCount } from "@/components/dashboard/services/UnreadTicketsService";
-import { fetchUnreadMessagesCount } from "@/components/dashboard/services/UnreadMessagesService";
+import { NotificationCenter } from "@/components/dashboard/notifications/NotificationCenter";
+import { fetchUnreadTickets } from "@/components/dashboard/services/UnreadTicketsService";
+import { fetchUnreadMessages } from "@/components/dashboard/services/UnreadMessagesService";
 import { getUserShopInfo } from "@/integrations/supabase/client";
 
 // Translations
@@ -179,7 +182,7 @@ export const Dashboard = () => {
     if (!userId) return;
     
     try {
-      const count = await fetchUnreadTicketsCount(userRole, userId);
+      const count = await fetchUnreadTickets(userRole, userId);
       setUnreadTickets(count);
     } catch (error) {
       console.error("Error loading unread tickets:", error);
@@ -190,7 +193,7 @@ export const Dashboard = () => {
     if (!userId) return;
     
     try {
-      const count = await fetchUnreadMessagesCount(userId);
+      const count = await fetchUnreadMessages(userId);
       setUnreadMessages(count);
     } catch (error) {
       console.error("Error loading unread messages:", error);
@@ -210,11 +213,9 @@ export const Dashboard = () => {
     <Layout>
       <div className="space-y-4">
         <DashboardHeader 
-          userName={username}
-          searchQuery=""
-          onSearchChange={() => {}}
-          translations={t}
-          userId={userId || undefined}
+          title={t.dashboard}
+          username={username}
+          unreadMessages={unreadMessages}
         />
         
         <div className="flex justify-between items-center">
@@ -247,6 +248,7 @@ export const Dashboard = () => {
       </div>
 
       <SupportChat />
+      <NotificationCenter userId={userId || ""} />
     </Layout>
   );
 };

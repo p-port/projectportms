@@ -9,7 +9,6 @@ import Index from "./pages/Index";
 import TrackJob from "./pages/TrackJob";
 import NotFound from "./pages/NotFound";
 import VerificationSuccess from "./pages/VerificationSuccess";
-import { Dashboard } from "./components/dashboard/Dashboard";
 import { ShopManagement } from "./components/dashboard/shops/ShopManagement";
 import { UserManagement } from "./components/dashboard/admin/UserManagement";
 import { UserDetails } from "./components/dashboard/admin/UserDetails";
@@ -29,7 +28,6 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/track-job/:jobId" element={<TrackJob />} />
             <Route path="/verification-success" element={<VerificationSuccess />} />
             <Route path="/shop-management" element={<ShopManagement />} />

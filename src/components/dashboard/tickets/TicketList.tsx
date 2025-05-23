@@ -37,7 +37,7 @@ interface TicketListProps {
 export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [filter, setFilter] = useState<'all' | 'assigned' | 'open' | 'closed'>('all');
   const { toast } = useToast();
@@ -163,6 +163,26 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
           if (payload.new.assigned_to && payload.new.assigned_to !== payload.old.assigned_to) {
             fetchAssigneeName(payload.new.id, payload.new.assigned_to);
           }
+          
+          // Update selected ticket if it's the one being updated
+          if (selectedTicket && selectedTicket.id === payload.new.id) {
+            setSelectedTicket(prev => {
+              if (!prev) return null;
+              
+              return {
+                ...prev,
+                ...payload.new,
+                creator_name: prev.creator_name,
+                assigned_name: payload.new.assigned_to === prev.assigned_to 
+                  ? prev.assigned_name 
+                  : undefined
+              };
+            });
+            
+            if (payload.new.assigned_to && payload.new.assigned_to !== payload.old.assigned_to) {
+              fetchAssigneeNameForSelectedTicket(payload.new.id, payload.new.assigned_to);
+            }
+          }
         }
       )
       .subscribe();
@@ -170,7 +190,7 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, isStaff]);
+  }, [userId, isStaff, selectedTicket]);
 
   const fetchAssigneeName = async (ticketId: string, assigneeId: string) => {
     try {
@@ -191,6 +211,25 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
       }
     } catch (error) {
       console.error('Error fetching assignee name:', error);
+    }
+  };
+  
+  const fetchAssigneeNameForSelectedTicket = async (ticketId: string, assigneeId: string) => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', assigneeId)
+        .single();
+        
+      if (data && selectedTicket && selectedTicket.id === ticketId) {
+        setSelectedTicket(prev => {
+          if (!prev) return null;
+          return { ...prev, assigned_name: data.name };
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching assignee name for selected ticket:', error);
     }
   };
 
@@ -269,6 +308,10 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
         )
       );
       
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket(prev => prev ? { ...prev, status } : null);
+      }
+      
       toast({
         title: "Ticket Updated",
         description: `Ticket status changed to ${status}`
@@ -303,6 +346,12 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
               : ticket
           )
         );
+        
+        if (selectedTicket?.id === ticketId) {
+          setSelectedTicket(prev => 
+            prev ? { ...prev, assigned_to: undefined, assigned_name: undefined } : null
+          );
+        }
       } else {
         // The assignee name will be updated through the realtime subscription
         fetchAssigneeName(ticketId, assignedTo);
@@ -317,16 +366,14 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
     }
   };
 
-  // Handle ticket selection - updated to accept string ID
-  const handleSelectTicket = (ticketId: string) => {
-    setSelectedTicketId(ticketId);
-  };
-
-  if (selectedTicketId) {
+  if (selectedTicket) {
     return (
       <TicketDetail 
-        ticketId={selectedTicketId}
-        onBack={() => setSelectedTicketId(null)}
+        ticket={selectedTicket} 
+        onBack={() => setSelectedTicket(null)}
+        onStatusChange={handleTicketStatusChange}
+        onAssignTicket={handleAssignTicket}
+        currentUserId={userId}
         userRole={userRole}
       />
     );
@@ -360,7 +407,7 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
       ) : (
         <TicketTable 
           tickets={tickets} 
-          onSelectTicket={handleSelectTicket} // Using the new handler function
+          onSelectTicket={setSelectedTicket}
           isStaff={isStaff}
         />
       )}
