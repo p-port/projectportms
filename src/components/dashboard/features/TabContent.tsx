@@ -61,6 +61,7 @@ export const TabContent = ({
           allJobs={allJobs}
           setJobs={setJobs}
           jobType="active"
+          translations={translations}
           emptyStateMessage={translations.noActiveJobs}
           emptyStateAction={translations.createNewJob}
         />
@@ -72,6 +73,7 @@ export const TabContent = ({
           allJobs={allJobs}
           setJobs={setJobs}
           jobType="completed"
+          translations={translations}
           emptyStateMessage={translations.noCompletedJobs}
           emptyStateAction={translations.completedJobsAppear}
         />

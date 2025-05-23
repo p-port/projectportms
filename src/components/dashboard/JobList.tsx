@@ -12,20 +12,20 @@ interface JobListProps {
   allJobs: any[];
   setJobs: React.Dispatch<React.SetStateAction<any[]>>;
   jobType: string;
-  emptyStateMessage: any;
-  emptyStateAction: any;
+  emptyStateMessage?: string;
+  emptyStateAction?: string;
   type?: "active" | "completed"; // Keep the old prop for backward compatibility
   translations?: any;
 }
 
-export const JobList = ({ jobs, type, setJobs, allJobs, jobType = type, translations }: JobListProps) => {
+export const JobList = ({ jobs, type, setJobs, allJobs, jobType = type, translations, emptyStateMessage, emptyStateAction }: JobListProps) => {
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [language] = useLocalStorage("language", "en");
   const { user, syncJobToSupabase } = useJobOperations();
   
   // Use translations from props if available, otherwise use default
-  const t = translations || defaultTranslations[language as keyof typeof defaultTranslations];
+  const t = translations || defaultTranslations[language as keyof typeof defaultTranslations] || defaultTranslations.en;
   
   // Define effectiveType variable to resolve the error
   const effectiveType = jobType || type;

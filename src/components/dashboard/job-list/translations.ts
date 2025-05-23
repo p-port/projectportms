@@ -25,5 +25,18 @@ export const defaultTranslations = {
     completed: "완료일:",
     notes: "메모:",
     photos: "사진:"
+  },
+  ru: {
+    noActiveJobs: "Активных заказов не найдено",
+    createNewJob: "Создайте новый заказ, чтобы начать",
+    noCompletedJobs: "Завершенных заказов не найдено",
+    completedJobsAppear: "Завершенные заказы будут отображаться здесь",
+    viewDetails: "Подробнее",
+    jobId: "ID заказа:",
+    service: "Услуга:",
+    created: "Создан:",
+    completed: "Завершен:",
+    notes: "Заметки:",
+    photos: "Фото:"
   }
 };
