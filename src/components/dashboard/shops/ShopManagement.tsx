@@ -4,18 +4,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShopRegistrationForm } from "./ShopRegistrationForm";
 import { ShopsList } from "./ShopsList";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, List } from "lucide-react";
+import { PlusCircle, List, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export function ShopManagement() {
   const [activeTab, setActiveTab] = useState<"register" | "list">("list");
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Shop Management</h1>
-        <p className="text-muted-foreground">
-          Register and manage shops in the Project Port network.
-        </p>
+      <header className="flex items-center justify-between">
+        <div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mb-2" 
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <h1 className="text-3xl font-bold tracking-tight">Shop Management</h1>
+          <p className="text-muted-foreground">
+            Register and manage shops in the Project Port network.
+          </p>
+        </div>
       </header>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "register" | "list")}>

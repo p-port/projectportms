@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -28,10 +27,11 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Edit, Save, X } from "lucide-react";
+import { Search, Edit, Save, X, ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchShops } from "@/integrations/supabase/client";
 import { Shop } from "@/types/shop";
+import { useNavigate } from "react-router-dom";
 
 interface UserProfile {
   id: string;
@@ -52,6 +52,7 @@ export const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [shops, setShops] = useState<Shop[]>([]);
+  const navigate = useNavigate();
   
   useEffect(() => {
     fetchUsers();
@@ -151,10 +152,23 @@ export const UserManagement = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>User Management</CardTitle>
-        <CardDescription>
-          Manage user accounts, roles, and permissions
-        </CardDescription>
+        <div className="flex items-start justify-between">
+          <div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mb-2"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <CardTitle>User Management</CardTitle>
+            <CardDescription>
+              Manage user accounts, roles, and permissions
+            </CardDescription>
+          </div>
+        </div>
         <div className="flex items-center">
           <Search className="mr-2 h-4 w-4 text-muted-foreground" />
           <Input
