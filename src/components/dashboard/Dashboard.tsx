@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -249,8 +248,8 @@ export const Dashboard = () => {
         </div>
       </div>
 
+      {/* Only render NotificationCenter once - in Layout component */}
       <SupportChat />
-      <NotificationCenter userId={userId || ""} />
     </Layout>
   );
 };

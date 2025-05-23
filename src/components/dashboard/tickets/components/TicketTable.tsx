@@ -1,13 +1,12 @@
 
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
-import { Clock, CheckCircle2, AlertCircle, User } from "lucide-react";
 import { Ticket } from "../TicketList";
+import { Badge } from "@/components/ui/badge";
 
 interface TicketTableProps {
   tickets: Ticket[];
-  onSelectTicket: (ticket: Ticket) => void;
+  onSelectTicket: (ticketId: string) => void; // Updated to accept ticketId instead of Ticket object
   isStaff: boolean;
 }
 
@@ -15,76 +14,67 @@ export const TicketTable = ({ tickets, onSelectTicket, isStaff }: TicketTablePro
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'open':
-        return <Badge variant="destructive" className="flex items-center gap-1"><Clock className="h-3 w-3" /> Open</Badge>;
-      case 'in-progress':
-        return <Badge variant="default" className="flex items-center gap-1 bg-amber-500"><Clock className="h-3 w-3" /> In Progress</Badge>;
+        return <Badge className="bg-blue-500">{status}</Badge>;
+      case 'in_progress':
+        return <Badge className="bg-yellow-500">in progress</Badge>;
+      case 'resolved':
+        return <Badge className="bg-green-500">{status}</Badge>;
       case 'closed':
-        return <Badge variant="outline" className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Closed</Badge>;
+        return <Badge variant="outline">{status}</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge>{status}</Badge>;
     }
   };
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
-      case 'high':
-        return <Badge variant="destructive" className="flex items-center gap-1"><AlertCircle className="h-3 w-3" /> High</Badge>;
-      case 'normal':
-        return <Badge variant="secondary">Normal</Badge>;
       case 'low':
-        return <Badge variant="outline">Low</Badge>;
+        return <Badge variant="outline" className="border-blue-500 text-blue-500">{priority}</Badge>;
+      case 'normal':
+        return <Badge variant="outline">{priority}</Badge>;
+      case 'high':
+        return <Badge variant="outline" className="border-orange-500 text-orange-500">{priority}</Badge>;
+      case 'urgent':
+        return <Badge variant="outline" className="border-red-500 text-red-500">{priority}</Badge>;
       default:
-        return null;
+        return <Badge variant="outline">{priority}</Badge>;
     }
   };
-
+  
   return (
-    <Table className="border rounded-md">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Status</TableHead>
-          {isStaff && <TableHead>Requester</TableHead>}
-          <TableHead className="w-[40%]">Title</TableHead>
-          <TableHead>Priority</TableHead>
-          <TableHead>Date</TableHead>
-          {isStaff && <TableHead>Assigned To</TableHead>}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {tickets.map((ticket) => (
-          <TableRow 
-            key={ticket.id} 
-            className="cursor-pointer hover:bg-muted"
-            onClick={() => onSelectTicket(ticket)}
-          >
-            <TableCell>
-              {getStatusBadge(ticket.status)}
-            </TableCell>
-            {isStaff && (
-              <TableCell className="font-medium">
-                {ticket.creator_name}
-              </TableCell>
-            )}
-            <TableCell className="font-medium">{ticket.title}</TableCell>
-            <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
-            <TableCell>
-              {format(new Date(ticket.created_at), 'MMM d, yyyy')}
-            </TableCell>
-            {isStaff && (
-              <TableCell>
-                {ticket.assigned_name ? (
-                  <div className="flex items-center">
-                    <User className="h-3 w-3 mr-1 text-muted-foreground" />
-                    {ticket.assigned_name}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground text-sm">Unassigned</span>
-                )}
-              </TableCell>
-            )}
+    <div className="border rounded-md">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>ID</TableHead>
+            <TableHead>Title</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Priority</TableHead>
+            <TableHead>Created</TableHead>
+            {isStaff && <TableHead>Created By</TableHead>}
+            {isStaff && <TableHead>Assigned To</TableHead>}
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {tickets.map((ticket) => (
+            <TableRow 
+              key={ticket.id} 
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => onSelectTicket(ticket.id)} // Now passing just the ticketId
+            >
+              <TableCell className="font-mono text-xs">
+                {ticket.id.split('-')[0]}...
+              </TableCell>
+              <TableCell>{ticket.title}</TableCell>
+              <TableCell>{getStatusBadge(ticket.status)}</TableCell>
+              <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
+              <TableCell>{format(new Date(ticket.created_at), 'MMM d')}</TableCell>
+              {isStaff && <TableCell>{ticket.creator_name || 'Unknown'}</TableCell>}
+              {isStaff && <TableCell>{ticket.assigned_name || 'Unassigned'}</TableCell>}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 };

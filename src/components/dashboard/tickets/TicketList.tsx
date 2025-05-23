@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -318,6 +317,11 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
     }
   };
 
+  // Handle ticket selection - updated to accept string ID
+  const handleSelectTicket = (ticketId: string) => {
+    setSelectedTicketId(ticketId);
+  };
+
   if (selectedTicketId) {
     return (
       <TicketDetail 
@@ -356,7 +360,7 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
       ) : (
         <TicketTable 
           tickets={tickets} 
-          onSelectTicket={setSelectedTicketId}
+          onSelectTicket={handleSelectTicket} // Using the new handler function
           isStaff={isStaff}
         />
       )}
