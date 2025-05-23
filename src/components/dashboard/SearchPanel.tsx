@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,165 +59,192 @@ export const SearchPanel = ({
   translations 
 }: SearchPanelProps) => {
   const [searchType, setSearchType] = useState<string>("customer");
-  const [searchQuery, setSearchQuery] = useState<string>(externalSearchQuery || "");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [customerQuery, setCustomerQuery] = useState<string>(externalSearchQuery || "");
+  const [motorcycleQuery, setMotorcycleQuery] = useState<string>("");
+  const [jobQuery, setJobQuery] = useState<string>("");
+  
+  const [customerResults, setCustomerResults] = useState<any[]>([]);
+  const [motorcycleResults, setMotorcycleResults] = useState<any[]>([]);
+  const [jobResults, setJobResults] = useState<any[]>([]);
+  
   const [hasSearched, setHasSearched] = useState<boolean>(false);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
 
-  const handleSearch = () => {
-    if (!searchQuery.trim()) {
+  const handleCustomerSearch = () => {
+    if (!customerQuery.trim()) {
       toast.error("Please enter a search term");
       return;
     }
 
     // If this component is controlled by a parent, update the parent's state
     if (externalOnSearchChange) {
-      externalOnSearchChange(searchQuery);
+      externalOnSearchChange(customerQuery);
+    }
+
+    setHasSearched(true);
+    const query = customerQuery.toLowerCase().trim();
+    
+    // Find unique customers matching the search query
+    const customerMap = new Map();
+    jobs.forEach(job => {
+      if (job.customer && job.customer.name && 
+          job.customer.name.toLowerCase().includes(query)) {
+        if (!customerMap.has(job.customer.name)) {
+          customerMap.set(job.customer.name, {
+            name: job.customer.name,
+            phone: job.customer.phone || "N/A",
+            email: job.customer.email || "N/A",
+            jobsCount: 1,
+            jobs: [job]
+          });
+        } else {
+          const customer = customerMap.get(job.customer.name);
+          customer.jobsCount += 1;
+          customer.jobs.push(job);
+          customerMap.set(job.customer.name, customer);
+        }
+      }
+    });
+    const results = Array.from(customerMap.values());
+    setCustomerResults(results);
+    
+    if (results.length === 0) {
+      toast.info("No customers found for your search");
+    }
+  };
+  
+  const handleMotorcycleSearch = () => {
+    if (!motorcycleQuery.trim()) {
+      toast.error("Please enter a search term");
+      return;
     }
 
     setHasSearched(true);
     setSelectedOwner(null);
-    const query = searchQuery.toLowerCase().trim();
-    let results: any[] = [];
-
-    switch (searchType) {
-      case "customer":
-        // Find unique customers matching the search query
-        const customerMap = new Map();
-        jobs.forEach(job => {
-          if (job.customer && job.customer.name && 
-              job.customer.name.toLowerCase().includes(query)) {
-            if (!customerMap.has(job.customer.name)) {
-              customerMap.set(job.customer.name, {
-                name: job.customer.name,
-                phone: job.customer.phone || "N/A",
-                email: job.customer.email || "N/A",
-                jobsCount: 1,
-                jobs: [job]
-              });
-            } else {
-              const customer = customerMap.get(job.customer.name);
-              customer.jobsCount += 1;
-              customer.jobs.push(job);
-              customerMap.set(job.customer.name, customer);
-            }
-          }
-        });
-        results = Array.from(customerMap.values());
-        break;
+    const query = motorcycleQuery.toLowerCase().trim();
+    
+    // Find unique motorcycles matching the search query (make, model, or VIN)
+    const motorcycleMap = new Map();
+    jobs.forEach(job => {
+      if (job.motorcycle && 
+          ((job.motorcycle.make && job.motorcycle.make.toLowerCase().includes(query)) || 
+           (job.motorcycle.model && job.motorcycle.model.toLowerCase().includes(query)) || 
+           (job.motorcycle.vin && job.motorcycle.vin.toLowerCase().includes(query)))) {
         
-      case "motorcycle":
-        // Find unique motorcycles matching the search query (make, model, or VIN)
-        const motorcycleMap = new Map();
-        jobs.forEach(job => {
-          if (job.motorcycle && 
-              ((job.motorcycle.make && job.motorcycle.make.toLowerCase().includes(query)) || 
-               (job.motorcycle.model && job.motorcycle.model.toLowerCase().includes(query)) || 
-               (job.motorcycle.vin && job.motorcycle.vin.toLowerCase().includes(query)))) {
-            
-            const key = `${job.motorcycle.make}-${job.motorcycle.model}-${job.motorcycle.vin || ''}`;
-            
-            if (!motorcycleMap.has(key)) {
-              // Create a new motorcycle entry
-              motorcycleMap.set(key, {
-                make: job.motorcycle.make,
-                model: job.motorcycle.model,
-                year: job.motorcycle.year || "N/A",
-                vin: job.motorcycle.vin || "N/A",
-                ownershipHistory: job.customer ? [{
-                  name: censorName(job.customer.name),
-                  jobId: job.id,
-                  dateServiced: job.dateCreated,
-                  lastDateServiced: job.dateCreated
-                }] : [],
-                serviceHistory: [job],
-                allServicesByOwner: job.customer ? {
-                  [censorName(job.customer.name)]: [job]
-                } : {}
-              });
-            } else {
-              const motorcycle = motorcycleMap.get(key);
-              
-              // Add this job to service history
-              motorcycle.serviceHistory.push(job);
-              
-              // Group services by owner
-              if (job.customer) {
-                const ownerName = censorName(job.customer.name);
-                if (!motorcycle.allServicesByOwner[ownerName]) {
-                  motorcycle.allServicesByOwner[ownerName] = [];
-                }
-                motorcycle.allServicesByOwner[ownerName].push(job);
-              }
-              
-              // Check if this is a different owner than the last one in ownership history
-              if (job.customer) {
-                const lastOwner = motorcycle.ownershipHistory.length > 0 ? 
-                  motorcycle.ownershipHistory[motorcycle.ownershipHistory.length - 1] : null;
-                
-                if (lastOwner && censorName(job.customer.name) === lastOwner.name) {
-                  // Same owner, just update the last service date
-                  lastOwner.lastDateServiced = job.dateCreated;
-                } else {
-                  // Different owner, add to ownership history
-                  motorcycle.ownershipHistory.push({
-                    name: censorName(job.customer.name),
-                    jobId: job.id,
-                    dateServiced: job.dateCreated,
-                    lastDateServiced: job.dateCreated
-                  });
-                }
-              }
-              
-              motorcycleMap.set(key, motorcycle);
-            }
-          }
-        });
+        const key = `${job.motorcycle.make}-${job.motorcycle.model}-${job.motorcycle.vin || ''}`;
         
-        // Sort service history by date (newest first) for each motorcycle
-        const motorcycleResults = Array.from(motorcycleMap.values());
-        motorcycleResults.forEach(motorcycle => {
-          // Sort service history by date (newest first)
-          motorcycle.serviceHistory.sort((a: any, b: any) => 
-            new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
-          );
-          
-          // Sort ownership history by last service date (newest first)
-          motorcycle.ownershipHistory.sort((a: any, b: any) => 
-            new Date(b.lastDateServiced).getTime() - new Date(a.lastDateServiced).getTime()
-          );
-          
-          // Mark the current owner (the most recent one)
-          if (motorcycle.ownershipHistory && motorcycle.ownershipHistory.length > 0) {
-            motorcycle.currentOwner = motorcycle.ownershipHistory[0];
-            motorcycle.previousOwners = motorcycle.ownershipHistory.slice(1);
-          } else {
-            motorcycle.currentOwner = null;
-            motorcycle.previousOwners = [];
-          }
-
-          // For each owner, sort their services by date (newest first)
-          Object.keys(motorcycle.allServicesByOwner).forEach(owner => {
-            motorcycle.allServicesByOwner[owner].sort((a: any, b: any) => 
-              new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
-            );
+        if (!motorcycleMap.has(key)) {
+          // Create a new motorcycle entry
+          motorcycleMap.set(key, {
+            make: job.motorcycle.make,
+            model: job.motorcycle.model,
+            year: job.motorcycle.year || "N/A",
+            vin: job.motorcycle.vin || "N/A",
+            ownershipHistory: job.customer ? [{
+              name: censorName(job.customer.name),
+              jobId: job.id,
+              dateServiced: job.dateCreated,
+              lastDateServiced: job.dateCreated
+            }] : [],
+            serviceHistory: [job],
+            allServicesByOwner: job.customer ? {
+              [censorName(job.customer.name)]: [job]
+            } : {}
           });
-        });
-        
-        results = motorcycleResults;
-        break;
-        
-      case "job":
-        // Find jobs matching the search query (by ID)
-        results = jobs.filter(job => 
-          job.id.toLowerCase().includes(query)
+        } else {
+          const motorcycle = motorcycleMap.get(key);
+          
+          // Add this job to service history
+          motorcycle.serviceHistory.push(job);
+          
+          // Group services by owner
+          if (job.customer) {
+            const ownerName = censorName(job.customer.name);
+            if (!motorcycle.allServicesByOwner[ownerName]) {
+              motorcycle.allServicesByOwner[ownerName] = [];
+            }
+            motorcycle.allServicesByOwner[ownerName].push(job);
+          }
+          
+          // Check if this is a different owner than the last one in ownership history
+          if (job.customer) {
+            const lastOwner = motorcycle.ownershipHistory.length > 0 ? 
+              motorcycle.ownershipHistory[motorcycle.ownershipHistory.length - 1] : null;
+            
+            if (lastOwner && censorName(job.customer.name) === lastOwner.name) {
+              // Same owner, just update the last service date
+              lastOwner.lastDateServiced = job.dateCreated;
+            } else {
+              // Different owner, add to ownership history
+              motorcycle.ownershipHistory.push({
+                name: censorName(job.customer.name),
+                jobId: job.id,
+                dateServiced: job.dateCreated,
+                lastDateServiced: job.dateCreated
+              });
+            }
+          }
+          
+          motorcycleMap.set(key, motorcycle);
+        }
+      }
+    });
+    
+    // Sort service history by date (newest first) for each motorcycle
+    const motorcycleResults = Array.from(motorcycleMap.values());
+    motorcycleResults.forEach(motorcycle => {
+      // Sort service history by date (newest first)
+      motorcycle.serviceHistory.sort((a: any, b: any) => 
+        new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
+      );
+      
+      // Sort ownership history by last service date (newest first)
+      motorcycle.ownershipHistory.sort((a: any, b: any) => 
+        new Date(b.lastDateServiced).getTime() - new Date(a.lastDateServiced).getTime()
+      );
+      
+      // Mark the current owner (the most recent one)
+      if (motorcycle.ownershipHistory && motorcycle.ownershipHistory.length > 0) {
+        motorcycle.currentOwner = motorcycle.ownershipHistory[0];
+        motorcycle.previousOwners = motorcycle.ownershipHistory.slice(1);
+      } else {
+        motorcycle.currentOwner = null;
+        motorcycle.previousOwners = [];
+      }
+
+      // For each owner, sort their services by date (newest first)
+      Object.keys(motorcycle.allServicesByOwner).forEach(owner => {
+        motorcycle.allServicesByOwner[owner].sort((a: any, b: any) => 
+          new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
         );
-        break;
+      });
+    });
+    
+    setMotorcycleResults(motorcycleResults);
+    
+    if (motorcycleResults.length === 0) {
+      toast.info("No motorcycles found for your search");
+    }
+  };
+  
+  const handleJobSearch = () => {
+    if (!jobQuery.trim()) {
+      toast.error("Please enter a search term");
+      return;
     }
 
-    setSearchResults(results);
+    setHasSearched(true);
+    const query = jobQuery.toLowerCase().trim();
+    
+    // Find jobs matching the search query (by ID)
+    const results = jobs.filter(job => 
+      job.id.toLowerCase().includes(query)
+    );
+    
+    setJobResults(results);
+    
     if (results.length === 0) {
-      toast.info("No results found for your search");
+      toast.info("No jobs found for your search");
     }
   };
 
@@ -280,61 +308,52 @@ export const SearchPanel = ({
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            {jobs && jobs.length > 0 ? (
-              <Tabs value={searchType} onValueChange={setSearchType}>
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="customer">
-                    <User className="mr-2 h-4 w-4" />
-                    Customers
-                  </TabsTrigger>
-                  <TabsTrigger value="motorcycle">
-                    <Battery className="mr-2 h-4 w-4" />
-                    Motorcycles
-                  </TabsTrigger>
-                  <TabsTrigger value="job">
-                    <Ticket className="mr-2 h-4 w-4" />
-                    Jobs
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            ) : null}
-            
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={placeholder || `Search ${searchType}s...`}
-                  className="pl-8"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    // If external control is used, also update parent
-                    if (externalOnSearchChange) {
-                      externalOnSearchChange(e.target.value);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && jobs && jobs.length > 0) handleSearch();
-                  }}
-                />
+    <div className="space-y-6">
+      <Tabs defaultValue="customer" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="customer">
+            <User className="mr-2 h-4 w-4" />
+            Customers
+          </TabsTrigger>
+          <TabsTrigger value="motorcycle">
+            <Battery className="mr-2 h-4 w-4" />
+            Motorcycles
+          </TabsTrigger>
+          <TabsTrigger value="job">
+            <Ticket className="mr-2 h-4 w-4" />
+            Jobs
+          </TabsTrigger>
+        </TabsList>
+        
+        {/* Customers Search Section */}
+        <TabsContent value="customer">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <User className="mr-2 h-5 w-5" />
+                Customer Search
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by customer name..."
+                    className="pl-8"
+                    value={customerQuery}
+                    onChange={(e) => setCustomerQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCustomerSearch();
+                    }}
+                  />
+                </div>
+                <Button onClick={handleCustomerSearch}>Search</Button>
               </div>
-              {jobs && jobs.length > 0 && <Button onClick={handleSearch}>Search</Button>}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {hasSearched && (
-        <Card>
-          <CardContent className="pt-6">
-            {searchType === "customer" && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Customer Results ({searchResults.length})</h3>
-                {searchResults.length > 0 ? (
+              
+              {customerResults.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground">Found {customerResults.length} customers</h3>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -345,7 +364,7 @@ export const SearchPanel = ({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {searchResults.map((customer, index) => (
+                      {customerResults.map((customer, index) => (
                         <TableRow key={index}>
                           <TableCell className="font-medium">{customer.name}</TableCell>
                           <TableCell>
@@ -384,20 +403,49 @@ export const SearchPanel = ({
                       ))}
                     </TableBody>
                   </Table>
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    No customers found matching your search.
-                  </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
 
-            {searchType === "motorcycle" && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Motorcycle Results ({searchResults.length})</h3>
-                {searchResults.length > 0 ? (
+              {hasSearched && customerQuery && customerResults.length === 0 && (
+                <div className="p-8 text-center">
+                  <div className="text-muted-foreground">No customers found matching your search.</div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Motorcycles Search Section */}
+        <TabsContent value="motorcycle">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Battery className="mr-2 h-5 w-5" />
+                Motorcycle Search
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by make, model or VIN..."
+                    className="pl-8"
+                    value={motorcycleQuery}
+                    onChange={(e) => setMotorcycleQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleMotorcycleSearch();
+                    }}
+                  />
+                </div>
+                <Button onClick={handleMotorcycleSearch}>Search</Button>
+              </div>
+              
+              {motorcycleResults.length > 0 ? (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground">Found {motorcycleResults.length} motorcycles</h3>
                   <div className="space-y-6">
-                    {searchResults.map((motorcycle, index) => (
+                    {motorcycleResults.map((motorcycle, index) => (
                       <div key={index} className="border p-4 rounded-lg">
                         <div className="flex flex-wrap justify-between items-start mb-3">
                           <div>
@@ -560,18 +608,47 @@ export const SearchPanel = ({
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    No motorcycles found matching your search.
+                </div>
+              ) : (
+                hasSearched && motorcycleQuery && (
+                  <div className="p-8 text-center">
+                    <div className="text-muted-foreground">No motorcycles found matching your search.</div>
                   </div>
-                )}
+                )
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Jobs Search Section */}
+        <TabsContent value="job">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Ticket className="mr-2 h-5 w-5" />
+                Job Search
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by job ID..."
+                    className="pl-8"
+                    value={jobQuery}
+                    onChange={(e) => setJobQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleJobSearch();
+                    }}
+                  />
+                </div>
+                <Button onClick={handleJobSearch}>Search</Button>
               </div>
-            )}
-
-            {searchType === "job" && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Job Results ({searchResults.length})</h3>
-                {searchResults.length > 0 ? (
+              
+              {jobResults.length > 0 ? (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-muted-foreground">Found {jobResults.length} jobs</h3>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -583,7 +660,7 @@ export const SearchPanel = ({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {searchResults.map((job, index) => (
+                      {jobResults.map((job, index) => (
                         <TableRow key={index}>
                           <TableCell className="font-medium">{job.id}</TableCell>
                           <TableCell>{job.customer?.name || "N/A"}</TableCell>
@@ -624,16 +701,18 @@ export const SearchPanel = ({
                       ))}
                     </TableBody>
                   </Table>
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    No jobs found matching your search.
+                </div>
+              ) : (
+                hasSearched && jobQuery && (
+                  <div className="p-8 text-center">
+                    <div className="text-muted-foreground">No jobs found matching your search.</div>
                   </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                )
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
