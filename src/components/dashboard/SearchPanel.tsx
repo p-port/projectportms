@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -99,84 +100,68 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
             const key = `${job.motorcycle.make}-${job.motorcycle.model}-${job.motorcycle.vin || ''}`;
             
             if (!motorcycleMap.has(key)) {
-              // Create a new motorcycle entry with the first owner
+              // Create a new motorcycle entry
               motorcycleMap.set(key, {
                 make: job.motorcycle.make,
                 model: job.motorcycle.model,
                 year: job.motorcycle.year || "N/A",
                 vin: job.motorcycle.vin || "N/A",
-                currentOwner: job.customer ? {
+                ownershipHistory: job.customer ? [{
                   name: censorName(job.customer.name),
                   jobId: job.id,
-                  dateServiced: job.dateCreated
-                } : null,
-                previousOwners: [],
+                  dateServiced: job.dateCreated,
+                  lastDateServiced: job.dateCreated
+                }] : [],
                 serviceHistory: [job]
               });
             } else {
               const motorcycle = motorcycleMap.get(key);
               
-              // Check if this is a different owner than the current one
-              if (job.customer && motorcycle.currentOwner && 
-                  job.customer.name !== motorcycle.currentOwner.name) {
+              // Add this job to service history
+              motorcycle.serviceHistory.push(job);
+              
+              // Check if this is a different owner than the last one in ownership history
+              if (job.customer) {
+                const lastOwner = motorcycle.ownershipHistory.length > 0 ? 
+                  motorcycle.ownershipHistory[motorcycle.ownershipHistory.length - 1] : null;
                 
-                // Find if this owner is already in previous owners
-                const existingOwnerIndex = motorcycle.previousOwners.findIndex(
-                  (owner: any) => owner.name === censorName(job.customer.name)
-                );
-                
-                // If current job is more recent than our stored current owner,
-                // update current owner and move the old one to previous owners
-                if (new Date(job.dateCreated) > new Date(motorcycle.currentOwner.dateServiced)) {
-                  // Add current owner to previous owners if not already there
-                  if (!motorcycle.previousOwners.some((owner: any) => 
-                      owner.name === motorcycle.currentOwner.name)) {
-                    motorcycle.previousOwners.push({
-                      name: motorcycle.currentOwner.name,
-                      jobId: motorcycle.currentOwner.jobId,
-                      dateServiced: motorcycle.currentOwner.dateServiced
-                    });
-                  }
-                  
-                  // Set new current owner
-                  motorcycle.currentOwner = {
+                if (lastOwner && censorName(job.customer.name) === lastOwner.name) {
+                  // Same owner, just update the last service date
+                  lastOwner.lastDateServiced = job.dateCreated;
+                } else {
+                  // Different owner, add to ownership history
+                  motorcycle.ownershipHistory.push({
                     name: censorName(job.customer.name),
                     jobId: job.id,
-                    dateServiced: job.dateCreated
-                  };
-                  
-                  // Remove from previous owners if it exists there
-                  if (existingOwnerIndex >= 0) {
-                    motorcycle.previousOwners.splice(existingOwnerIndex, 1);
-                  }
-                } else if (existingOwnerIndex < 0) {
-                  // This is a different owner but not more recent - add to previous owners
-                  motorcycle.previousOwners.push({
-                    name: censorName(job.customer.name),
-                    jobId: job.id,
-                    dateServiced: job.dateCreated
+                    dateServiced: job.dateCreated,
+                    lastDateServiced: job.dateCreated
                   });
                 }
               }
               
-              // Add this job to service history
-              motorcycle.serviceHistory.push(job);
               motorcycleMap.set(key, motorcycle);
             }
           }
         });
         
-        // Sort previous owners by most recent service date for each motorcycle
+        // Sort service history by date (newest first) for each motorcycle
         const motorcycleResults = Array.from(motorcycleMap.values());
         motorcycleResults.forEach(motorcycle => {
-          motorcycle.previousOwners.sort((a: any, b: any) => 
-            new Date(b.dateServiced).getTime() - new Date(a.dateServiced).getTime()
-          );
-          
           // Sort service history by date (newest first)
           motorcycle.serviceHistory.sort((a: any, b: any) => 
             new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
           );
+          
+          // Sort ownership history by last service date (newest first)
+          motorcycle.ownershipHistory.sort((a: any, b: any) => 
+            new Date(b.lastDateServiced).getTime() - new Date(a.lastDateServiced).getTime()
+          );
+          
+          // Mark the current owner (the most recent one)
+          if (motorcycle.ownershipHistory.length > 0) {
+            motorcycle.currentOwner = motorcycle.ownershipHistory[0];
+            motorcycle.previousOwners = motorcycle.ownershipHistory.slice(1);
+          }
         });
         
         results = motorcycleResults;
@@ -300,7 +285,11 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                                     Current
                                   </Badge>
                                 </div>
-                                <p className="text-xs text-muted-foreground">Last Service: {motorcycle.currentOwner.dateServiced}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  First Seen: {motorcycle.currentOwner.dateServiced}
+                                  {motorcycle.currentOwner.dateServiced !== motorcycle.currentOwner.lastDateServiced && 
+                                    ` • Last Seen: ${motorcycle.currentOwner.lastDateServiced}`}
+                                </p>
                               </div>
                             )}
                             
@@ -311,7 +300,11 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                                     <div className="flex justify-between items-center">
                                       <span className="font-medium">Previous Owner: {owner.name}</span>
                                     </div>
-                                    <p className="text-xs text-muted-foreground">Service Date: {owner.dateServiced}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      First Seen: {owner.dateServiced}
+                                      {owner.dateServiced !== owner.lastDateServiced && 
+                                        ` • Last Seen: ${owner.lastDateServiced}`}
+                                    </p>
                                   </div>
                                 ))}
                               </div>
