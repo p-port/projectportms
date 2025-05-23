@@ -50,6 +50,12 @@ export const TabsNavigation = ({
   
   return (
     <TabsList className="flex flex-wrap">
+      {/* Search icon moved to the very left */}
+      <TabsTrigger value="customers" onClick={() => setActiveTab("customers")} className="flex gap-2 items-center px-2">
+        <Search className="h-4 w-4" />
+        <span className="sr-only">{translations.search || "Search"}</span>
+      </TabsTrigger>
+      
       <TabsTrigger value="active-jobs" onClick={() => setActiveTab("active-jobs")} className="flex gap-2 items-center">
         <Wrench className="h-4 w-4" />
         {translations.activeJobs}
@@ -67,10 +73,6 @@ export const TabsNavigation = ({
       <TabsTrigger value="new-job" onClick={() => setActiveTab("new-job")} className="flex gap-2 items-center">
         <Briefcase className="h-4 w-4" />
         {translations.newJob}
-      </TabsTrigger>
-      <TabsTrigger value="customers" onClick={() => setActiveTab("customers")} className="flex gap-2 items-center">
-        <Search className="h-4 w-4" />
-        {translations.search || "Search"}
       </TabsTrigger>
       {(isAdmin || isShopOwner) && (
         <TabsTrigger value="shops" onClick={() => setActiveTab("shops")} className="flex gap-2 items-center">
