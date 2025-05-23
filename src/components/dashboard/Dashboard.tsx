@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { LogoutButton } from "@/components/auth/LogoutButton";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +9,6 @@ import { Layout } from "@/components/layout/Layout";
 import { DashboardHeader } from "@/components/dashboard/features/DashboardHeader";
 import { TabsNavigation } from "@/components/dashboard/features/TabsNavigation";
 import { TabContent } from "@/components/dashboard/features/TabContent";
-import { NotificationCenter } from "@/components/dashboard/notifications/NotificationCenter";
 import { fetchUnreadTicketsCount } from "@/components/dashboard/services/UnreadTicketsService";
 import { fetchUnreadMessagesCount } from "@/components/dashboard/services/UnreadMessagesService";
 import { getUserShopInfo } from "@/integrations/supabase/client";
@@ -248,7 +246,6 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* Only render NotificationCenter once - in Layout component */}
       <SupportChat />
     </Layout>
   );
