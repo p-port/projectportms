@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -22,6 +23,7 @@ interface JobListProps {
   emptyStateMessage: any;
   emptyStateAction: any;
   type?: "active" | "completed"; // Keep the old prop for backward compatibility
+  translations?: any; // Added translations property to fix error
 }
 
 // Default translations in case they're not passed from parent
@@ -62,6 +64,9 @@ export const JobList = ({ jobs, type, setJobs, allJobs, jobType = type, translat
   
   // Use translations from props if available, otherwise use default
   const t = translations || defaultTranslations[language as keyof typeof defaultTranslations];
+  
+  // Define effectiveType variable to resolve the error
+  const effectiveType = jobType || type;
 
   useEffect(() => {
     // Check for authenticated user
