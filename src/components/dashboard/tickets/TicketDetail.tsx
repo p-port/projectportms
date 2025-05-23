@@ -70,66 +70,67 @@ export const TicketDetail = ({
     }
   };
   
+  // Fetch messages function - extracted for reuse
+  const fetchMessages = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch messages for this ticket
+      const { data, error } = await supabase
+        .from('ticket_messages')
+        .select('*')
+        .eq('ticket_id', ticket.id)
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        setMessages([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Get unique sender IDs
+      const senderIds = [...new Set(data.map(message => message.sender_id))].filter(Boolean);
+      
+      // Fetch sender names
+      const { data: sendersData, error: sendersError } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', senderIds);
+          
+      if (sendersError) throw sendersError;
+      
+      // Create a map of user IDs to names
+      const userNameMap = (sendersData || []).reduce((map, profile) => {
+        map[profile.id] = profile.name;
+        return map;
+      }, {} as Record<string, string>);
+      
+      // Attach sender names to messages
+      const messagesWithSenders = data.map(message => ({
+        ...message,
+        sender_name: message.sender_id ? userNameMap[message.sender_id] || 'Unknown' : 'System'
+      }));
+      
+      setMessages(messagesWithSenders);
+      
+      // Scroll to bottom after messages load
+      setTimeout(scrollToBottom, 100);
+    } catch (error) {
+      console.error('Error fetching ticket messages:', error);
+      toast({
+        title: "Error loading messages",
+        description: "Could not load ticket messages",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // Set up initial data and real-time subscription
   useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch messages for this ticket
-        const { data, error } = await supabase
-          .from('ticket_messages')
-          .select('*')
-          .eq('ticket_id', ticket.id)
-          .order('created_at', { ascending: true });
-        
-        if (error) throw error;
-        
-        if (!data || data.length === 0) {
-          setMessages([]);
-          setLoading(false);
-          return;
-        }
-        
-        // Get unique sender IDs
-        const senderIds = [...new Set(data.map(message => message.sender_id))].filter(Boolean);
-        
-        // Fetch sender names
-        const { data: sendersData, error: sendersError } = await supabase
-          .from('profiles')
-          .select('id, name')
-          .in('id', senderIds);
-          
-        if (sendersError) throw sendersError;
-        
-        // Create a map of user IDs to names
-        const userNameMap = (sendersData || []).reduce((map, profile) => {
-          map[profile.id] = profile.name;
-          return map;
-        }, {} as Record<string, string>);
-        
-        // Attach sender names to messages
-        const messagesWithSenders = data.map(message => ({
-          ...message,
-          sender_name: message.sender_id ? userNameMap[message.sender_id] || 'Unknown' : 'System'
-        }));
-        
-        setMessages(messagesWithSenders);
-        
-        // Scroll to bottom after messages load
-        setTimeout(scrollToBottom, 100);
-      } catch (error) {
-        console.error('Error fetching ticket messages:', error);
-        toast({
-          title: "Error loading messages",
-          description: "Could not load ticket messages",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchMessages();
     
     // Set up real-time subscription using the enhanced function
@@ -209,8 +210,8 @@ export const TicketDetail = ({
       // Clear input after successful send
       setNewMessage("");
       
-      // We don't need to manually add the message here anymore
-      // as the real-time subscription will handle it
+      // Refresh messages immediately after sending
+      await fetchMessages();
       
     } catch (error) {
       console.error('Error sending message:', error);

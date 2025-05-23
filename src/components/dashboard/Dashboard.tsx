@@ -372,6 +372,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
           unreadTickets={unreadTickets}
           translations={t}
           userRole={userRole}
+          userId={user?.id}
         />
 
         <TabContent

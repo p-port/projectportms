@@ -1,23 +1,22 @@
 
+import { useState, useEffect } from "react";
 import { TabsContent } from "@/components/ui/tabs";
 import { JobList } from "@/components/dashboard/JobList";
 import { NewJobForm } from "@/components/dashboard/NewJobForm";
 import { SearchPanel } from "@/components/dashboard/SearchPanel";
-import { TicketList } from "@/components/dashboard/tickets/TicketList";
 import { AccountInfo } from "@/components/dashboard/account/AccountInfo";
+import { MessageList } from "@/components/dashboard/messaging/MessageList";
+import { TicketList } from "@/components/dashboard/tickets/TicketList";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { ShopManagement } from "../shops/ShopManagement";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Store } from "lucide-react";
+import { ShopsList } from "@/components/dashboard/shops/ShopsList";
+import { ShopManagementTab } from "@/components/dashboard/shops/ShopManagementTab";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TabContentProps {
   activeJobs: any[];
   completedJobs: any[];
   allJobs: any[];
-  setJobs: React.Dispatch<React.SetStateAction<any[]>>;
+  setJobs: (jobs: any[]) => void;
   handleAddJob: (job: any) => void;
   userId?: string;
   userRole?: string;
@@ -32,115 +31,85 @@ export const TabContent = ({
   handleAddJob,
   userId,
   userRole = 'mechanic',
-  translations,
+  translations
 }: TabContentProps) => {
-  const navigate = useNavigate();
-  const [isRedirecting, setIsRedirecting] = useState(false);
-
-  const goToShopManagement = () => {
-    setIsRedirecting(true);
-    navigate('/shop-management');
-  };
-
-  const goToShopOwners = () => {
-    setIsRedirecting(true);
-    navigate('/shop-owners');
-  };
-
-  const isAdmin = userRole === 'admin';
-
+  const [isShopOwner, setIsShopOwner] = useState(false);
+  
+  // Check if user is a shop owner
+  useEffect(() => {
+    if (userId) {
+      const checkShopOwnership = async () => {
+        const { data, error } = await supabase
+          .from('shops')
+          .select('id')
+          .eq('owner_id', userId);
+          
+        if (!error && data && data.length > 0) {
+          setIsShopOwner(true);
+        }
+      };
+      
+      checkShopOwnership();
+    }
+  }, [userId]);
+  
   return (
-    <>
-      <TabsContent value="active-jobs" className="mt-6">
+    <div className="mt-2">
+      <TabsContent value="active-jobs">
         <JobList
           jobs={activeJobs}
-          type="active"
-          setJobs={setJobs}
           allJobs={allJobs}
-          translations={translations}
-        />
-      </TabsContent>
-
-      <TabsContent value="completed" className="mt-6">
-        <JobList
-          jobs={completedJobs}
-          type="completed"
           setJobs={setJobs}
-          allJobs={allJobs}
-          translations={translations}
+          jobType="active"
+          emptyStateMessage={translations.noActiveJobs}
+          emptyStateAction={translations.createNewJob}
         />
-      </TabsContent>
-
-      <TabsContent value="new-job" className="mt-6">
-        <NewJobForm onSubmit={handleAddJob} />
-      </TabsContent>
-
-      <TabsContent value="customers" className="mt-6">
-        <SearchPanel jobs={allJobs} translations={translations} />
       </TabsContent>
       
-      <TabsContent value="shops" className="mt-6">
-        {userRole === 'admin' ? (
-          <div className="grid gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Shop Management</CardTitle>
-                <CardDescription>
-                  Register new shops and manage existing ones in the Project Port network.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={goToShopManagement} disabled={isRedirecting}>
-                  {isRedirecting ? "Redirecting..." : "Go to Shop Management"}
-                </Button>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Store className="h-4 w-4" />
-                  Shop Owners Management
-                </CardTitle>
-                <CardDescription>
-                  View all shops and manage shop ownership permissions.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button onClick={goToShopOwners} disabled={isRedirecting} variant="outline">
-                  {isRedirecting ? "Redirecting..." : "Manage Shop Owners"}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="py-10 text-center">
-              <p className="text-muted-foreground">You need admin permissions to access shop management.</p>
-            </CardContent>
-          </Card>
-        )}
+      <TabsContent value="completed">
+        <JobList
+          jobs={completedJobs}
+          allJobs={allJobs}
+          setJobs={setJobs}
+          jobType="completed"
+          emptyStateMessage={translations.noCompletedJobs}
+          emptyStateAction={translations.completedJobsAppear}
+        />
       </TabsContent>
-
-      <TabsContent value="users" className="mt-6">
-        {isAdmin ? (
-          <UserManagement />
-        ) : (
-          <Card>
-            <CardContent className="py-10 text-center">
-              <p className="text-muted-foreground">You need admin permissions to access user management.</p>
-            </CardContent>
-          </Card>
-        )}
+      
+      <TabsContent value="new-job">
+        <NewJobForm onSubmit={handleAddJob} />
       </TabsContent>
-
-      <TabsContent value="support" className="mt-6">
+      
+      <TabsContent value="customers">
+        <SearchPanel />
+      </TabsContent>
+      
+      <TabsContent value="support">
         <TicketList userId={userId} userRole={userRole} />
       </TabsContent>
-
-      <TabsContent value="account" className="mt-6">
-        <AccountInfo userId={userId} userRole={userRole} />
+      
+      <TabsContent value="shops">
+        {userRole === 'admin' ? (
+          <ShopsList />
+        ) : (
+          <ShopManagementTab userId={userId || ''} />
+        )}
       </TabsContent>
-    </>
+      
+      <TabsContent value="users">
+        <UserManagement />
+      </TabsContent>
+      
+      <TabsContent value="account">
+        <AccountInfo userRole={userRole} userId={userId} />
+      </TabsContent>
+      
+      {isShopOwner && (
+        <TabsContent value="shop-management">
+          <ShopManagementTab userId={userId || ''} />
+        </TabsContent>
+      )}
+    </div>
   );
 };

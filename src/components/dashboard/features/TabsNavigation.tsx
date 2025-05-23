@@ -1,6 +1,8 @@
 
-import { Briefcase, Check, MessageSquarePlus, User, Wrench, Store, Users, Search } from "lucide-react";
+import { Briefcase, Check, MessageSquarePlus, User, Wrench, Store, Users, Search, Hammer } from "lucide-react";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TabsNavigationProps {
   activeTab: string;
@@ -11,6 +13,7 @@ interface TabsNavigationProps {
   unreadTickets: number;
   translations: any;
   userRole?: string;
+  userId?: string;
 }
 
 export const TabsNavigation = ({
@@ -21,9 +24,29 @@ export const TabsNavigation = ({
   completedJobs,
   unreadTickets,
   translations,
-  userRole = 'mechanic'
+  userRole = 'mechanic',
+  userId
 }: TabsNavigationProps) => {
   const isAdmin = userRole === 'admin';
+  const [isShopOwner, setIsShopOwner] = useState(false);
+  
+  // Check if user is a shop owner
+  useEffect(() => {
+    if (userId) {
+      const checkShopOwnership = async () => {
+        const { data, error } = await supabase
+          .from('shops')
+          .select('id')
+          .eq('owner_id', userId);
+          
+        if (!error && data && data.length > 0) {
+          setIsShopOwner(true);
+        }
+      };
+      
+      checkShopOwnership();
+    }
+  }, [userId]);
   
   return (
     <TabsList className="flex flex-wrap">
@@ -49,7 +72,7 @@ export const TabsNavigation = ({
         <Search className="h-4 w-4" />
         {translations.search || "Search"}
       </TabsTrigger>
-      {isAdmin && (
+      {(isAdmin || isShopOwner) && (
         <TabsTrigger value="shops" onClick={() => setActiveTab("shops")} className="flex gap-2 items-center">
           <Store className="h-4 w-4" />
           {translations.shops || "Shops"}
