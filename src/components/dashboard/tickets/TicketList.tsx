@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -7,15 +8,18 @@ import { EmptyTicketState } from "./components/EmptyTicketState";
 import { TicketDetail } from "./TicketDetail"; 
 import { NewTicket } from "./NewTicket";
 
+export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+export type TicketPriority = 'low' | 'normal' | 'high' | 'urgent';
+
 export interface Ticket {
   id: string;
   title: string;
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  priority: 'low' | 'normal' | 'high' | 'urgent';
+  status: TicketStatus;
+  priority: TicketPriority;
   creator_id: string;
   created_at: string;
   updated_at: string;
-  assigned_to?: string;
+  assigned_to?: string | null;
   creator_name?: string;
   assigned_name?: string;
 }
@@ -100,9 +104,11 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
       // Format tickets with creator and assignee names
       const formattedTickets = ticketsData.map(ticket => ({
         ...ticket,
+        status: ticket.status as TicketStatus || 'open',
+        priority: ticket.priority as TicketPriority || 'normal',
         creator_name: ticket.creator_id ? userNameMap[ticket.creator_id] || 'Unknown' : 'Unknown',
         assigned_name: ticket.assigned_to ? userNameMap[ticket.assigned_to] : undefined
-      }));
+      })) as Ticket[];
       
       setTickets(formattedTickets);
     } catch (error) {
@@ -150,6 +156,8 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
               ticket.id === payload.new.id ? { 
                 ...ticket, 
                 ...payload.new,
+                status: payload.new.status as TicketStatus,
+                priority: payload.new.priority as TicketPriority,
                 // Preserve names since they're not in the payload
                 creator_name: ticket.creator_name,
                 assigned_name: payload.new.assigned_to === ticket.assigned_to 
@@ -172,6 +180,8 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
               return {
                 ...prev,
                 ...payload.new,
+                status: payload.new.status as TicketStatus,
+                priority: payload.new.priority as TicketPriority,
                 creator_name: prev.creator_name,
                 assigned_name: payload.new.assigned_to === prev.assigned_to 
                   ? prev.assigned_name 
@@ -264,8 +274,10 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
         }
       }
       
-      const formattedTicket = {
+      const formattedTicket: Ticket = {
         ...ticketData,
+        status: ticketData.status as TicketStatus || 'open',
+        priority: ticketData.priority as TicketPriority || 'normal',
         creator_name: creatorData?.name || 'Unknown',
         assigned_name: assigneeName
       };
@@ -292,7 +304,7 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
     });
   };
   
-  const handleTicketStatusChange = async (ticketId: string, status: string) => {
+  const handleTicketStatusChange = async (ticketId: string, status: TicketStatus) => {
     try {
       const { error } = await supabase
         .from('support_tickets')
