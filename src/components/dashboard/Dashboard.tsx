@@ -11,7 +11,7 @@ import { DashboardHeader } from "@/components/dashboard/features/DashboardHeader
 import { TabsNavigation } from "@/components/dashboard/features/TabsNavigation";
 import { TabContent } from "@/components/dashboard/features/TabContent";
 import { NotificationCenter } from "@/components/dashboard/notifications/NotificationCenter";
-import { fetchUnreadTickets } from "@/components/dashboard/services/UnreadTicketsService";
+import { fetchUnreadTicketsCount } from "@/components/dashboard/services/UnreadTicketsService";
 import { fetchUnreadMessagesCount } from "@/components/dashboard/services/UnreadMessagesService";
 import { getUserShopInfo } from "@/integrations/supabase/client";
 
@@ -181,7 +181,7 @@ export const Dashboard = () => {
     if (!userId) return;
     
     try {
-      const count = await fetchUnreadTickets(userRole, userId);
+      const count = await fetchUnreadTicketsCount(userId, userRole);
       setUnreadTickets(count);
     } catch (error) {
       console.error("Error loading unread tickets:", error);
@@ -212,9 +212,11 @@ export const Dashboard = () => {
     <Layout>
       <div className="space-y-4">
         <DashboardHeader 
-          title={t.dashboard}
-          username={username}
-          unreadMessages={unreadMessages}
+          userName={username}
+          searchQuery=""
+          onSearchChange={() => {}}
+          translations={t}
+          userId={userId}
         />
         
         <div className="flex justify-between items-center">
