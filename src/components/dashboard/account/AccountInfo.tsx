@@ -1,13 +1,14 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Shield, Store, User, Mail, BadgeCheck, 
-  Clock, MapPin, Users, Briefcase
+  Clock, MapPin, Users, Briefcase, Tag
 } from "lucide-react";
 import { RoleSwitcher } from "./RoleSwitcher";
 
@@ -29,8 +30,12 @@ interface ShopDetails {
   id: string;
   name: string;
   region: string;
+  district: string;
   isOwner: boolean;
   owner_id: string;
+  employee_count: number;
+  services: string[];
+  unique_identifier: string;
 }
 
 export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps) => {
@@ -63,7 +68,7 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
         if (data.shop_id) {
           const { data: shopData, error: shopError } = await supabase
             .from('shops')
-            .select('id, name, region, owner_id')
+            .select('*')
             .eq('id', data.shop_id)
             .single();
             
@@ -72,8 +77,12 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
               id: shopData.id,
               name: shopData.name,
               region: shopData.region,
+              district: shopData.district,
               isOwner: shopData.owner_id === userId,
-              owner_id: shopData.owner_id
+              owner_id: shopData.owner_id,
+              employee_count: shopData.employee_count,
+              services: shopData.services,
+              unique_identifier: shopData.unique_identifier
             });
           }
         }
@@ -221,7 +230,7 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
         </CardContent>
       </Card>
 
-      {/* Shop Information Card */}
+      {/* Combined Shop Information Card */}
       {shopDetails && (
         <Card className="md:col-span-2">
           <CardHeader className="pb-2">
@@ -229,38 +238,71 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
               <Store className="h-5 w-5 text-blue-400" />
               Shop Information
             </CardTitle>
+            <CardDescription>Details about your associated repair shop</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="bg-muted rounded-md p-4">
-              <div className="flex flex-wrap md:flex-nowrap gap-4">
-                {/* Shop Details */}
-                <div className="flex items-start gap-3 flex-grow">
+            <div className="bg-muted/40 rounded-md p-4 space-y-4">
+              {/* Shop Name and Status */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-3">
                   <Store className="h-5 w-5 text-blue-400 mt-0.5 shrink-0" />
                   <div>
-                    <h3 className="font-medium">{shopDetails.name}</h3>
+                    <h3 className="font-medium text-lg">{shopDetails.name}</h3>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                       <MapPin className="h-3.5 w-3.5 shrink-0" />
-                      <span>Region: {shopDetails.region}</span>
+                      <span>{shopDetails.region}, {shopDetails.district}</span>
                     </div>
-                    {shopDetails.isOwner && (
-                      <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs px-2 py-0.5 rounded mt-2">
-                        <Shield className="h-3 w-3" /> Owner
-                      </span>
-                    )}
                   </div>
                 </div>
                 
-                {/* Shop Stats */}
-                <div className="space-y-2 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Store className="h-4 w-4 text-blue-400 shrink-0" />
-                    <span className="text-xs text-muted-foreground">Shop ID:</span>
-                    <span className="font-mono text-xs bg-muted-foreground/10 px-2 py-0.5 rounded">
-                      {shopDetails.id.substring(0, 8)}...
-                    </span>
+                {shopDetails.isOwner && (
+                  <Badge className="bg-amber-500/90 hover:bg-amber-500 text-white flex items-center gap-1 h-6 px-2">
+                    <Shield className="h-3 w-3" /> 
+                    Shop Owner
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-3">
+                {/* Shop ID */}
+                <div className="rounded-md border bg-background p-2.5">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1 text-xs">
+                    <Tag className="h-3.5 w-3.5" />
+                    <span>Shop ID</span>
+                  </div>
+                  <div className="font-mono text-xs bg-muted/50 px-2 py-1 rounded overflow-hidden text-ellipsis">
+                    {shopDetails.unique_identifier}
+                  </div>
+                </div>
+                
+                {/* Staff Count */}
+                <div className="rounded-md border bg-background p-2.5">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1 text-xs">
+                    <Users className="h-3.5 w-3.5" />
+                    <span>Staff</span>
+                  </div>
+                  <div className="text-sm">
+                    {shopDetails.employee_count} employee(s)
                   </div>
                 </div>
               </div>
+              
+              {/* Services */}
+              {shopDetails.services && shopDetails.services.length > 0 && (
+                <div className="mt-3">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-2 text-sm">
+                    <Briefcase className="h-3.5 w-3.5" />
+                    <span>Services</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {shopDetails.services.map((service, index) => (
+                      <Badge key={index} variant="secondary" className="capitalize">
+                        {service}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -277,7 +319,7 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3 p-3 bg-muted rounded-md">
-              <Store className="h-5 w-5 shrink-0" />
+              <Store className="h-5 w-5 shrink-0 text-muted-foreground" />
               <p className="text-sm">
                 You are not currently associated with any shop.
                 {isAdmin && " As an admin, you have access to all shops."}
