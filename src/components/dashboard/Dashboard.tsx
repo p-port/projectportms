@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -13,7 +12,7 @@ import { TabsNavigation } from "@/components/dashboard/features/TabsNavigation";
 import { TabContent } from "@/components/dashboard/features/TabContent";
 import { NotificationCenter } from "@/components/dashboard/notifications/NotificationCenter";
 import { fetchUnreadTickets } from "@/components/dashboard/services/UnreadTicketsService";
-import { fetchUnreadMessages } from "@/components/dashboard/services/UnreadMessagesService";
+import { fetchUnreadMessagesCount } from "@/components/dashboard/services/UnreadMessagesService";
 import { getUserShopInfo } from "@/integrations/supabase/client";
 
 // Translations
@@ -193,7 +192,7 @@ export const Dashboard = () => {
     if (!userId) return;
     
     try {
-      const count = await fetchUnreadMessages(userId);
+      const count = await fetchUnreadMessagesCount(userId);
       setUnreadMessages(count);
     } catch (error) {
       console.error("Error loading unread messages:", error);
