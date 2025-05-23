@@ -5,15 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getUserShopInfo } from "@/integrations/supabase/client";
 import { 
   Shield, User, Mail, BadgeCheck, 
-  Clock, Key, Lock
+  Clock, Key, Lock, Building2
 } from "lucide-react";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
+import { Shop } from "@/types/shop";
 
 interface Profile {
   id: string;
@@ -38,6 +39,8 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [shopInfo, setShopInfo] = useState<Shop | null>(null);
+  const [loadingShop, setLoadingShop] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -57,6 +60,17 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
 
         setProfile(data);
         setName(data.name || "");
+        
+        // Fetch shop info if the user has a shop_id
+        if (data.shop_id) {
+          await fetchShopInfo(data.shop_id);
+        } else {
+          // If user doesn't have a shop_id, try to get it from the getUserShopInfo function
+          const userShopInfo = await getUserShopInfo();
+          if (userShopInfo && userShopInfo.shop) {
+            setShopInfo(userShopInfo.shop);
+          }
+        }
       } catch (error) {
         console.error("Error fetching profile:", error);
       } finally {
@@ -66,6 +80,24 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
 
     fetchUserData();
   }, [userId]);
+
+  const fetchShopInfo = async (shopId: string) => {
+    try {
+      setLoadingShop(true);
+      const { data, error } = await supabase
+        .from('shops')
+        .select('*')
+        .eq('id', shopId)
+        .single();
+
+      if (error) throw error;
+      setShopInfo(data);
+    } catch (error) {
+      console.error("Error fetching shop info:", error);
+    } finally {
+      setLoadingShop(false);
+    }
+  };
 
   const handleUpdateProfile = async () => {
     setIsSaving(true);
@@ -406,6 +438,67 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
               </Dialog>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Shop Information Card */}
+      <Card className="md:col-span-2">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Building2 className="h-5 w-5 text-blue-400" />
+            Shop Information
+          </CardTitle>
+          <CardDescription>
+            Information about your assigned shop
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingShop ? (
+            <div className="flex justify-center p-4">
+              <div className="animate-spin h-6 w-6 border-4 border-primary border-t-transparent rounded-full"></div>
+            </div>
+          ) : shopInfo ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm font-medium mb-1">Shop Name</div>
+                  <div className="bg-muted px-3 py-2 rounded-md">{shopInfo.name}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium mb-1">Unique Identifier</div>
+                  <div className="bg-muted px-3 py-2 rounded-md font-mono">{shopInfo.unique_identifier}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium mb-1">Region</div>
+                  <div className="bg-muted px-3 py-2 rounded-md">{shopInfo.region}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium mb-1">District</div>
+                  <div className="bg-muted px-3 py-2 rounded-md">{shopInfo.district}</div>
+                </div>
+              </div>
+              
+              <div>
+                <div className="text-sm font-medium mb-1">Services Offered</div>
+                <div className="flex flex-wrap gap-2">
+                  {shopInfo.services.map((service, i) => (
+                    <Badge key={i} variant="secondary">{service}</Badge>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <div className="text-sm font-medium mb-1">Employee Count</div>
+                <div className="bg-muted px-3 py-2 rounded-md">{shopInfo.employee_count}</div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <Building2 className="h-10 w-10 mx-auto mb-2 opacity-40" />
+              <p>You are not associated with any shop</p>
+              <p className="text-sm mt-1">Contact an administrator to get assigned to a shop</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
