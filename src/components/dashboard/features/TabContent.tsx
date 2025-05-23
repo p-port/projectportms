@@ -22,7 +22,8 @@ interface TabContentProps {
   translations: any;
 }
 
-// Update to explicitly define AccountInfo props interface to match what we're passing
+// The AccountInfoProps interface should match the props expected by the AccountInfo component
+// in src/components/dashboard/account/AccountInfo.tsx
 interface AccountInfoProps {
   userId?: string;
   userRole?: string;

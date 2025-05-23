@@ -11,7 +11,8 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { RoleSwitcher } from "./RoleSwitcher";
 
 interface AccountInfoProps {
-  userId: string;
+  userId?: string;
+  userRole?: string; // Added userRole to match the props in TabContent.tsx
 }
 
 interface UserActivity {
@@ -83,7 +84,7 @@ const translations = {
   }
 };
 
-export const AccountInfo = ({ userId }: AccountInfoProps) => {
+export const AccountInfo = ({ userId, userRole }: AccountInfoProps) => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
