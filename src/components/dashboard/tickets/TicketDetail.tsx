@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { subscribeToTicketMessages } from "../messaging/services/MessageService";
 
 interface StaffMember {
   id: string;
@@ -57,9 +58,19 @@ export const TicketDetail = ({
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [newStatus, setNewStatus] = useState<string>(ticket.status);
   const { toast } = useToast();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   
   const isStaff = userRole === 'admin' || userRole === 'support';
   
+  // Scroll to bottom of messages
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+  
+  // Set up initial data and real-time subscription
   useEffect(() => {
     const fetchMessages = async () => {
       try {
@@ -104,6 +115,9 @@ export const TicketDetail = ({
         }));
         
         setMessages(messagesWithSenders);
+        
+        // Scroll to bottom after messages load
+        setTimeout(scrollToBottom, 100);
       } catch (error) {
         console.error('Error fetching ticket messages:', error);
         toast({
@@ -118,59 +132,21 @@ export const TicketDetail = ({
     
     fetchMessages();
     
-    // Enhanced real-time subscription for ticket messages
-    const channel = supabase
-      .channel(`ticket-messages-${ticket.id}`)
-      .on(
-        'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'ticket_messages', 
-          filter: `ticket_id=eq.${ticket.id}` 
-        },
-        async (payload) => {
-          console.log('New message received:', payload);
-          const newMessage = payload.new as TicketMessage;
-          
-          try {
-            // Fetch sender name
-            if (newMessage.sender_id) {
-              const { data } = await supabase
-                .from('profiles')
-                .select('name')
-                .eq('id', newMessage.sender_id)
-                .single();
-                
-              if (data) {
-                newMessage.sender_name = data.name;
-              } else {
-                newMessage.sender_name = 'Unknown';
-              }
-            } else {
-              newMessage.sender_name = 'System';
-            }
-            
-            // Add new message to state without requiring a full refresh
-            setMessages(prev => [...prev, newMessage]);
-            
-            // Auto-scroll to the latest message
-            setTimeout(() => {
-              const messagesContainer = document.querySelector('.messages-container');
-              if (messagesContainer) {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-              }
-            }, 100);
-          } catch (error) {
-            console.error('Error processing real-time message:', error);
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-      });
+    // Set up real-time subscription using the enhanced function
+    console.log(`Setting up real-time subscription for ticket ${ticket.id}`);
+    const channel = subscribeToTicketMessages(
+      ticket.id,
+      (newMessage) => {
+        console.log('New message received via subscription:', newMessage);
+        setMessages(prev => [...prev, newMessage]);
+        
+        // Auto-scroll to latest message
+        setTimeout(scrollToBottom, 100);
+      }
+    );
       
     return () => {
+      console.log(`Cleaning up real-time subscription for ticket ${ticket.id}`);
       supabase.removeChannel(channel);
     };
   }, [ticket.id, toast]);
@@ -219,7 +195,10 @@ export const TicketDetail = ({
           sender_id: user.id
         });
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error sending message:', error);
+        throw error;
+      }
 
       // If staff member is responding and ticket is 'open', automatically change status to 'in-progress'
       if (isStaff && ticket.status === 'open') {
@@ -229,6 +208,9 @@ export const TicketDetail = ({
       
       // Clear input after successful send
       setNewMessage("");
+      
+      // We don't need to manually add the message here anymore
+      // as the real-time subscription will handle it
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -402,7 +384,10 @@ export const TicketDetail = ({
               <h4 className="font-medium">Messages</h4>
             </div>
             
-            <div className="p-4 space-y-4 max-h-96 overflow-y-auto messages-container">
+            <div 
+              ref={messagesContainerRef}
+              className="p-4 space-y-4 max-h-96 overflow-y-auto messages-container"
+            >
               {loading ? (
                 <div className="flex justify-center">
                   <div className="animate-spin h-6 w-6 border-4 border-primary border-t-transparent rounded-full"></div>
@@ -410,22 +395,25 @@ export const TicketDetail = ({
               ) : messages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-4">No messages yet</div>
               ) : (
-                messages.map((message) => (
-                  <div 
-                    key={message.id} 
-                    className={`p-3 rounded-md ${
-                      message.sender_id === currentUserId 
-                        ? 'bg-primary/10 ml-8' 
-                        : 'bg-muted/50 mr-8'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-                      <span className="font-semibold">{message.sender_name}</span>
-                      <span>{format(new Date(message.created_at), 'MMM d, h:mm a')}</span>
+                <>
+                  {messages.map((message) => (
+                    <div 
+                      key={message.id} 
+                      className={`p-3 rounded-md ${
+                        message.sender_id === currentUserId 
+                          ? 'bg-primary/10 ml-8' 
+                          : 'bg-muted/50 mr-8'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
+                        <span className="font-semibold">{message.sender_name}</span>
+                        <span>{format(new Date(message.created_at), 'MMM d, h:mm a')}</span>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     </div>
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  </div>
-                ))
+                  ))}
+                  <div ref={messagesEndRef} /> {/* Empty div for scrolling to bottom */}
+                </>
               )}
             </div>
             
@@ -453,7 +441,11 @@ export const TicketDetail = ({
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim() || submitting}
                   >
-                    <Send className="h-4 w-4" />
+                    {submitting ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
                 <div className="text-xs text-muted-foreground mt-2">

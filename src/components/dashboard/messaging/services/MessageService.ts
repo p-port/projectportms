@@ -106,13 +106,18 @@ export const subscribeToNewMessages = (onNewMessage: (messageId: string) => void
   return channel;
 };
 
-// New function to subscribe to specific ticket messages
+// Enhanced function to subscribe to specific ticket messages with improved real-time updates
 export const subscribeToTicketMessages = (
   ticketId: string,
   onNewMessage: (message: any) => void
 ) => {
+  console.log(`Setting up real-time subscription for ticket: ${ticketId}`);
+  
+  // Create a unique channel name for this ticket
+  const channelName = `ticket-messages-${ticketId}-${Date.now()}`;
+  
   const channel = supabase
-    .channel(`ticket-messages-${ticketId}`)
+    .channel(channelName)
     .on(
       'postgres_changes',
       { 
@@ -122,34 +127,39 @@ export const subscribeToTicketMessages = (
         filter: `ticket_id=eq.${ticketId}`
       },
       async (payload) => {
-        console.log('New ticket message received:', payload);
+        console.log('New ticket message received via real-time:', payload);
         
-        // Get sender name
-        let senderName = 'Unknown';
-        if (payload.new.sender_id) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', payload.new.sender_id)
-            .single();
-            
-          if (data) {
-            senderName = data.name;
+        try {
+          // Get sender name
+          let senderName = 'Unknown';
+          if (payload.new.sender_id) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('name')
+              .eq('id', payload.new.sender_id)
+              .single();
+              
+            if (data) {
+              senderName = data.name;
+            }
+          } else {
+            senderName = 'System';
           }
-        } else {
-          senderName = 'System';
+          
+          const messageWithSender = {
+            ...payload.new,
+            sender_name: senderName
+          };
+          
+          console.log('Processed message with sender:', messageWithSender);
+          onNewMessage(messageWithSender);
+        } catch (error) {
+          console.error('Error processing real-time message:', error);
         }
-        
-        const messageWithSender = {
-          ...payload.new,
-          sender_name: senderName
-        };
-        
-        onNewMessage(messageWithSender);
       }
     )
     .subscribe((status) => {
-      console.log('Ticket messages real-time subscription status:', status);
+      console.log(`Ticket messages real-time subscription status for ${ticketId}:`, status);
     });
 
   return channel;
