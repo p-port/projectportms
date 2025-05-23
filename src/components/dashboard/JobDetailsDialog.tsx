@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,13 +7,14 @@ import { DetailsTab } from "./job-details/DetailsTab";
 import { NotesTab } from "./job-details/NotesTab";
 import { PhotosTab } from "./job-details/PhotosTab";
 import { QrCodeDisplay } from "./QrCodeDisplay";
-import { getStatusColor, updateJobInLocalStorage, canCompleteJob } from "./job-details/JobUtils";
+import { getStatusColor, updateJobInLocalStorage, canCompleteJob, deleteJob } from "./job-details/JobUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Trash2 } from "lucide-react";
 
 // Add translations for JobDetailsDialog
 const jobDetailsTranslations = {
@@ -79,6 +79,7 @@ interface JobDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdateJob: (updatedJob: any) => void;
+  onDeleteJob?: (jobId: string) => void;
 }
 
 export const JobDetailsDialog = ({
@@ -86,6 +87,7 @@ export const JobDetailsDialog = ({
   open,
   onOpenChange,
   onUpdateJob,
+  onDeleteJob,
 }: JobDetailsDialogProps) => {
   const [activeTab, setActiveTab] = useState("details");
   const [currentJob, setCurrentJob] = useState<any>(null);
@@ -95,7 +97,50 @@ export const JobDetailsDialog = ({
   const [pendingStatusChange, setPendingStatusChange] = useState<string | null>(null);
   const [language] = useLocalStorage("language", "en");
   
+  // Delete job confirmation states
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+  const [showSecondDeleteConfirmDialog, setShowSecondDeleteConfirmDialog] = useState(false);
+  
   const t = jobDetailsTranslations[language as keyof typeof jobDetailsTranslations];
+
+  // Add delete job translations
+  const deleteTranslations = {
+    en: {
+      deleteJob: "Delete Job",
+      deleteConfirmTitle: "Delete this job?",
+      deleteConfirmDescription: "This action will permanently delete this job and cannot be undone.",
+      finalDeleteConfirmTitle: "Are you absolutely sure?",
+      finalDeleteConfirmDescription: "This is your final confirmation. The job will be permanently deleted from the system.",
+      cancel: "Cancel",
+      delete: "Delete",
+      jobDeleted: "Job successfully deleted",
+      deleteFailed: "Failed to delete job"
+    },
+    ko: {
+      deleteJob: "작업 삭제",
+      deleteConfirmTitle: "이 작업을 삭제하시겠습니까?",
+      deleteConfirmDescription: "이 작업은 영구적으로 삭제되며 취소할 수 없습니다.",
+      finalDeleteConfirmTitle: "정말로 확실합니까?",
+      finalDeleteConfirmDescription: "최종 확인입니다. 작업이 시스템에서 영구적으로 삭제됩니다.",
+      cancel: "취소",
+      delete: "삭제",
+      jobDeleted: "작업이 성공적으로 삭제되었습니다",
+      deleteFailed: "작업 삭제 실패"
+    },
+    ru: {
+      deleteJob: "Удалить заказ",
+      deleteConfirmTitle: "Удалить этот заказ?",
+      deleteConfirmDescription: "Это действие навсегда удалит этот заказ и не может быть отменено.",
+      finalDeleteConfirmTitle: "Вы абсолютно уверены?",
+      finalDeleteConfirmDescription: "Это ваше окончательное подтверждение. Заказ будет безвозвратно удален из системы.",
+      cancel: "Отмена",
+      delete: "Удалить",
+      jobDeleted: "Заказ успешно удален",
+      deleteFailed: "Не удалось удалить заказ"
+    }
+  };
+  
+  const dt = deleteTranslations[language as keyof typeof deleteTranslations];
 
   // Update currentJob whenever job prop changes
   useEffect(() => {
@@ -237,6 +282,33 @@ export const JobDetailsDialog = ({
     }
   };
 
+  const handleDeleteJob = async () => {
+    if (!currentJob) return;
+    
+    try {
+      const result = await deleteJob(currentJob.id);
+      
+      if (result.success) {
+        // Close all dialogs
+        setShowSecondDeleteConfirmDialog(false);
+        setShowDeleteConfirmDialog(false);
+        onOpenChange(false);
+        
+        // Notify parent component about deletion
+        if (onDeleteJob) {
+          onDeleteJob(currentJob.id);
+        }
+        
+        toast.success(dt.jobDeleted);
+      } else {
+        toast.error(`${dt.deleteFailed}: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      toast.error(dt.deleteFailed);
+    }
+  };
+
   // Don't render anything if job is not available
   if (!currentJob) return null;
 
@@ -259,8 +331,8 @@ export const JobDetailsDialog = ({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="my-4">
-            <div className="flex items-center gap-4 mb-4">
+          <div className="my-4 flex items-center justify-between">
+            <div className="flex items-center gap-4 flex-1">
               <Label htmlFor="finalCost">{t.finalCost}</Label>
               <div className="relative flex-1">
                 <Input
@@ -275,6 +347,15 @@ export const JobDetailsDialog = ({
                 {t.updateFinalCost}
               </Button>
             </div>
+            
+            <Button 
+              variant="destructive" 
+              className="ml-4"
+              onClick={() => setShowDeleteConfirmDialog(true)}
+            >
+              <Trash2 className="mr-1" />
+              {dt.deleteJob}
+            </Button>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -320,6 +401,7 @@ export const JobDetailsDialog = ({
         </DialogContent>
       </Dialog>
 
+      {/* Final cost dialog */}
       <AlertDialog open={showFinalCostDialog} onOpenChange={setShowFinalCostDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -339,6 +421,51 @@ export const JobDetailsDialog = ({
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setPendingStatusChange(null)}>{t.cancel}</AlertDialogCancel>
             <AlertDialogAction onClick={handleFinalCostSubmit}>{t.save}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* First delete confirmation dialog */}
+      <AlertDialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{dt.deleteConfirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {dt.deleteConfirmDescription}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{dt.cancel}</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                setShowDeleteConfirmDialog(false);
+                setShowSecondDeleteConfirmDialog(true);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {dt.delete}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Second (final) delete confirmation dialog */}
+      <AlertDialog open={showSecondDeleteConfirmDialog} onOpenChange={setShowSecondDeleteConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{dt.finalDeleteConfirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {dt.finalDeleteConfirmDescription}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{dt.cancel}</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteJob}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {dt.delete}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

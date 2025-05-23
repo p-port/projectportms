@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -100,6 +99,12 @@ export const JobList = ({ jobs, type, setJobs, allJobs, translations }: JobListP
     if (user) {
       syncJobToSupabase(updatedJob, user.id);
     }
+  };
+
+  const handleDeleteJob = (jobId: string) => {
+    // Filter out the deleted job from the jobs state
+    const updatedJobs = allJobs.filter(job => job.id !== jobId);
+    setJobs(updatedJobs);
   };
 
   const syncJobToSupabase = async (job: any, userId: string) => {
@@ -209,6 +214,7 @@ export const JobList = ({ jobs, type, setJobs, allJobs, translations }: JobListP
           open={isDetailsOpen}
           onOpenChange={handleOpenChange}
           onUpdateJob={handleUpdateJob}
+          onDeleteJob={handleDeleteJob}
         />
       )}
     </div>

@@ -80,6 +80,41 @@ export const updateJobInLocalStorage = async (job: any) => {
   }
 };
 
+// Delete a job from localStorage and Supabase if the user is authenticated
+export const deleteJob = async (jobId: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    // Get all jobs from localStorage
+    const storedJobsString = localStorage.getItem('projectPortJobs');
+    const jobs = storedJobsString ? JSON.parse(storedJobsString) : [];
+    
+    // Filter out the job to delete
+    const updatedJobs = jobs.filter((j: any) => j.id !== jobId);
+    
+    // Save back to localStorage
+    localStorage.setItem('projectPortJobs', JSON.stringify(updatedJobs));
+    console.log("Job deleted from localStorage:", jobId);
+    
+    // Check if the user is authenticated
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.user) {
+      // Delete job from Supabase
+      const { error } = await supabase.from('jobs').delete().eq('job_id', jobId);
+      
+      if (error) {
+        console.error("Error deleting job from Supabase:", error);
+        return { success: false, message: "Failed to delete job from database" };
+      } else {
+        console.log("Job deleted from Supabase:", jobId);
+      }
+    }
+    
+    return { success: true, message: "Job successfully deleted" };
+  } catch (err) {
+    console.error("Error deleting job:", err);
+    return { success: false, message: "An error occurred while deleting the job" };
+  }
+};
+
 // Capture a photo from camera or file upload
 // This would typically use the device camera in a real app
 // For demo purposes, we're using a simulated approach
