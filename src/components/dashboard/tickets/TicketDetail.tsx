@@ -78,20 +78,50 @@ export const TicketDetail = ({ ticketId, onBack, userRole }: TicketDetailProps) 
     try {
       const { data, error } = await supabase
         .from('support_tickets')
-        .select(`
-          *,
-          creator:creator_id(name),
-          assignee:assigned_to(name)
-        `)
+        .select('*')
         .eq('id', ticketId)
         .single();
         
       if (error) throw error;
       
+      // Safely get creator name
+      let creatorName = 'Unknown';
+      if (data.creator_id) {
+        const { data: creatorData } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', data.creator_id)
+          .single();
+          
+        if (creatorData) {
+          creatorName = creatorData.name || 'Unknown';
+        }
+      }
+      
+      // Safely get assignee name
+      let assigneeName = undefined;
+      if (data.assigned_to) {
+        const { data: assigneeData } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', data.assigned_to)
+          .single();
+          
+        if (assigneeData) {
+          assigneeName = assigneeData.name;
+        }
+      }
+      
+      // Ensure status is of the correct type
+      const status = data.status as 'open' | 'in_progress' | 'resolved' | 'closed';
+      const priority = data.priority as 'low' | 'normal' | 'high' | 'urgent';
+      
       setTicket({
         ...data,
-        creator_name: data.creator?.name,
-        assigned_name: data.assignee?.name
+        creator_name: creatorName,
+        assigned_name: assigneeName,
+        status,
+        priority
       });
     } catch (error) {
       console.error('Error fetching ticket details:', error);
@@ -105,19 +135,36 @@ export const TicketDetail = ({ ticketId, onBack, userRole }: TicketDetailProps) 
     try {
       const { data, error } = await supabase
         .from('ticket_messages')
-        .select(`
-          *,
-          sender:sender_id(name)
-        `)
+        .select('*')
         .eq('ticket_id', ticketId)
         .order('created_at', { ascending: true });
         
       if (error) throw error;
       
-      setMessages(data.map(msg => ({
-        ...msg,
-        sender_name: msg.sender?.name
-      })));
+      // Get sender names for each message
+      const messagesWithSenders = await Promise.all(
+        data.map(async (msg) => {
+          let senderName = 'Unknown';
+          if (msg.sender_id) {
+            const { data: senderData } = await supabase
+              .from('profiles')
+              .select('name')
+              .eq('id', msg.sender_id)
+              .single();
+            
+            if (senderData) {
+              senderName = senderData.name || 'Unknown';
+            }
+          }
+          
+          return {
+            ...msg,
+            sender_name: senderName
+          };
+        })
+      );
+      
+      setMessages(messagesWithSenders);
     } catch (error) {
       console.error('Error fetching ticket messages:', error);
       toast.error("Failed to load ticket messages");
@@ -190,7 +237,7 @@ export const TicketDetail = ({ ticketId, onBack, userRole }: TicketDetailProps) 
     }
   };
 
-  const updateTicketStatus = async (status: string) => {
+  const updateTicketStatus = async (status: 'open' | 'in_progress' | 'resolved' | 'closed') => {
     setStatusUpdating(true);
     try {
       const { error } = await supabase
