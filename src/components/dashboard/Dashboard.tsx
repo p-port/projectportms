@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
-import useMobileCheck from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { DashboardHeader } from "./features/DashboardHeader";
 import { TabsNavigation } from "./features/TabsNavigation";
 import { TabContent } from "./features/TabContent";
@@ -11,7 +12,7 @@ import { toast } from "sonner";
 
 export const Dashboard = ({ user }: { user: any }) => {
   const [activeTab, setActiveTab] = useState("active-jobs");
-  const isMobile = useMobileCheck();
+  const isMobile = useIsMobile();
   const [jobs, setJobs] = useState<any[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [unreadTickets, setUnreadTickets] = useState(0);
@@ -125,7 +126,16 @@ export const Dashboard = ({ user }: { user: any }) => {
 
   return (
     <div className="container max-w-5xl py-4">
-      <DashboardHeader user={user} language={language} onChange={loadTranslations} />
+      <DashboardHeader 
+        userName={user?.name || "User"} 
+        searchQuery="" 
+        onSearchChange={() => {}} 
+        translations={{
+          dashboard: "Dashboard",
+          welcome: "Welcome",
+          searchPlaceholder: "Search"
+        }} 
+      />
       
       <Tabs
         defaultValue="active-jobs"
