@@ -39,6 +39,13 @@ interface TicketDetailProps {
   onUpdate: () => void;
 }
 
+// Define a proper interface for staff members
+interface StaffMember {
+  id: string;
+  name: string;
+  role: string;
+}
+
 export const TicketDetail = ({ 
   ticket, 
   onBack, 
@@ -53,7 +60,7 @@ export const TicketDetail = ({
   const [status, setStatus] = useState(ticket.status);
   const [priority, setPriority] = useState(ticket.priority);
   const [assignee, setAssignee] = useState(ticket.assigned_to);
-  const [availableStaff, setAvailableStaff] = useState<{id: string, name: string}[]>([]);
+  const [availableStaff, setAvailableStaff] = useState<StaffMember[]>([]);
   const [isInfoOpen, setIsInfoOpen] = useState(true);
   const { toast } = useToast();
   
@@ -131,7 +138,7 @@ export const TicketDetail = ({
         
       if (error) throw error;
       
-      setAvailableStaff(data);
+      setAvailableStaff(data as StaffMember[]);
     } catch (error) {
       console.error('Error loading support staff:', error);
     }
