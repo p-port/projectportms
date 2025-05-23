@@ -312,6 +312,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_shop_owner: {
+        Args: { shop_id: string; owner_id: string }
+        Returns: undefined
+      }
+      assign_user_to_shop_by_identifier: {
+        Args: { user_id: string; shop_identifier: string }
+        Returns: string
+      }
       get_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -319,6 +327,10 @@ export type Database = {
       is_user_approved: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      remove_shop_owner: {
+        Args: { shop_id: string }
+        Returns: undefined
       }
     }
     Enums: {
