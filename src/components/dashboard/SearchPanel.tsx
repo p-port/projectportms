@@ -1,13 +1,14 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, User, Battery, Ticket, History, List } from "lucide-react";
+import { Search, User, Battery, Ticket, History, List, ExternalLink } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 interface SearchPanelProps {
   jobs: any[];
@@ -221,6 +222,49 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
     return motorcycle.allServicesByOwner[selectedOwner]?.slice(0, 10) || [];
   };
 
+  // Helper function to render job summary in popover
+  const renderJobSummary = (job: any) => {
+    return (
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <h4 className="font-medium">{job.motorcycle?.make} {job.motorcycle?.model}</h4>
+          <p className="text-muted-foreground text-xs">Customer: {job.customer?.name || "N/A"}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-1 text-sm">
+          <span className="text-muted-foreground">Service:</span>
+          <span>{job.serviceType}</span>
+          
+          <span className="text-muted-foreground">Created:</span>
+          <span>{job.dateCreated}</span>
+          
+          {job.status && (
+            <>
+              <span className="text-muted-foreground">Status:</span>
+              <span className="capitalize">{job.status.replace("-", " ")}</span>
+            </>
+          )}
+          
+          {job.dateCompleted && (
+            <>
+              <span className="text-muted-foreground">Completed:</span>
+              <span>{job.dateCompleted}</span>
+            </>
+          )}
+        </div>
+        
+        {job.notes && job.notes.length > 0 && (
+          <div className="space-y-1">
+            <h5 className="text-xs font-medium">Latest Note:</h5>
+            <p className="text-xs italic bg-muted p-2 rounded">
+              {job.notes[0].content?.substring(0, 100)}
+              {job.notes[0].content?.length > 100 ? "..." : ""}
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -275,6 +319,7 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                         <TableHead>Name</TableHead>
                         <TableHead>Contact</TableHead>
                         <TableHead>Total Jobs</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -286,6 +331,33 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                             {customer.email !== "N/A" && <div className="text-muted-foreground">{customer.email}</div>}
                           </TableCell>
                           <TableCell>{customer.jobsCount}</TableCell>
+                          <TableCell>
+                            <div className="flex space-x-1">
+                              {customer.jobs && customer.jobs.length > 0 && 
+                                customer.jobs.map((job: any, jobIndex: number) => (
+                                  <TooltipProvider key={jobIndex}>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Popover>
+                                          <PopoverTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                                              <ExternalLink className="h-4 w-4" />
+                                            </Button>
+                                          </PopoverTrigger>
+                                          <PopoverContent>
+                                            {renderJobSummary(job)}
+                                          </PopoverContent>
+                                        </Popover>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Job #{job.id}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                ))
+                              }
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -382,7 +454,7 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                           </div>
                         </div>
                         
-                        {/* Service History Section */}
+                        {/* Service History Section with Popover */}
                         <div>
                           <div className="flex justify-between items-center mb-2">
                             <h5 className="font-medium text-sm">Service History</h5>
@@ -413,14 +485,35 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                           <div className="space-y-2">
                             {getFilteredServiceHistory(motorcycle).length > 0 ? (
                               getFilteredServiceHistory(motorcycle).map((job: any, jobIndex: number) => (
-                                <div key={jobIndex} className="bg-muted/50 p-3 rounded text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="font-medium">Job ID: {job.id}</span>
-                                    <span>{job.dateCreated}</span>
+                                <div key={jobIndex} className="bg-muted/50 p-3 rounded text-sm flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <div className="flex justify-between">
+                                      <span className="font-medium">Job ID: {job.id}</span>
+                                      <span>{job.dateCreated}</span>
+                                    </div>
+                                    <p>{job.serviceType}</p>
+                                    <p className="text-muted-foreground">Status: {job.status}</p>
+                                    <p className="text-xs text-muted-foreground">Owner: {job.customer ? censorName(job.customer.name) : 'Unknown'}</p>
                                   </div>
-                                  <p>{job.serviceType}</p>
-                                  <p className="text-muted-foreground">Status: {job.status}</p>
-                                  <p className="text-xs text-muted-foreground">Owner: {job.customer ? censorName(job.customer.name) : 'Unknown'}</p>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Popover>
+                                          <PopoverTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="ml-2 h-7 w-7 flex-shrink-0">
+                                              <ExternalLink className="h-4 w-4" />
+                                            </Button>
+                                          </PopoverTrigger>
+                                          <PopoverContent>
+                                            {renderJobSummary(job)}
+                                          </PopoverContent>
+                                        </Popover>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>View job summary</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </div>
                               ))
                             ) : (
@@ -464,6 +557,7 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                         <TableHead>Customer</TableHead>
                         <TableHead>Motorcycle</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -482,6 +576,27 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                             >
                               {job.status}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                                        <ExternalLink className="h-4 w-4" />
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent>
+                                      {renderJobSummary(job)}
+                                    </PopoverContent>
+                                  </Popover>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>View job summary</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </TableCell>
                         </TableRow>
                       ))}
