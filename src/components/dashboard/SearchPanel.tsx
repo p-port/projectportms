@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,7 +11,10 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 interface SearchPanelProps {
-  jobs: any[];
+  jobs?: any[];
+  searchQuery?: string;
+  onSearchChange?: (value: string) => void;
+  placeholder?: string;
   translations?: any;
 }
 
@@ -48,9 +50,15 @@ const censorName = (name: string) => {
   return `${firstChars}${middle}${lastChar}`;
 };
 
-export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
+export const SearchPanel = ({ 
+  jobs = [], 
+  searchQuery: externalSearchQuery,
+  onSearchChange: externalOnSearchChange,
+  placeholder,
+  translations 
+}: SearchPanelProps) => {
   const [searchType, setSearchType] = useState<string>("customer");
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>(externalSearchQuery || "");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [hasSearched, setHasSearched] = useState<boolean>(false);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
@@ -59,6 +67,11 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
     if (!searchQuery.trim()) {
       toast.error("Please enter a search term");
       return;
+    }
+
+    // If this component is controlled by a parent, update the parent's state
+    if (externalOnSearchChange) {
+      externalOnSearchChange(searchQuery);
     }
 
     setHasSearched(true);
@@ -271,37 +284,45 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
       <Card>
         <CardContent className="pt-6">
           <div className="space-y-4">
-            <Tabs value={searchType} onValueChange={setSearchType}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="customer">
-                  <User className="mr-2 h-4 w-4" />
-                  Customers
-                </TabsTrigger>
-                <TabsTrigger value="motorcycle">
-                  <Battery className="mr-2 h-4 w-4" />
-                  Motorcycles
-                </TabsTrigger>
-                <TabsTrigger value="job">
-                  <Ticket className="mr-2 h-4 w-4" />
-                  Jobs
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            {jobs && jobs.length > 0 ? (
+              <Tabs value={searchType} onValueChange={setSearchType}>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="customer">
+                    <User className="mr-2 h-4 w-4" />
+                    Customers
+                  </TabsTrigger>
+                  <TabsTrigger value="motorcycle">
+                    <Battery className="mr-2 h-4 w-4" />
+                    Motorcycles
+                  </TabsTrigger>
+                  <TabsTrigger value="job">
+                    <Ticket className="mr-2 h-4 w-4" />
+                    Jobs
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            ) : null}
             
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder={`Search ${searchType}s...`}
+                  placeholder={placeholder || `Search ${searchType}s...`}
                   className="pl-8"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    // If external control is used, also update parent
+                    if (externalOnSearchChange) {
+                      externalOnSearchChange(e.target.value);
+                    }
+                  }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSearch();
+                    if (e.key === 'Enter' && jobs && jobs.length > 0) handleSearch();
                   }}
                 />
               </div>
-              <Button onClick={handleSearch}>Search</Button>
+              {jobs && jobs.length > 0 && <Button onClick={handleSearch}>Search</Button>}
             </div>
           </div>
         </CardContent>
