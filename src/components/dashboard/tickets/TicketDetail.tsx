@@ -1,9 +1,8 @@
-
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Send, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle, XCircle, AlertCircle, Hash } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Ticket, TicketMessage } from "./TicketList";
 import { format } from "date-fns";
@@ -346,7 +345,10 @@ export const TicketDetail = ({
             Back to Tickets
           </Button>
           <span className="text-muted-foreground">|</span>
-          <h2 className="text-lg font-medium">Ticket #{ticket.id.substring(0, 8)}</h2>
+          <h2 className="text-lg font-medium flex items-center">
+            <Hash className="h-4 w-4 mr-1 text-muted-foreground" />
+            {ticket.ticket_number || ticket.id.substring(0, 8)}
+          </h2>
         </div>
         
         {isStaff && (

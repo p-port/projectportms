@@ -2,7 +2,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
-import { Clock, CheckCircle2, AlertCircle, User } from "lucide-react";
+import { Clock, CheckCircle2, AlertCircle, User, Hash } from "lucide-react";
 import { Ticket } from "../TicketList";
 
 interface TicketTableProps {
@@ -42,6 +42,7 @@ export const TicketTable = ({ tickets, onSelectTicket, isStaff }: TicketTablePro
     <Table className="border rounded-md">
       <TableHeader>
         <TableRow>
+          <TableHead>ID</TableHead>
           <TableHead>Status</TableHead>
           {isStaff && <TableHead>Requester</TableHead>}
           <TableHead className="w-[40%]">Title</TableHead>
@@ -57,6 +58,9 @@ export const TicketTable = ({ tickets, onSelectTicket, isStaff }: TicketTablePro
             className="cursor-pointer hover:bg-muted"
             onClick={() => onSelectTicket(ticket)}
           >
+            <TableCell className="font-mono text-xs">
+              {ticket.ticket_number || 'Unknown'}
+            </TableCell>
             <TableCell>
               {getStatusBadge(ticket.status)}
             </TableCell>

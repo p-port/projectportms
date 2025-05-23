@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Shield, Store, User, Mail, BadgeCheck, 
-  Clock, MapPin, Users, Briefcase, Hash 
+  Clock, MapPin, Users, Briefcase
 } from "lucide-react";
 import { RoleSwitcher } from "./RoleSwitcher";
 
@@ -25,12 +25,20 @@ interface AccountInfoProps {
   userId?: string;
 }
 
+interface ShopDetails {
+  id: string;
+  name: string;
+  region: string;
+  isOwner: boolean;
+  owner_id: string;
+}
+
 export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [shopDetails, setShopDetails] = useState<{name: string, isOwner: boolean} | null>(null);
+  const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -55,14 +63,17 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
         if (data.shop_id) {
           const { data: shopData, error: shopError } = await supabase
             .from('shops')
-            .select('name, owner_id')
+            .select('id, name, region, owner_id')
             .eq('id', data.shop_id)
             .single();
             
           if (!shopError && shopData) {
             setShopDetails({
+              id: shopData.id,
               name: shopData.name,
-              isOwner: shopData.owner_id === userId
+              region: shopData.region,
+              isOwner: shopData.owner_id === userId,
+              owner_id: shopData.owner_id
             });
           }
         }
@@ -119,123 +130,120 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
   const isAdmin = userRole === "admin";
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Personal Information Card */}
-        <Card className="bg-[#0A0D17] border-[#2A2F45]">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg text-white">
-              <User className="h-5 w-5 text-blue-400" />
-              Personal Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {/* Email Field */}
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Mail className="h-4 w-4 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-200">Email</span>
-                </div>
-                <Input value={profile.email || ""} disabled className="bg-[#181c2e] border-[#2A2F45] text-slate-300 h-9" />
-              </div>
-              
-              {/* Name Field with Edit */}
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <User className="h-4 w-4 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-200">Display Name</span>
-                </div>
-                <div className="flex gap-2">
-                  <Input 
-                    value={name} 
-                    onChange={(e) => setName(e.target.value)} 
-                    placeholder="Your name"
-                    className="flex-grow bg-[#181c2e] border-[#2A2F45] text-white h-9"
-                  />
-                  <Button 
-                    onClick={handleUpdateProfile} 
-                    disabled={isSaving || name === profile.name}
-                    className="bg-blue-600 hover:bg-blue-700 text-white h-9"
-                    size="sm"
-                  >
-                    {isSaving ? "Saving..." : "Save"}
-                  </Button>
-                </div>
-              </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Personal Information Card */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <User className="h-5 w-5 text-blue-400" />
+            Personal Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* Email Field */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Email</span>
             </div>
-          </CardContent>
-        </Card>
+            <Input value={profile.email || ""} disabled className="bg-muted" />
+          </div>
+          
+          {/* Name Field with Edit */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Display Name</span>
+            </div>
+            <div className="flex gap-2">
+              <Input 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                placeholder="Your name"
+                className="flex-grow"
+              />
+              <Button 
+                onClick={handleUpdateProfile} 
+                disabled={isSaving || name === profile.name}
+                variant="outline"
+                size="sm"
+              >
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Account Status Card */}
-        <Card className="bg-[#0A0D17] border-[#2A2F45]">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg text-white">
-              <Shield className="h-5 w-5 text-blue-400" />
-              Account Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {/* Role */}
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Shield className="h-4 w-4 text-slate-400" />
-                <span className="text-sm font-medium text-slate-200">Role</span>
-              </div>
-              <div className="bg-[#181c2e] px-3 py-2 rounded-md flex items-center gap-2">
-                <Shield className="h-4 w-4 text-blue-400" />
-                <span className="text-sm text-white capitalize">{profile.role || "mechanic"}</span>
-              </div>
+      {/* Account Status Card */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Shield className="h-5 w-5 text-blue-400" />
+            Account Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* Role */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Role</span>
             </div>
-            
-            {/* Approval Status */}
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <BadgeCheck className="h-4 w-4 text-slate-400" />
-                <span className="text-sm font-medium text-slate-200">Verification</span>
-              </div>
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm ${
-                profile.approved ? 'bg-[#162c1e] text-green-400' : 'bg-[#2c211c] text-amber-400'}`}>
-                {profile.approved ? (
-                  <>
-                    <BadgeCheck className="h-4 w-4" />
-                    <span>Approved</span>
-                  </>
-                ) : (
-                  <>
-                    <Clock className="h-4 w-4" />
-                    <span>Pending Approval</span>
-                  </>
-                )}
-              </div>
+            <div className="bg-muted px-3 py-2 rounded-md flex items-center gap-2">
+              <Shield className="h-4 w-4 text-blue-400" />
+              <span className="text-sm capitalize">{profile.role || "mechanic"}</span>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          
+          {/* Approval Status */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <BadgeCheck className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Verification</span>
+            </div>
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm ${
+              profile.approved ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 
+              'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
+              {profile.approved ? (
+                <>
+                  <BadgeCheck className="h-4 w-4" />
+                  <span>Approved</span>
+                </>
+              ) : (
+                <>
+                  <Clock className="h-4 w-4" />
+                  <span>Pending Approval</span>
+                </>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Shop Information Card */}
       {shopDetails && (
-        <Card className="bg-[#0A0D17] border-[#2A2F45]">
+        <Card className="md:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg text-white">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Store className="h-5 w-5 text-blue-400" />
               Shop Information
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-[#181c2e] rounded-md border border-[#2A2F45] p-3">
+            <div className="bg-muted rounded-md p-4">
               <div className="flex flex-wrap md:flex-nowrap gap-4">
                 {/* Shop Details */}
                 <div className="flex items-start gap-3 flex-grow">
                   <Store className="h-5 w-5 text-blue-400 mt-0.5 shrink-0" />
                   <div>
-                    <h3 className="font-medium text-white">{shopDetails.name}</h3>
-                    <div className="flex items-center gap-1 text-sm text-slate-400 mt-1">
+                    <h3 className="font-medium">{shopDetails.name}</h3>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                       <MapPin className="h-3.5 w-3.5 shrink-0" />
-                      <span>Region: {profile?.shop_id}</span>
+                      <span>Region: {shopDetails.region}</span>
                     </div>
                     {shopDetails.isOwner && (
-                      <span className="inline-flex items-center gap-1 bg-[#362e1d] text-amber-400 text-xs px-2 py-0.5 rounded mt-2">
+                      <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs px-2 py-0.5 rounded mt-2">
                         <Shield className="h-3 w-3" /> Owner
                       </span>
                     )}
@@ -245,16 +253,11 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
                 {/* Shop Stats */}
                 <div className="space-y-2 shrink-0">
                   <div className="flex items-center gap-2">
-                    <Hash className="h-4 w-4 text-blue-400 shrink-0" />
-                    <span className="text-xs text-slate-300">Shop ID:</span>
-                    <span className="font-mono text-xs bg-[#2A2F45] px-2 py-0.5 rounded text-blue-300">
-                      {profile.shop_id?.substring(0, 8)}...
+                    <Store className="h-4 w-4 text-blue-400 shrink-0" />
+                    <span className="text-xs text-muted-foreground">Shop ID:</span>
+                    <span className="font-mono text-xs bg-muted-foreground/10 px-2 py-0.5 rounded">
+                      {shopDetails.id.substring(0, 8)}...
                     </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-blue-400 shrink-0" />
-                    <span className="text-xs text-slate-300">Staff:</span>
-                    <span className="text-xs text-white">1+ employees</span>
                   </div>
                 </div>
               </div>
@@ -265,15 +268,15 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
 
       {/* No Shop Association Message */}
       {!shopDetails && !loading && (
-        <Card className="bg-[#0A0D17] border-[#2A2F45]">
+        <Card className="md:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg text-white">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Store className="h-5 w-5 text-blue-400" />
               Shop Information
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-3 p-3 bg-[#181c2e] rounded-md text-slate-300">
+            <div className="flex items-center gap-3 p-3 bg-muted rounded-md">
               <Store className="h-5 w-5 shrink-0" />
               <p className="text-sm">
                 You are not currently associated with any shop.
@@ -285,21 +288,23 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
       )}
 
       {/* Role Switcher (if admin or shop owner) */}
-      {(isAdmin || shopDetails) && (
-        <RoleSwitcher 
-          userId={profile.id} 
-          currentRole={profile.role || "mechanic"}
-          isAdmin={isAdmin}
-          onRoleSwitch={handleRoleSwitch}
-          translations={{
-            roleSwitchSuccess: "Role switched successfully",
-            roleSwitchError: "Failed to switch role",
-            adminTools: "Admin Tools",
-            switchRole: "Switch Role",
-            switching: "Switching...",
-            roleSwitchDescription: "Test the application with different permission levels."
-          }}
-        />
+      {(isAdmin || (shopDetails && shopDetails.isOwner)) && (
+        <div className="md:col-span-2">
+          <RoleSwitcher 
+            userId={profile.id} 
+            currentRole={profile.role || "mechanic"}
+            isAdmin={isAdmin}
+            onRoleSwitch={handleRoleSwitch}
+            translations={{
+              roleSwitchSuccess: "Role switched successfully",
+              roleSwitchError: "Failed to switch role",
+              adminTools: "Admin Tools",
+              switchRole: "Switch Role",
+              switching: "Switching...",
+              roleSwitchDescription: "Test the application with different permission levels."
+            }}
+          />
+        </div>
       )}
     </div>
   );

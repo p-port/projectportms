@@ -18,6 +18,7 @@ export interface Ticket {
   assigned_to?: string;
   creator_name?: string;
   assigned_name?: string;
+  ticket_number?: string; // Added unique identifier field
 }
 
 export interface TicketMessage {
@@ -40,6 +41,7 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [filter, setFilter] = useState<'all' | 'assigned' | 'open' | 'closed'>('all');
+  const [searchQuery, setSearchQuery] = useState(""); // Added search query state
   const { toast } = useToast();
 
   const isStaff = userRole === 'admin' || userRole === 'support';
@@ -67,6 +69,11 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
         query = query.eq('status', 'open');
       } else if (filter === 'closed') {
         query = query.eq('status', 'closed');
+      }
+      
+      // Apply search if provided and user is staff
+      if (isStaff && searchQuery.trim()) {
+        query = query.ilike('title', `%${searchQuery}%`);
       }
       
       const { data: ticketsData, error } = await query;
@@ -98,11 +105,21 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
       }, {} as Record<string, string>);
       
       // Format tickets with creator and assignee names
-      const formattedTickets = ticketsData.map(ticket => ({
-        ...ticket,
-        creator_name: ticket.creator_id ? userNameMap[ticket.creator_id] || 'Unknown' : 'Unknown',
-        assigned_name: ticket.assigned_to ? userNameMap[ticket.assigned_to] : undefined
-      }));
+      const formattedTickets = ticketsData.map(ticket => {
+        // Generate unique ticket number based on creator initials and ID
+        const creatorName = ticket.creator_id ? userNameMap[ticket.creator_id] || 'Unknown' : 'Unknown';
+        const initials = creatorName !== 'Unknown' 
+          ? creatorName.split(' ').map(name => name[0].toUpperCase()).join('')
+          : 'XX';
+        const ticketShortId = ticket.id.substring(0, 6).toUpperCase();
+        
+        return {
+          ...ticket,
+          creator_name: creatorName,
+          assigned_name: ticket.assigned_to ? userNameMap[ticket.assigned_to] : undefined,
+          ticket_number: `${initials}-${ticketShortId}`
+        };
+      });
       
       setTickets(formattedTickets);
     } catch (error) {
@@ -121,7 +138,7 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
     if (userId) {
       fetchTickets();
     }
-  }, [userId, filter]);
+  }, [userId, filter, searchQuery]); // Added searchQuery dependency
 
   useEffect(() => {
     // Subscribe to new tickets and messages
@@ -285,7 +302,19 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
 
   const handleTicketCreated = (newTicket: Ticket) => {
     setShowNewTicket(false);
-    setTickets(prev => [newTicket, ...prev]);
+    
+    // Generate the ticket number for the new ticket
+    const creatorName = newTicket.creator_name || 'Unknown';
+    const initials = creatorName !== 'Unknown' 
+      ? creatorName.split(' ').map(name => name[0].toUpperCase()).join('')
+      : 'XX';
+    const ticketShortId = newTicket.id.substring(0, 6).toUpperCase();
+    const ticketWithNumber = {
+      ...newTicket,
+      ticket_number: `${initials}-${ticketShortId}`
+    };
+    
+    setTickets(prev => [ticketWithNumber, ...prev]);
     toast({
       title: "Ticket Created",
       description: "Your support ticket has been created"
@@ -366,6 +395,10 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
     }
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
   if (selectedTicket) {
     return (
       <TicketDetail 
@@ -396,6 +429,8 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
         filter={filter}
         setFilter={setFilter}
         isStaff={isStaff}
+        searchQuery={searchQuery}
+        onSearch={handleSearch}
       />
 
       {loading ? (

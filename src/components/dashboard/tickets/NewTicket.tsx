@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -98,10 +97,17 @@ export const NewTicket = ({ userId, onCancel, onTicketCreated }: NewTicketProps)
         .eq('id', userId)
         .single();
       
-      // Format ticket with creator name for return
+      const creatorName = creatorData?.name || 'Unknown';
+      const initials = creatorName !== 'Unknown' 
+        ? creatorName.split(' ').map(name => name[0].toUpperCase()).join('')
+        : 'XX';
+      const ticketShortId = ticketData.id.substring(0, 6).toUpperCase();
+      
+      // Format ticket with creator name and ticket number for return
       const formattedTicket: Ticket = {
         ...ticketData,
-        creator_name: creatorData?.name || 'Unknown'
+        creator_name: creatorName,
+        ticket_number: `${initials}-${ticketShortId}`
       };
 
       onTicketCreated(formattedTicket);
