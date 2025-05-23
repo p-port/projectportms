@@ -172,8 +172,8 @@ export const Dashboard = ({ user }: DashboardProps) => {
               dateCompleted: job.date_completed ? new Date(job.date_completed).toISOString().split('T')[0] : null,
               notes: job.notes || [],
               photos: job.photos || { start: [], completion: [] },
-              // Handle shop_id safely
-              shopId: job.shop_id || null
+              // Handle shop_id safely, using optional chaining and type assertion
+              shopId: (job as any).shop_id || null
             }));
             
             setJobs(formattedJobs);
@@ -223,15 +223,15 @@ export const Dashboard = ({ user }: DashboardProps) => {
   // Sync jobs to Supabase
   const syncJobsToSupabase = async (jobsToSync: any[], userId: string) => {
     try {
-      // Get user's shop ID
+      // Get user's shop ID using type assertion to avoid TypeScript errors 
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
         
-      // Safely access shop_id
-      const shopId = profileData?.shop_id || null;
+      // Safely access shop_id using type assertion
+      const shopId = (profileData as any)?.shop_id || null;
 
       for (const job of jobsToSync) {
         await supabase.from('jobs').upsert({
@@ -281,15 +281,15 @@ export const Dashboard = ({ user }: DashboardProps) => {
     // If user is authenticated, sync to Supabase
     if (user?.id) {
       try {
-        // Get user's shop ID
+        // Get user's shop ID with type assertion
         const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
           
-        // Safely access shop_id
-        const shopId = profileData?.shop_id || null;
+        // Safely access shop_id using type assertion
+        const shopId = (profileData as any)?.shop_id || null;
         
         const { error } = await supabase.from('jobs').insert({
           job_id: newJob.id,

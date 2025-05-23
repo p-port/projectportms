@@ -72,9 +72,10 @@ export async function getUserShopInfo() {
   if (!user) return null;
   
   try {
+    // Update this query to handle shop_id and shop_identifier properties that may not yet exist
     const { data, error } = await supabase
       .from('profiles')
-      .select('shop_id, shop_identifier, role')
+      .select('*')
       .eq('id', user.id)
       .single();
       
@@ -83,24 +84,26 @@ export async function getUserShopInfo() {
       return null;
     }
 
-    // If shop_id exists, fetch shop details
-    if (data?.shop_id) {
-      // Use any type here since the Database type doesn't know about shops yet
-      const { data: shopData, error: shopError } = await supabase
+    // If shop_id exists in the data, fetch shop details
+    // Use the 'as any' to bypass TypeScript checking until we generate new types
+    const profile = data as any;
+    if (profile && profile.shop_id) {
+      // Use any type here to overcome TypeScript's type checking
+      const { data: shopData, error: shopError } = await (supabase as any)
         .from('shops')
         .select('*')
-        .eq('id', data.shop_id)
-        .single() as any;
+        .eq('id', profile.shop_id)
+        .single();
         
       if (!shopError && shopData) {
         return { 
-          profile: data,
+          profile: profile,
           shop: shopData as Shop
         };
       }
     }
     
-    return { profile: data, shop: null };
+    return { profile: profile, shop: null };
   } catch (err) {
     console.error("Error in getUserShopInfo:", err);
     return null;
@@ -110,7 +113,7 @@ export async function getUserShopInfo() {
 // Function to fetch shops data with proper typing
 export async function fetchShops(): Promise<Shop[]> {
   try {
-    // Cast to any to work around type checking until types are updated
+    // Use any type to bypass TypeScript's type checking
     const { data, error } = await (supabase as any)
       .from('shops')
       .select('*')
@@ -127,7 +130,7 @@ export async function fetchShops(): Promise<Shop[]> {
 // Function to create a new shop with proper typing
 export async function createShop(shopData: Omit<Shop, 'id' | 'created_at'>): Promise<{data: Shop | null, error: any}> {
   try {
-    // Cast to any to work around type checking until types are updated
+    // Use any type to bypass TypeScript's type checking
     const result = await (supabase as any)
       .from('shops')
       .insert(shopData)

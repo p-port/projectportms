@@ -22,7 +22,7 @@ interface TabContentProps {
   translations: any;
 }
 
-// Update to ensure AccountInfo accepts userRole prop
+// Update to explicitly define AccountInfo props interface to match what we're passing
 interface AccountInfoProps {
   userId?: string;
   userRole?: string;
