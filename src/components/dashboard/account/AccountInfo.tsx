@@ -1,11 +1,14 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Store, User, Mail, BadgeCheck, Clock, MapPin } from "lucide-react";
+import { 
+  Shield, Store, User, Mail, BadgeCheck, 
+  Clock, MapPin, Users, Briefcase, Hash 
+} from "lucide-react";
 import { RoleSwitcher } from "./RoleSwitcher";
 
 interface Profile {
@@ -99,7 +102,7 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
 
   if (loading) {
     return (
-      <div className="flex justify-center p-6">
+      <div className="flex justify-center p-4">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
     );
@@ -107,149 +110,181 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
 
   if (!profile) {
     return (
-      <div className="text-center py-6">
+      <div className="text-center py-4">
         <p className="text-muted-foreground">Could not load profile information</p>
       </div>
     );
   }
 
-  // Check if the current user is an admin
   const isAdmin = userRole === "admin";
 
   return (
-    <div className="space-y-6">
-      {/* Account Role Card */}
-      <Card className="bg-[#0A0D17] border-[#2A2F45]">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Shield className="h-5 w-5 text-blue-400" />
-            Account Role
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            Your role determines what actions you can perform in the system
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-[#181c2e] px-4 py-3 rounded-md flex items-center gap-2">
-            <Shield className="h-5 w-5 text-blue-400" />
-            <span className="text-white capitalize">{profile.role || "mechanic"}</span>
-          </div>
-          <p className="text-xs text-slate-400 mt-2">
-            Your role determines what actions you can perform in the system
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Account Status Card */}
-      <Card className="bg-[#0A0D17] border-[#2A2F45]">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <BadgeCheck className="h-5 w-5 text-blue-400" />
-            Account Status
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            Your current account verification status
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className={`flex items-center gap-2 px-4 py-3 rounded-md ${profile.approved ? 'bg-[#162c1e] text-green-400' : 'bg-[#2c211c] text-amber-400'}`}>
-            {profile.approved ? (
-              <>
-                <BadgeCheck className="h-5 w-5" />
-                <span>Approved</span>
-              </>
-            ) : (
-              <>
-                <Clock className="h-5 w-5" />
-                <span>Pending Approval</span>
-              </>
-            )}
-          </div>
-          {!profile.approved && (
-            <p className="text-xs text-slate-400 mt-2">
-              Your account is awaiting approval from an administrator
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Shop Association Card */}
-      {shopDetails && (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Personal Information Card */}
         <Card className="bg-[#0A0D17] border-[#2A2F45]">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Store className="h-5 w-5 text-blue-400" />
-              Shop Association
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg text-white">
+              <User className="h-5 w-5 text-blue-400" />
+              Personal Information
             </CardTitle>
-            <CardDescription className="text-slate-400">
-              Your membership in a repair shop
-            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="bg-[#181c2e] px-4 py-3 rounded-md flex items-center gap-2">
+            <div className="space-y-3">
+              {/* Email Field */}
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Mail className="h-4 w-4 text-slate-400" />
+                  <span className="text-sm font-medium text-slate-200">Email</span>
+                </div>
+                <Input value={profile.email || ""} disabled className="bg-[#181c2e] border-[#2A2F45] text-slate-300 h-9" />
+              </div>
+              
+              {/* Name Field with Edit */}
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <User className="h-4 w-4 text-slate-400" />
+                  <span className="text-sm font-medium text-slate-200">Display Name</span>
+                </div>
+                <div className="flex gap-2">
+                  <Input 
+                    value={name} 
+                    onChange={(e) => setName(e.target.value)} 
+                    placeholder="Your name"
+                    className="flex-grow bg-[#181c2e] border-[#2A2F45] text-white h-9"
+                  />
+                  <Button 
+                    onClick={handleUpdateProfile} 
+                    disabled={isSaving || name === profile.name}
+                    className="bg-blue-600 hover:bg-blue-700 text-white h-9"
+                    size="sm"
+                  >
+                    {isSaving ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Account Status Card */}
+        <Card className="bg-[#0A0D17] border-[#2A2F45]">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg text-white">
+              <Shield className="h-5 w-5 text-blue-400" />
+              Account Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Role */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Shield className="h-4 w-4 text-slate-400" />
+                <span className="text-sm font-medium text-slate-200">Role</span>
+              </div>
+              <div className="bg-[#181c2e] px-3 py-2 rounded-md flex items-center gap-2">
+                <Shield className="h-4 w-4 text-blue-400" />
+                <span className="text-sm text-white capitalize">{profile.role || "mechanic"}</span>
+              </div>
+            </div>
+            
+            {/* Approval Status */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <BadgeCheck className="h-4 w-4 text-slate-400" />
+                <span className="text-sm font-medium text-slate-200">Verification</span>
+              </div>
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm ${
+                profile.approved ? 'bg-[#162c1e] text-green-400' : 'bg-[#2c211c] text-amber-400'}`}>
+                {profile.approved ? (
+                  <>
+                    <BadgeCheck className="h-4 w-4" />
+                    <span>Approved</span>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="h-4 w-4" />
+                    <span>Pending Approval</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Shop Information Card */}
+      {shopDetails && (
+        <Card className="bg-[#0A0D17] border-[#2A2F45]">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg text-white">
               <Store className="h-5 w-5 text-blue-400" />
-              <span className="text-white">{shopDetails.name}</span>
-              {shopDetails.isOwner && (
-                <span className="bg-[#362e1d] text-amber-400 text-xs px-2 py-0.5 rounded ml-auto flex items-center gap-1">
-                  <Shield className="h-3 w-3" /> Owner
-                </span>
-              )}
+              Shop Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-[#181c2e] rounded-md border border-[#2A2F45] p-3">
+              <div className="flex flex-wrap md:flex-nowrap gap-4">
+                {/* Shop Details */}
+                <div className="flex items-start gap-3 flex-grow">
+                  <Store className="h-5 w-5 text-blue-400 mt-0.5 shrink-0" />
+                  <div>
+                    <h3 className="font-medium text-white">{shopDetails.name}</h3>
+                    <div className="flex items-center gap-1 text-sm text-slate-400 mt-1">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                      <span>Region: {profile?.shop_id}</span>
+                    </div>
+                    {shopDetails.isOwner && (
+                      <span className="inline-flex items-center gap-1 bg-[#362e1d] text-amber-400 text-xs px-2 py-0.5 rounded mt-2">
+                        <Shield className="h-3 w-3" /> Owner
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Shop Stats */}
+                <div className="space-y-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Hash className="h-4 w-4 text-blue-400 shrink-0" />
+                    <span className="text-xs text-slate-300">Shop ID:</span>
+                    <span className="font-mono text-xs bg-[#2A2F45] px-2 py-0.5 rounded text-blue-300">
+                      {profile.shop_id?.substring(0, 8)}...
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-blue-400 shrink-0" />
+                    <span className="text-xs text-slate-300">Staff:</span>
+                    <span className="text-xs text-white">1+ employees</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Account Information Card */}
-      <Card className="bg-[#0A0D17] border-[#2A2F45]">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <User className="h-5 w-5 text-blue-400" />
-            Personal Information
-          </CardTitle>
-          <CardDescription className="text-slate-400">
-            Manage your profile details
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            {/* Email Section */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-slate-400" />
-                <h3 className="font-medium text-slate-200">Email Address</h3>
-              </div>
-              <Input value={profile.email || ""} disabled className="bg-[#181c2e] border-[#2A2F45] text-slate-300" />
-              <p className="text-xs text-slate-400 mt-1">Your email address is used for login and cannot be changed</p>
+      {/* No Shop Association Message */}
+      {!shopDetails && !loading && (
+        <Card className="bg-[#0A0D17] border-[#2A2F45]">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg text-white">
+              <Store className="h-5 w-5 text-blue-400" />
+              Shop Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3 p-3 bg-[#181c2e] rounded-md text-slate-300">
+              <Store className="h-5 w-5 shrink-0" />
+              <p className="text-sm">
+                You are not currently associated with any shop.
+                {isAdmin && " As an admin, you have access to all shops."}
+              </p>
             </div>
+          </CardContent>
+        </Card>
+      )}
 
-            {/* Name Section */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-slate-400" />
-                <h3 className="font-medium text-slate-200">Display Name</h3>
-              </div>
-              <div className="flex gap-2">
-                <Input 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)} 
-                  placeholder="Your name"
-                  className="flex-grow bg-[#181c2e] border-[#2A2F45] text-white"
-                />
-                <Button 
-                  onClick={handleUpdateProfile} 
-                  disabled={isSaving || name === profile.name}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  {isSaving ? "Saving..." : "Save"}
-                </Button>
-              </div>
-              <p className="text-xs text-slate-400">This name will be displayed to other users</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Role Switcher Component */}
+      {/* Role Switcher (if admin or shop owner) */}
       {(isAdmin || shopDetails) && (
         <RoleSwitcher 
           userId={profile.id} 
