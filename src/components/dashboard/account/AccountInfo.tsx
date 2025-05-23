@@ -8,9 +8,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Shield, Store, User, Mail, BadgeCheck, 
-  Clock, MapPin, Users, Briefcase, Tag
+  Clock, MapPin, Users, Briefcase, Tag, Key, Lock
 } from "lucide-react";
 import { RoleSwitcher } from "./RoleSwitcher";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 interface Profile {
   id: string;
@@ -44,6 +47,10 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
   const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
+  const [changeEmailOpen, setChangeEmailOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -120,6 +127,64 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
     setProfile(prev => prev ? { ...prev, role: newRole } : null);
   };
 
+  const emailForm = useForm({
+    defaultValues: {
+      email: profile?.email || "",
+      currentPassword: "",
+    }
+  });
+
+  const passwordForm = useForm({
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    }
+  });
+
+  const handleEmailChange = async (values: { email: string; currentPassword: string }) => {
+    setIsChangingEmail(true);
+    try {
+      const { error } = await supabase.auth.updateUser(
+        { email: values.email },
+        { password: values.currentPassword }
+      );
+
+      if (error) throw error;
+      toast.success("Email update request sent. Please check your inbox to confirm.");
+      setChangeEmailOpen(false);
+      emailForm.reset();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update email");
+    } finally {
+      setIsChangingEmail(false);
+    }
+  };
+
+  const handlePasswordChange = async (values: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+    if (values.newPassword !== values.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser(
+        { password: values.newPassword },
+        { password: values.currentPassword }
+      );
+
+      if (error) throw error;
+      toast.success("Password updated successfully");
+      setChangePasswordOpen(false);
+      passwordForm.reset();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update password");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center p-4">
@@ -184,12 +249,12 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
         </CardContent>
       </Card>
 
-      {/* Account Status Card */}
+      {/* Account Management Card */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Shield className="h-5 w-5 text-blue-400" />
-            Account Status
+            Account Management
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -227,10 +292,144 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
               )}
             </div>
           </div>
+
+          {/* Account Actions */}
+          <div className="pt-2">
+            <div className="flex items-center gap-2 mb-2">
+              <Key className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Account Actions</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Dialog open={changeEmailOpen} onOpenChange={setChangeEmailOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5" />
+                    Change Email
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Change Email Address</DialogTitle>
+                  </DialogHeader>
+                  <Form {...emailForm}>
+                    <form onSubmit={emailForm.handleSubmit(handleEmailChange)} className="space-y-4">
+                      <FormField
+                        control={emailForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>New Email Address</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="email@example.com" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={emailForm.control}
+                        name="currentPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Current Password</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="password" placeholder="••••••••" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <DialogFooter>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => setChangeEmailOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={isChangingEmail}>
+                          {isChangingEmail ? "Updating..." : "Update Email"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-1.5">
+                    <Lock className="h-3.5 w-3.5" />
+                    Change Password
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Change Password</DialogTitle>
+                  </DialogHeader>
+                  <Form {...passwordForm}>
+                    <form onSubmit={passwordForm.handleSubmit(handlePasswordChange)} className="space-y-4">
+                      <FormField
+                        control={passwordForm.control}
+                        name="currentPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Current Password</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="password" placeholder="••••••••" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={passwordForm.control}
+                        name="newPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>New Password</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="password" placeholder="••••••••" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={passwordForm.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Confirm New Password</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="password" placeholder="••••••••" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <DialogFooter>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => setChangePasswordOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={isChangingPassword}>
+                          {isChangingPassword ? "Updating..." : "Update Password"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Combined Shop Information Card */}
+      {/* Shop Information Card (Combined version) */}
       {shopDetails && (
         <Card className="md:col-span-2">
           <CardHeader className="pb-2">
@@ -348,6 +547,16 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
           />
         </div>
       )}
+
+      {/* Email Change Dialog */}
+      <Dialog open={changeEmailOpen} onOpenChange={setChangeEmailOpen}>
+        {/* Dialog content already defined above */}
+      </Dialog>
+
+      {/* Password Change Dialog */}
+      <Dialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen}>
+        {/* Dialog content already defined above */}
+      </Dialog>
     </div>
   );
 };
