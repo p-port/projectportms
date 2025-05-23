@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Store } from "lucide-react";
+import { Shield, Store, User, Mail, BadgeCheck, Clock } from "lucide-react";
 import { RoleSwitcher } from "./RoleSwitcher";
 
 interface Profile {
@@ -120,55 +120,93 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Account Information</CardTitle>
-          <CardDescription>Manage your profile details</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5 text-primary" />
+            Account Information
+          </CardTitle>
+          <CardDescription>Manage your profile details and account settings</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Email</label>
+          <div className="space-y-6">
+            {/* Email Section */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-medium">Email Address</h3>
+              </div>
               <Input value={profile.email || ""} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
+              <p className="text-xs text-muted-foreground mt-1">Your email address is used for login and cannot be changed</p>
             </div>
 
-            <div>
-              <label className="text-sm font-medium mb-1 block">Name</label>
+            {/* Name Section */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-medium">Display Name</h3>
+              </div>
               <div className="flex gap-2">
                 <Input 
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
                   placeholder="Your name"
+                  className="flex-grow"
                 />
                 <Button onClick={handleUpdateProfile} disabled={isSaving || name === profile.name}>
                   {isSaving ? "Saving..." : "Save"}
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground">This name will be displayed to other users</p>
             </div>
 
-            <div>
-              <label className="text-sm font-medium mb-1 block">Role</label>
+            {/* Role Section */}
+            <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <div className="bg-muted px-3 py-1.5 rounded text-sm capitalize flex-grow">
-                  {profile.role || "mechanic"}
-                </div>
+                <Shield className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-medium">Account Role</h3>
               </div>
+              <div className="bg-muted px-3 py-2 rounded text-sm capitalize flex items-center gap-2">
+                <Shield className="h-4 w-4 text-blue-500" />
+                <span>{profile.role || "mechanic"}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Your role determines what actions you can perform in the system</p>
             </div>
 
-            <div>
-              <label className="text-sm font-medium mb-1 block">Account Status</label>
-              <div className="bg-muted px-3 py-1.5 rounded text-sm">
-                {profile.approved ? "Approved" : "Pending Approval"}
+            {/* Status Section */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <BadgeCheck className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-medium">Account Status</h3>
               </div>
+              <div className={`flex items-center gap-2 px-3 py-2 rounded text-sm ${profile.approved ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                {profile.approved ? (
+                  <>
+                    <BadgeCheck className="h-4 w-4" />
+                    <span>Approved</span>
+                  </>
+                ) : (
+                  <>
+                    <Clock className="h-4 w-4" />
+                    <span>Pending Approval</span>
+                  </>
+                )}
+              </div>
+              {!profile.approved && (
+                <p className="text-xs text-muted-foreground">Your account is awaiting approval from an administrator</p>
+              )}
             </div>
             
+            {/* Shop Association */}
             {shopDetails && (
-              <div>
-                <label className="text-sm font-medium mb-1 block">Shop Association</label>
-                <div className="bg-muted px-3 py-1.5 rounded text-sm flex items-center gap-2">
-                  <Store className="h-4 w-4" />
-                  <span>{shopDetails.name}</span>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Store className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="font-medium">Shop Association</h3>
+                </div>
+                <div className="bg-blue-50 px-3 py-2 rounded text-sm flex items-center gap-2">
+                  <Store className="h-4 w-4 text-blue-600" />
+                  <span className="text-blue-700">{shopDetails.name}</span>
                   {shopDetails.isOwner && (
-                    <span className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded ml-2 flex items-center gap-1">
+                    <span className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded ml-auto flex items-center gap-1">
                       <Shield className="h-3 w-3" /> Owner
                     </span>
                   )}
@@ -179,7 +217,7 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
         </CardContent>
       </Card>
 
-      {/* Move the RoleSwitcher component to its own card for better UI organization */}
+      {/* Role Switcher Component */}
       {(isAdmin || shopDetails) && (
         <RoleSwitcher 
           userId={profile.id} 
@@ -191,7 +229,8 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
             roleSwitchError: "Failed to switch role",
             adminTools: "Admin Tools",
             switchRole: "Switch Role",
-            switching: "Switching..."
+            switching: "Switching...",
+            roleSwitchDescription: "Test the application with different permission levels."
           }}
         />
       )}
