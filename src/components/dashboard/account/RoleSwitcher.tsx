@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase, getUserShopInfo } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Shield, Save, Store } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface RoleSwitcherProps {
   userId: string;
@@ -23,9 +25,9 @@ interface RoleSwitcherProps {
 export const RoleSwitcher = ({ 
   userId, 
   currentRole,
-  isAdmin = false, // Default to false for backward compatibility
-  onRoleSwitch = () => {}, // Provide default empty function
-  translations = { // Default translations
+  isAdmin = false, 
+  onRoleSwitch = () => {}, 
+  translations = {
     roleSwitchSuccess: "Role switched successfully",
     roleSwitchError: "Failed to switch role",
     adminTools: "Admin Tools",
@@ -75,57 +77,61 @@ export const RoleSwitcher = ({
   };
 
   return (
-    <div className="space-y-8">
+    <>
       {isAdmin && (
-        <div className="space-y-4 border p-4 rounded-lg bg-muted/30">
-          <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-amber-500" />
-            <h3 className="font-medium">{translations.adminTools || "Admin Tools"}</h3>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="role-switch">{translations.switchRole || "Switch Role"}</Label>
-            <div className="flex items-center gap-2">
-              <Select
-                value={selectedRole}
-                onValueChange={setSelectedRole}
-                disabled={isSaving}
-              >
-                <SelectTrigger id="role-switch" className="w-[180px]">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Administrator</SelectItem>
-                  <SelectItem value="support">Support Staff</SelectItem>
-                  <SelectItem value="mechanic">Mechanic</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                onClick={handleRoleSwitch} 
-                disabled={isSaving || selectedRole === currentRole}
-              >
-                <Save className="h-4 w-4 mr-1" />
-                {isSaving ? translations.switching || "Switching..." : translations.switchRole || "Switch"}
-              </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-amber-500" />
+              <span>{translations.adminTools || "Admin Tools"}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="role-switch">{translations.switchRole || "Switch Role"}</Label>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={selectedRole}
+                  onValueChange={setSelectedRole}
+                  disabled={isSaving}
+                >
+                  <SelectTrigger id="role-switch" className="w-[180px]">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Administrator</SelectItem>
+                    <SelectItem value="support">Support Staff</SelectItem>
+                    <SelectItem value="mechanic">Mechanic</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={handleRoleSwitch} 
+                  disabled={isSaving || selectedRole === currentRole}
+                >
+                  <Save className="h-4 w-4 mr-1" />
+                  {isSaving ? translations.switching || "Switching..." : translations.switchRole || "Switch"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {translations.roleSwitchDescription || "This allows you to test the application with different permission levels."}
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {translations.roleSwitchDescription || "This allows you to test the application with different permission levels."}
-            </p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      {shopInfo && (
-        <div className="space-y-4 border p-4 rounded-lg bg-muted/30">
-          <div className="flex items-center gap-2">
-            <Store className="h-4 w-4 text-blue-500" />
-            <h3 className="font-medium">Shop Information</h3>
-          </div>
-          
-          {shopInfo.shop ? (
+      {shopInfo && shopInfo.shop && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Store className="h-4 w-4 text-blue-500" />
+              <span>Shop Information</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-2 text-sm">
               <div className="grid grid-cols-2 gap-1">
                 <span className="text-muted-foreground">Shop Name:</span>
@@ -144,14 +150,26 @@ export const RoleSwitcher = ({
                 <span>{shopInfo.shop.services.join(", ")}</span>
               </div>
             </div>
-          ) : (
+          </CardContent>
+        </Card>
+      )}
+
+      {shopInfo && !shopInfo.shop && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Store className="h-4 w-4 text-blue-500" />
+              <span>Shop Information</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <p className="text-sm text-muted-foreground">
               You are not currently associated with any shop.
               {isAdmin && " As an admin, you have access to all shops."}
             </p>
-          )}
-        </div>
+          </CardContent>
+        </Card>
       )}
-    </div>
+    </>
   );
 };

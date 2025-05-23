@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -150,21 +151,6 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
                 <div className="bg-muted px-3 py-1.5 rounded text-sm capitalize flex-grow">
                   {profile.role || "mechanic"}
                 </div>
-                {userRole === "admin" && (
-                  <RoleSwitcher 
-                    userId={profile.id} 
-                    currentRole={profile.role || "mechanic"}
-                    isAdmin={isAdmin}
-                    onRoleSwitch={handleRoleSwitch}
-                    translations={{
-                      roleSwitchSuccess: "Role switched successfully",
-                      roleSwitchError: "Failed to switch role",
-                      adminTools: "Admin Tools",
-                      switchRole: "Switch Role",
-                      switching: "Switching..."
-                    }}
-                  />
-                )}
               </div>
             </div>
 
@@ -192,6 +178,23 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
           </div>
         </CardContent>
       </Card>
+
+      {/* Move the RoleSwitcher component to its own card for better UI organization */}
+      {(isAdmin || shopDetails) && (
+        <RoleSwitcher 
+          userId={profile.id} 
+          currentRole={profile.role || "mechanic"}
+          isAdmin={isAdmin}
+          onRoleSwitch={handleRoleSwitch}
+          translations={{
+            roleSwitchSuccess: "Role switched successfully",
+            roleSwitchError: "Failed to switch role",
+            adminTools: "Admin Tools",
+            switchRole: "Switch Role",
+            switching: "Switching..."
+          }}
+        />
+      )}
     </div>
   );
 };
