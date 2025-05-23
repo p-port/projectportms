@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -360,6 +359,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         translations={t}
+        userId={user?.id}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

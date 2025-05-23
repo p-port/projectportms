@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { Shop } from '@/types/shop';
@@ -15,6 +14,11 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
   }
 });
 
@@ -145,6 +149,69 @@ export async function createShop(shopData: Omit<Shop, 'id' | 'created_at'>): Pro
     return { data, error: null };
   } catch (error) {
     console.error("Error creating shop:", error);
+    return { data: null, error };
+  }
+}
+
+// Function to create a notification for a user
+export async function createNotification(userId: string, notification: {
+  title: string;
+  content: string;
+  type: string;
+  reference_id?: string;
+}) {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        title: notification.title,
+        content: notification.content,
+        type: notification.type,
+        reference_id: notification.reference_id,
+        is_read: false
+      })
+      .select();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    return { data: null, error };
+  }
+}
+
+// Function to mark a notification as read
+export async function markNotificationAsRead(notificationId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', notificationId)
+      .select();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    return { data: null, error };
+  }
+}
+
+// Function to mark all notifications as read for a user
+export async function markAllNotificationsAsRead(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', userId)
+      .eq('is_read', false)
+      .select();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
     return { data: null, error };
   }
 }
