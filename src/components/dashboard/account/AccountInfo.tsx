@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Store, User, Mail, BadgeCheck, Clock } from "lucide-react";
+import { Shield, Store, User, Mail, BadgeCheck, Clock, MapPin } from "lucide-react";
 import { RoleSwitcher } from "./RoleSwitcher";
 
 interface Profile {
@@ -118,101 +118,133 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
-            Account Information
+      {/* Account Role Card */}
+      <Card className="bg-[#0A0D17] border-[#2A2F45]">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Shield className="h-5 w-5 text-blue-400" />
+            Account Role
           </CardTitle>
-          <CardDescription>Manage your profile details and account settings</CardDescription>
+          <CardDescription className="text-slate-400">
+            Your role determines what actions you can perform in the system
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-[#181c2e] px-4 py-3 rounded-md flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-400" />
+            <span className="text-white capitalize">{profile.role || "mechanic"}</span>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">
+            Your role determines what actions you can perform in the system
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Account Status Card */}
+      <Card className="bg-[#0A0D17] border-[#2A2F45]">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-white">
+            <BadgeCheck className="h-5 w-5 text-blue-400" />
+            Account Status
+          </CardTitle>
+          <CardDescription className="text-slate-400">
+            Your current account verification status
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className={`flex items-center gap-2 px-4 py-3 rounded-md ${profile.approved ? 'bg-[#162c1e] text-green-400' : 'bg-[#2c211c] text-amber-400'}`}>
+            {profile.approved ? (
+              <>
+                <BadgeCheck className="h-5 w-5" />
+                <span>Approved</span>
+              </>
+            ) : (
+              <>
+                <Clock className="h-5 w-5" />
+                <span>Pending Approval</span>
+              </>
+            )}
+          </div>
+          {!profile.approved && (
+            <p className="text-xs text-slate-400 mt-2">
+              Your account is awaiting approval from an administrator
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Shop Association Card */}
+      {shopDetails && (
+        <Card className="bg-[#0A0D17] border-[#2A2F45]">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Store className="h-5 w-5 text-blue-400" />
+              Shop Association
+            </CardTitle>
+            <CardDescription className="text-slate-400">
+              Your membership in a repair shop
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-[#181c2e] px-4 py-3 rounded-md flex items-center gap-2">
+              <Store className="h-5 w-5 text-blue-400" />
+              <span className="text-white">{shopDetails.name}</span>
+              {shopDetails.isOwner && (
+                <span className="bg-[#362e1d] text-amber-400 text-xs px-2 py-0.5 rounded ml-auto flex items-center gap-1">
+                  <Shield className="h-3 w-3" /> Owner
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Account Information Card */}
+      <Card className="bg-[#0A0D17] border-[#2A2F45]">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <User className="h-5 w-5 text-blue-400" />
+            Personal Information
+          </CardTitle>
+          <CardDescription className="text-slate-400">
+            Manage your profile details
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
             {/* Email Section */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <h3 className="font-medium">Email Address</h3>
+                <Mail className="h-4 w-4 text-slate-400" />
+                <h3 className="font-medium text-slate-200">Email Address</h3>
               </div>
-              <Input value={profile.email || ""} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground mt-1">Your email address is used for login and cannot be changed</p>
+              <Input value={profile.email || ""} disabled className="bg-[#181c2e] border-[#2A2F45] text-slate-300" />
+              <p className="text-xs text-slate-400 mt-1">Your email address is used for login and cannot be changed</p>
             </div>
 
             {/* Name Section */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <h3 className="font-medium">Display Name</h3>
+                <User className="h-4 w-4 text-slate-400" />
+                <h3 className="font-medium text-slate-200">Display Name</h3>
               </div>
               <div className="flex gap-2">
                 <Input 
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
                   placeholder="Your name"
-                  className="flex-grow"
+                  className="flex-grow bg-[#181c2e] border-[#2A2F45] text-white"
                 />
-                <Button onClick={handleUpdateProfile} disabled={isSaving || name === profile.name}>
+                <Button 
+                  onClick={handleUpdateProfile} 
+                  disabled={isSaving || name === profile.name}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
                   {isSaving ? "Saving..." : "Save"}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">This name will be displayed to other users</p>
+              <p className="text-xs text-slate-400">This name will be displayed to other users</p>
             </div>
-
-            {/* Role Section */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-muted-foreground" />
-                <h3 className="font-medium">Account Role</h3>
-              </div>
-              <div className="bg-muted px-3 py-2 rounded text-sm capitalize flex items-center gap-2">
-                <Shield className="h-4 w-4 text-blue-500" />
-                <span>{profile.role || "mechanic"}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Your role determines what actions you can perform in the system</p>
-            </div>
-
-            {/* Status Section */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <BadgeCheck className="h-4 w-4 text-muted-foreground" />
-                <h3 className="font-medium">Account Status</h3>
-              </div>
-              <div className={`flex items-center gap-2 px-3 py-2 rounded text-sm ${profile.approved ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
-                {profile.approved ? (
-                  <>
-                    <BadgeCheck className="h-4 w-4" />
-                    <span>Approved</span>
-                  </>
-                ) : (
-                  <>
-                    <Clock className="h-4 w-4" />
-                    <span>Pending Approval</span>
-                  </>
-                )}
-              </div>
-              {!profile.approved && (
-                <p className="text-xs text-muted-foreground">Your account is awaiting approval from an administrator</p>
-              )}
-            </div>
-            
-            {/* Shop Association */}
-            {shopDetails && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Store className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="font-medium">Shop Association</h3>
-                </div>
-                <div className="bg-blue-50 px-3 py-2 rounded text-sm flex items-center gap-2">
-                  <Store className="h-4 w-4 text-blue-600" />
-                  <span className="text-blue-700">{shopDetails.name}</span>
-                  {shopDetails.isOwner && (
-                    <span className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded ml-auto flex items-center gap-1">
-                      <Shield className="h-3 w-3" /> Owner
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

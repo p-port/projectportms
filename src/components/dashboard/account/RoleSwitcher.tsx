@@ -79,33 +79,33 @@ export const RoleSwitcher = ({
   return (
     <>
       {isAdmin && (
-        <Card className="border-amber-200 bg-amber-50">
+        <Card className="bg-[#0A0D17] border-[#2A2F45]">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Shield className="h-5 w-5 text-amber-500" />
-              <span className="text-amber-700">{translations.adminTools || "Admin Tools"}</span>
+              <Shield className="h-5 w-5 text-blue-400" />
+              <span className="text-white">{translations.adminTools || "Admin Tools"}</span>
             </CardTitle>
-            <CardDescription className="text-amber-700/70">
+            <CardDescription className="text-slate-400">
               Administrative tools and options
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="role-switch" className="text-amber-800">{translations.switchRole || "Switch Role"}</Label>
+                <Label htmlFor="role-switch" className="text-slate-300">{translations.switchRole || "Switch Role"}</Label>
                 <div className="flex items-center gap-2">
                   <Select
                     value={selectedRole}
                     onValueChange={setSelectedRole}
                     disabled={isSaving}
                   >
-                    <SelectTrigger id="role-switch" className="w-[180px] border-amber-200 bg-white">
+                    <SelectTrigger id="role-switch" className="w-[180px] bg-[#181c2e] border-[#2A2F45] text-white">
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Administrator</SelectItem>
-                      <SelectItem value="support">Support Staff</SelectItem>
-                      <SelectItem value="mechanic">Mechanic</SelectItem>
+                    <SelectContent className="bg-[#181c2e] border-[#2A2F45] text-white">
+                      <SelectItem value="admin" className="text-white">Administrator</SelectItem>
+                      <SelectItem value="support" className="text-white">Support Staff</SelectItem>
+                      <SelectItem value="mechanic" className="text-white">Mechanic</SelectItem>
                     </SelectContent>
                   </Select>
                   
@@ -114,13 +114,13 @@ export const RoleSwitcher = ({
                     size="sm" 
                     onClick={handleRoleSwitch} 
                     disabled={isSaving || selectedRole === currentRole}
-                    className="bg-amber-200 hover:bg-amber-300 text-amber-800"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Save className="h-4 w-4 mr-1" />
                     {isSaving ? translations.switching || "Switching..." : translations.switchRole || "Switch"}
                   </Button>
                 </div>
-                <p className="text-xs text-amber-700/70">
+                <p className="text-xs text-slate-400">
                   {translations.roleSwitchDescription || "This allows you to test the application with different permission levels."}
                 </p>
               </div>
@@ -130,24 +130,24 @@ export const RoleSwitcher = ({
       )}
 
       {shopInfo && shopInfo.shop && (
-        <Card className="border-blue-100 bg-blue-50">
+        <Card className="bg-[#0A0D17] border-[#2A2F45]">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Store className="h-5 w-5 text-blue-500" />
-              <span className="text-blue-700">Shop Information</span>
+              <Store className="h-5 w-5 text-blue-400" />
+              <span className="text-white">Shop Information</span>
             </CardTitle>
-            <CardDescription className="text-blue-700/70">
+            <CardDescription className="text-slate-400">
               Details about your associated repair shop
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="bg-white rounded-md border border-blue-100 p-4 space-y-3">
+              <div className="bg-[#181c2e] rounded-md border border-[#2A2F45] p-4 space-y-3">
                 <div className="flex items-start gap-3">
-                  <Store className="h-5 w-5 text-blue-500 mt-1" />
+                  <Store className="h-5 w-5 text-blue-400 mt-1" />
                   <div>
-                    <h3 className="font-medium text-blue-900">{shopInfo.shop.name}</h3>
-                    <div className="flex items-center gap-1 text-sm text-blue-700/70 mt-1">
+                    <h3 className="font-medium text-white">{shopInfo.shop.name}</h3>
+                    <div className="flex items-center gap-1 text-sm text-slate-400 mt-1">
                       <MapPin className="h-3.5 w-3.5" />
                       <span>{shopInfo.shop.region}, {shopInfo.shop.district}</span>
                     </div>
@@ -156,26 +156,26 @@ export const RoleSwitcher = ({
 
                 <div className="grid gap-3 pt-1">
                   <div className="flex items-center gap-2">
-                    <Hash className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm text-blue-700">Shop ID:</span>
-                    <span className="font-mono text-xs bg-blue-100 px-2 py-0.5 rounded text-blue-800">
+                    <Hash className="h-4 w-4 text-blue-400" />
+                    <span className="text-sm text-slate-300">Shop ID:</span>
+                    <span className="font-mono text-xs bg-[#2A2F45] px-2 py-0.5 rounded text-blue-300">
                       {shopInfo.profile.shop_identifier}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm text-blue-700">Staff:</span>
-                    <span className="text-sm">{shopInfo.shop.employee_count || 1} employee(s)</span>
+                    <Users className="h-4 w-4 text-blue-400" />
+                    <span className="text-sm text-slate-300">Staff:</span>
+                    <span className="text-sm text-white">{shopInfo.shop.employee_count || 1} employee(s)</span>
                   </div>
 
                   <div className="flex items-start gap-2">
-                    <Briefcase className="h-4 w-4 text-blue-500 mt-0.5" />
+                    <Briefcase className="h-4 w-4 text-blue-400 mt-0.5" />
                     <div>
-                      <span className="text-sm text-blue-700">Services:</span>
+                      <span className="text-sm text-slate-300">Services:</span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {shopInfo.shop.services.map((service: string, index: number) => (
-                          <span key={index} className="text-xs bg-blue-100 px-2 py-0.5 rounded text-blue-800">
+                          <span key={index} className="text-xs bg-[#2A2F45] px-2 py-0.5 rounded text-blue-300">
                             {service}
                           </span>
                         ))}
@@ -190,15 +190,15 @@ export const RoleSwitcher = ({
       )}
 
       {shopInfo && !shopInfo.shop && (
-        <Card className="border-blue-100">
+        <Card className="bg-[#0A0D17] border-[#2A2F45]">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Store className="h-5 w-5 text-blue-500" />
-              <span>Shop Information</span>
+              <Store className="h-5 w-5 text-blue-400" />
+              <span className="text-white">Shop Information</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-md text-blue-700">
+            <div className="flex items-center gap-3 p-4 bg-[#181c2e] rounded-md text-slate-300">
               <Store className="h-5 w-5" />
               <p className="text-sm">
                 You are not currently associated with any shop.
