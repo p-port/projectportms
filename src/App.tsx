@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import VerificationSuccess from "./pages/VerificationSuccess";
 import { ShopManagement } from "./components/dashboard/shops/ShopManagement";
 import { UserManagement } from "./components/dashboard/admin/UserManagement";
+import { UserDetails } from "./components/dashboard/admin/UserDetails";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/verification-success" element={<VerificationSuccess />} />
             <Route path="/shop-management" element={<ShopManagement />} />
             <Route path="/user-management" element={<UserManagement />} />
+            <Route path="/user-management/:userId" element={<UserDetails />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -27,7 +27,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Edit, Save, X, ArrowLeft } from "lucide-react";
+import { Search, Edit, Save, X, ArrowLeft, UserCog } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchShops } from "@/integrations/supabase/client";
 import { Shop } from "@/types/shop";
@@ -130,6 +130,10 @@ export const UserManagement = () => {
       console.error("Error updating user:", error);
       toast.error("Failed to update user");
     }
+  };
+
+  const viewUserDetails = (userId: string) => {
+    navigate(`/user-management/${userId}`);
   };
 
   const filteredUsers = users.filter(user => {
@@ -288,13 +292,22 @@ export const UserManagement = () => {
                           </Button>
                         </div>
                       ) : (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => toggleEdit(user.id)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => toggleEdit(user.id)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => viewUserDetails(user.id)}
+                          >
+                            <UserCog className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
