@@ -1,6 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { Shop } from '@/types/shop';
 
 const SUPABASE_URL = "https://pkmyuwlgvozgclrypdqv.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBrbXl1d2xndm96Z2NscnlwZHF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3NjEwODcsImV4cCI6MjA2MzMzNzA4N30.p9clVUQAttII54xxpz65-ooFT5VRnjbjw6addz_yYoA";
@@ -70,32 +71,72 @@ export async function getUserShopInfo() {
   
   if (!user) return null;
   
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('shop_id, shop_identifier, role')
-    .eq('id', user.id)
-    .single();
-    
-  if (error) {
-    console.error("Error fetching user shop info:", error);
-    return null;
-  }
-  
-  // If shop_id exists, fetch shop details
-  if (data?.shop_id) {
-    const { data: shopData, error: shopError } = await supabase
-      .from('shops')
-      .select('*')
-      .eq('id', data.shop_id)
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('shop_id, shop_identifier, role')
+      .eq('id', user.id)
       .single();
       
-    if (!shopError && shopData) {
-      return { 
-        profile: data,
-        shop: shopData
-      };
+    if (error) {
+      console.error("Error fetching user shop info:", error);
+      return null;
     }
+
+    // If shop_id exists, fetch shop details
+    if (data?.shop_id) {
+      // Use any type here since the Database type doesn't know about shops yet
+      const { data: shopData, error: shopError } = await supabase
+        .from('shops')
+        .select('*')
+        .eq('id', data.shop_id)
+        .single() as any;
+        
+      if (!shopError && shopData) {
+        return { 
+          profile: data,
+          shop: shopData as Shop
+        };
+      }
+    }
+    
+    return { profile: data, shop: null };
+  } catch (err) {
+    console.error("Error in getUserShopInfo:", err);
+    return null;
   }
-  
-  return { profile: data, shop: null };
+}
+
+// Function to fetch shops data with proper typing
+export async function fetchShops(): Promise<Shop[]> {
+  try {
+    // Cast to any to work around type checking until types are updated
+    const { data, error } = await (supabase as any)
+      .from('shops')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data as Shop[];
+  } catch (error) {
+    console.error("Error fetching shops:", error);
+    return [];
+  }
+}
+
+// Function to create a new shop with proper typing
+export async function createShop(shopData: Omit<Shop, 'id' | 'created_at'>): Promise<{data: Shop | null, error: any}> {
+  try {
+    // Cast to any to work around type checking until types are updated
+    const result = await (supabase as any)
+      .from('shops')
+      .insert(shopData)
+      .select()
+      .single();
+      
+    return result;
+  } catch (error) {
+    console.error("Error creating shop:", error);
+    return { data: null, error };
+  }
 }

@@ -1,37 +1,23 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Copy, Eye } from "lucide-react";
 import { toast } from "sonner";
-
-interface Shop {
-  id: string;
-  name: string;
-  region: string;
-  district: string;
-  employee_count: number;
-  services: string[];
-  unique_identifier: string;
-  created_at: string;
-}
+import { fetchShops } from "@/integrations/supabase/client";
+import type { Shop } from "@/types/shop";
 
 export function ShopsList() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchShops = async () => {
+    const loadShops = async () => {
       try {
-        const { data, error } = await supabase
-          .from("shops")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-        setShops(data || []);
+        setLoading(true);
+        const shopsData = await fetchShops();
+        setShops(shopsData);
       } catch (error) {
         console.error("Error fetching shops:", error);
         toast.error("Could not load shops");
@@ -40,7 +26,7 @@ export function ShopsList() {
       }
     };
 
-    fetchShops();
+    loadShops();
   }, []);
 
   const copyIdentifier = (identifier: string) => {

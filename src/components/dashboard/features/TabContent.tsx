@@ -22,6 +22,12 @@ interface TabContentProps {
   translations: any;
 }
 
+// Update to ensure AccountInfo accepts userRole prop
+interface AccountInfoProps {
+  userId?: string;
+  userRole?: string;
+}
+
 export const TabContent = ({
   activeJobs,
   completedJobs,

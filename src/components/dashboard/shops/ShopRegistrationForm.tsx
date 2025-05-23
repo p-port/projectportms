@@ -1,14 +1,14 @@
-
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { createShop } from "@/integrations/supabase/client";
 import {
   Form,
   FormControl,
@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { generateShopIdentifier } from "./ShopUtils";
+import type { Shop } from "@/types/shop";
 
 const shopFormSchema = z.object({
   name: z.string().min(2, "Shop name must be at least 2 characters"),
@@ -73,8 +74,7 @@ export function ShopRegistrationForm() {
         return;
       }
 
-      // Insert new shop
-      const { error } = await supabase.from("shops").insert({
+      const shopData = {
         name: data.name,
         region: data.region,
         district: data.district,
@@ -82,7 +82,10 @@ export function ShopRegistrationForm() {
         services: data.services,
         unique_identifier: uniqueIdentifier,
         owner_id: userId,
-      });
+      };
+
+      // Use the createShop utility function
+      const { data: newShop, error } = await createShop(shopData);
 
       if (error) {
         console.error("Error creating shop:", error);

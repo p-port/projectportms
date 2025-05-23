@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -28,7 +27,12 @@ const signUpFormSchema = z.object({
 
 type SignUpFormValues = z.infer<typeof signUpFormSchema>;
 
-export default function SignupForm({ onSuccess }: { onSuccess: () => void }) {
+interface SignupFormProps {
+  onSignupSuccess: (pendingUser: any) => void;
+}
+
+// Change to default export
+export default function SignupForm({ onSignupSuccess }: SignupFormProps) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   
   // Initialize the form with react-hook-form
@@ -66,7 +70,7 @@ export default function SignupForm({ onSuccess }: { onSuccess: () => void }) {
         toast.error(error.message);
       } else {
         toast.success("Signup successful! Please check your email to verify your account.");
-        onSuccess();
+        onSignupSuccess(data);
       }
     } catch (err) {
       console.error("Unexpected error during signup:", err);

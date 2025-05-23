@@ -172,7 +172,8 @@ export const Dashboard = ({ user }: DashboardProps) => {
               dateCompleted: job.date_completed ? new Date(job.date_completed).toISOString().split('T')[0] : null,
               notes: job.notes || [],
               photos: job.photos || { start: [], completion: [] },
-              shopId: job.shop_id
+              // Handle shop_id safely
+              shopId: job.shop_id || null
             }));
             
             setJobs(formattedJobs);
@@ -225,11 +226,12 @@ export const Dashboard = ({ user }: DashboardProps) => {
       // Get user's shop ID
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('shop_id')
+        .select('*')
         .eq('id', userId)
         .single();
         
-      const shopId = profileData?.shop_id;
+      // Safely access shop_id
+      const shopId = profileData?.shop_id || null;
 
       for (const job of jobsToSync) {
         await supabase.from('jobs').upsert({
@@ -282,11 +284,12 @@ export const Dashboard = ({ user }: DashboardProps) => {
         // Get user's shop ID
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('shop_id')
+          .select('*')
           .eq('id', user.id)
           .single();
           
-        const shopId = profileData?.shop_id;
+        // Safely access shop_id
+        const shopId = profileData?.shop_id || null;
         
         const { error } = await supabase.from('jobs').insert({
           job_id: newJob.id,
