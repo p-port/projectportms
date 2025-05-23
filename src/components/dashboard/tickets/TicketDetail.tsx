@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -176,18 +177,19 @@ export const TicketDetail = ({
   }, [isStaff]);
   
   const handleSendMessage = async () => {
-    if (!currentUserId || !newMessage.trim()) return;
+    if (!newMessage.trim()) return;
     
     try {
       setSubmitting(true);
       
-      // Create a new message using the current user's credentials
+      // Get current authenticated user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         throw new Error("User not authenticated");
       }
       
+      // Create message
       const { error } = await supabase
         .from('ticket_messages')
         .insert({
@@ -197,11 +199,16 @@ export const TicketDetail = ({
         });
         
       if (error) throw error;
+
+      // If staff member is responding and ticket is 'open', automatically change status to 'in-progress'
+      if (isStaff && ticket.status === 'open') {
+        await onStatusChange(ticket.id, 'in-progress');
+        ticket.status = 'in-progress'; // Update local state
+      }
       
       // Clear input after successful send
       setNewMessage("");
       
-      // No need to update messages state as the subscription will handle it
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -221,13 +228,33 @@ export const TicketDetail = ({
     try {
       await onAssignTicket(ticket.id, userId);
       
-      // Update local state
-      ticket.assigned_to = userId;
+      // Update local state to reflect the change immediately
       const assignedStaff = supportStaff.find(staff => staff.id === userId);
-      ticket.assigned_name = assignedStaff?.name;
+      
+      // Add a system message about assignment
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('ticket_messages')
+          .insert({
+            ticket_id: ticket.id,
+            content: `Ticket assigned to ${assignedStaff?.name || 'staff member'}`,
+            sender_id: user.id
+          });
+      }
+      
+      toast({
+        title: "Ticket Assigned",
+        description: `Ticket has been assigned to ${assignedStaff?.name || 'staff member'}`,
+      });
       
     } catch (error) {
       console.error('Error assigning ticket:', error);
+      toast({
+        title: "Error Assigning Ticket",
+        description: "Please try again later",
+        variant: "destructive"
+      });
     }
   };
   
@@ -237,12 +264,30 @@ export const TicketDetail = ({
     try {
       await onAssignTicket(ticket.id, null);
       
-      // Update local state
-      ticket.assigned_to = undefined;
-      ticket.assigned_name = undefined;
+      // Add system message about unassignment
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('ticket_messages')
+          .insert({
+            ticket_id: ticket.id,
+            content: `Ticket unassigned`,
+            sender_id: user.id
+          });
+      }
+      
+      toast({
+        title: "Ticket Unassigned",
+        description: "Ticket has been unassigned"
+      });
       
     } catch (error) {
       console.error('Error unassigning ticket:', error);
+      toast({
+        title: "Error Unassigning Ticket", 
+        description: "Please try again later",
+        variant: "destructive"
+      });
     }
   };
   
@@ -258,21 +303,19 @@ export const TicketDetail = ({
       await onStatusChange(ticket.id, newStatus);
       
       // Add system message about status change
-      if (currentUserId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user) {
-          const { error } = await supabase
-            .from('ticket_messages')
-            .insert({
-              ticket_id: ticket.id,
-              content: `Ticket status changed to ${newStatus}`,
-              sender_id: user.id
-            });
-            
-          if (error) {
-            console.error('Error adding status change message:', error);
-          }
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const { error } = await supabase
+          .from('ticket_messages')
+          .insert({
+            ticket_id: ticket.id,
+            content: `Ticket status changed to ${newStatus}`,
+            sender_id: user.id
+          });
+          
+        if (error) {
+          console.error('Error adding status change message:', error);
         }
       }
     } catch (error) {

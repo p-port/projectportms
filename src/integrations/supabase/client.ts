@@ -57,3 +57,9 @@ export async function getCurrentUser() {
   const { data: { user }, error } = await supabase.auth.getUser();
   return { user, error };
 }
+
+// Helper function to check if a user is authenticated before making requests
+export async function ensureAuthenticated() {
+  const { data } = await getSession();
+  return data.session !== null;
+}

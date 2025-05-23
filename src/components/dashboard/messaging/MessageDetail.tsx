@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Reply } from "lucide-react";
 import { useState } from "react";
 import { MessageComposer } from "./MessageComposer";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MessageDetailProps {
   message: {

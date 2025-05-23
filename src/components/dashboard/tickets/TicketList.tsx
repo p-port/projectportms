@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -148,9 +147,42 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
           // Update ticket in state
           setTickets(prev => 
             prev.map(ticket => 
-              ticket.id === payload.new.id ? { ...ticket, ...payload.new } : ticket
+              ticket.id === payload.new.id ? { 
+                ...ticket, 
+                ...payload.new,
+                // Preserve names since they're not in the payload
+                creator_name: ticket.creator_name,
+                assigned_name: payload.new.assigned_to === ticket.assigned_to 
+                  ? ticket.assigned_name 
+                  : undefined // Clear the name if assigned_to changed, it will be fetched
+              } : ticket
             )
           );
+          
+          // If assigned_to changed, fetch the new assignee name
+          if (payload.new.assigned_to && payload.new.assigned_to !== payload.old.assigned_to) {
+            fetchAssigneeName(payload.new.id, payload.new.assigned_to);
+          }
+          
+          // Update selected ticket if it's the one being updated
+          if (selectedTicket && selectedTicket.id === payload.new.id) {
+            setSelectedTicket(prev => {
+              if (!prev) return null;
+              
+              return {
+                ...prev,
+                ...payload.new,
+                creator_name: prev.creator_name,
+                assigned_name: payload.new.assigned_to === prev.assigned_to 
+                  ? prev.assigned_name 
+                  : undefined
+              };
+            });
+            
+            if (payload.new.assigned_to && payload.new.assigned_to !== payload.old.assigned_to) {
+              fetchAssigneeNameForSelectedTicket(payload.new.id, payload.new.assigned_to);
+            }
+          }
         }
       )
       .subscribe();
@@ -158,7 +190,48 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, isStaff]);
+  }, [userId, isStaff, selectedTicket]);
+
+  const fetchAssigneeName = async (ticketId: string, assigneeId: string) => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', assigneeId)
+        .single();
+        
+      if (data) {
+        setTickets(prev => 
+          prev.map(ticket => 
+            ticket.id === ticketId 
+              ? { ...ticket, assigned_name: data.name } 
+              : ticket
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching assignee name:', error);
+    }
+  };
+  
+  const fetchAssigneeNameForSelectedTicket = async (ticketId: string, assigneeId: string) => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', assigneeId)
+        .single();
+        
+      if (data && selectedTicket && selectedTicket.id === ticketId) {
+        setSelectedTicket(prev => {
+          if (!prev) return null;
+          return { ...prev, assigned_name: data.name };
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching assignee name for selected ticket:', error);
+    }
+  };
 
   const fetchTicketById = async (ticketId: string) => {
     try {
@@ -255,6 +328,7 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
 
   const handleAssignTicket = async (ticketId: string, assignedTo: string | null) => {
     try {
+      // Update the ticket assignment in the database
       const { error } = await supabase
         .from('support_tickets')
         .update({ assigned_to: assignedTo })
@@ -262,13 +336,28 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
         
       if (error) throw error;
       
-      // Fetch the updated ticket to get assignee name
-      fetchTicketById(ticketId);
+      // The real-time subscription will update the UI
+      // But we can also update the local state for immediate feedback
+      if (!assignedTo) {
+        setTickets(prev =>
+          prev.map(ticket =>
+            ticket.id === ticketId 
+              ? { ...ticket, assigned_to: undefined, assigned_name: undefined } 
+              : ticket
+          )
+        );
+        
+        if (selectedTicket?.id === ticketId) {
+          setSelectedTicket(prev => 
+            prev ? { ...prev, assigned_to: undefined, assigned_name: undefined } : null
+          );
+        }
+      } else {
+        // The assignee name will be updated through the realtime subscription
+        fetchAssigneeName(ticketId, assignedTo);
+      }
       
-      toast({
-        title: "Ticket Assigned",
-        description: assignedTo ? "Ticket has been assigned" : "Ticket has been unassigned"
-      });
+      return true;
     } catch (error) {
       console.error('Error assigning ticket:', error);
       toast({
@@ -276,6 +365,7 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
         description: "Please try again later",
         variant: "destructive"
       });
+      return false;
     }
   };
 
