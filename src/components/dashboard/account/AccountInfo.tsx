@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -144,11 +145,18 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
   const handleEmailChange = async (values: { email: string; currentPassword: string }) => {
     setIsChangingEmail(true);
     try {
-      // Fix: Pass the current password as options correctly
-      const { error } = await supabase.auth.updateUser(
-        { email: values.email },
-        { authOptions: { password: values.currentPassword } }
-      );
+      // First sign in to verify the current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: profile?.email || '',
+        password: values.currentPassword
+      });
+
+      if (signInError) throw signInError;
+
+      // Then update the email
+      const { error } = await supabase.auth.updateUser({
+        email: values.email
+      });
 
       if (error) throw error;
       toast.success("Email update request sent. Please check your inbox to confirm.");
@@ -169,11 +177,18 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
 
     setIsChangingPassword(true);
     try {
-      // Fix: Pass the current password as options correctly
-      const { error } = await supabase.auth.updateUser(
-        { password: values.newPassword },
-        { authOptions: { password: values.currentPassword } }
-      );
+      // First sign in to verify the current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: profile?.email || '',
+        password: values.currentPassword
+      });
+
+      if (signInError) throw signInError;
+
+      // Then update the password
+      const { error } = await supabase.auth.updateUser({
+        password: values.newPassword
+      });
 
       if (error) throw error;
       toast.success("Password updated successfully");
