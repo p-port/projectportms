@@ -16,10 +16,12 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 
 interface JobListProps {
   jobs: any[];
-  type: "active" | "completed";
-  setJobs: React.Dispatch<React.SetStateAction<any[]>>;
   allJobs: any[];
-  translations?: any;
+  setJobs: React.Dispatch<React.SetStateAction<any[]>>;
+  jobType: string; // Added this prop to match what's being passed in TabContent.tsx
+  emptyStateMessage: any;
+  emptyStateAction: any;
+  type?: "active" | "completed"; // Keep the old prop for backward compatibility
 }
 
 // Default translations in case they're not passed from parent
@@ -52,7 +54,7 @@ const defaultTranslations = {
   }
 };
 
-export const JobList = ({ jobs, type, setJobs, allJobs, translations }: JobListProps) => {
+export const JobList = ({ jobs, type, setJobs, allJobs, jobType = type, translations }: JobListProps) => {
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -141,10 +143,10 @@ export const JobList = ({ jobs, type, setJobs, allJobs, translations }: JobListP
       {jobs.length === 0 ? (
         <div className="text-center py-10">
           <h3 className="text-xl font-medium text-gray-500">
-            {type === "active" ? t.noActiveJobs : t.noCompletedJobs}
+            {effectiveType === "active" ? t.noActiveJobs : t.noCompletedJobs}
           </h3>
           <p className="text-gray-400 mt-2">
-            {type === "active" ? t.createNewJob : t.completedJobsAppear}
+            {effectiveType === "active" ? t.createNewJob : t.completedJobsAppear}
           </p>
         </div>
       ) : (

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase, getUserShopInfo } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,17 +15,24 @@ import { Shield, Save, Store } from "lucide-react";
 interface RoleSwitcherProps {
   userId: string;
   currentRole: string;
-  isAdmin: boolean;
-  onRoleSwitch: (newRole: string) => void;
-  translations: any;
+  isAdmin?: boolean;
+  onRoleSwitch?: (newRole: string) => void;
+  translations?: any;
 }
 
 export const RoleSwitcher = ({ 
   userId, 
-  currentRole, 
-  isAdmin, 
-  onRoleSwitch,
-  translations 
+  currentRole,
+  isAdmin = false, // Default to false for backward compatibility
+  onRoleSwitch = () => {}, // Provide default empty function
+  translations = { // Default translations
+    roleSwitchSuccess: "Role switched successfully",
+    roleSwitchError: "Failed to switch role",
+    adminTools: "Admin Tools",
+    switchRole: "Switch Role",
+    switching: "Switching...",
+    roleSwitchDescription: "This allows you to test the application with different permission levels."
+  }
 }: RoleSwitcherProps) => {
   const [selectedRole, setSelectedRole] = useState(currentRole);
   const [isSaving, setIsSaving] = useState(false);

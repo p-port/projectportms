@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,6 +91,11 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
     }
   };
 
+  const handleRoleSwitch = (newRole: string) => {
+    // Update the profile state with the new role
+    setProfile(prev => prev ? { ...prev, role: newRole } : null);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center p-6">
@@ -107,6 +111,9 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
       </div>
     );
   }
+
+  // Check if the current user is an admin
+  const isAdmin = userRole === "admin";
 
   return (
     <div className="space-y-6">
@@ -143,7 +150,21 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
                 <div className="bg-muted px-3 py-1.5 rounded text-sm capitalize flex-grow">
                   {profile.role || "mechanic"}
                 </div>
-                {userRole === "admin" && <RoleSwitcher userId={profile.id} currentRole={profile.role || "mechanic"} />}
+                {userRole === "admin" && (
+                  <RoleSwitcher 
+                    userId={profile.id} 
+                    currentRole={profile.role || "mechanic"}
+                    isAdmin={isAdmin}
+                    onRoleSwitch={handleRoleSwitch}
+                    translations={{
+                      roleSwitchSuccess: "Role switched successfully",
+                      roleSwitchError: "Failed to switch role",
+                      adminTools: "Admin Tools",
+                      switchRole: "Switch Role",
+                      switching: "Switching..."
+                    }}
+                  />
+                )}
               </div>
             </div>
 
