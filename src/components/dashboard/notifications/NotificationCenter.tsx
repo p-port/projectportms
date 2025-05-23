@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface Notification {
   id: string;
@@ -22,6 +23,7 @@ export const NotificationCenter = ({ userId }: { userId?: string }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Fetch notifications
   useEffect(() => {
@@ -103,14 +105,24 @@ export const NotificationCenter = ({ userId }: { userId?: string }) => {
     
     // Navigate based on notification type
     if (notification.type === 'verification') {
-      // Could redirect to verification page
-      toast.info("Redirecting to verification page...");
+      // Navigate to verification success page
+      navigate('/verification-success');
     } else if (notification.type === 'ticket' && notification.reference_id) {
-      // Could redirect to specific ticket
-      window.location.href = `/tickets/${notification.reference_id}`;
+      // Navigate to support tab instead of direct ticket URL
+      navigate('/?tab=support');
+      toast.info(`Showing support tickets. Reference: ${notification.reference_id}`);
     } else if (notification.type === 'message' && notification.reference_id) {
-      // Could redirect to specific message
-      window.location.href = `/messages/${notification.reference_id}`;
+      // Currently no dedicated message viewing page, so we'll just show a toast
+      navigate('/?tab=account');
+      toast.info(`Message notification: ${notification.title}`);
+    } else if (notification.type === 'job' && notification.reference_id) {
+      // Navigate to active jobs tab
+      navigate('/?tab=active-jobs');
+      toast.info(`Job notification: ${notification.title}`);
+    } else {
+      // Generic fallback
+      navigate('/');
+      toast.info(`Notification: ${notification.title}`);
     }
     
     setIsOpen(false);

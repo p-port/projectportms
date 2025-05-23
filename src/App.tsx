@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import TrackJob from "./pages/TrackJob";
@@ -12,6 +12,8 @@ import VerificationSuccess from "./pages/VerificationSuccess";
 import { ShopManagement } from "./components/dashboard/shops/ShopManagement";
 import { UserManagement } from "./components/dashboard/admin/UserManagement";
 import { UserDetails } from "./components/dashboard/admin/UserDetails";
+import { MessageList } from "./components/dashboard/messaging/MessageList";
+import { MessageDetail } from "./components/dashboard/messaging/MessageDetail";
 
 const queryClient = new QueryClient();
 
