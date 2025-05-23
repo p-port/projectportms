@@ -33,6 +33,8 @@ export function ShopOwnerDetail() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [availableUsers, setAvailableUsers] = useState<Profile[]>([]);
   const [currentOwner, setCurrentOwner] = useState<Profile | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   useEffect(() => {
     if (!shopId) return;
@@ -64,6 +66,8 @@ export function ShopOwnerDetail() {
         if (!ownerError && ownerData) {
           setCurrentOwner(ownerData);
         }
+      } else {
+        setCurrentOwner(null);
       }
     } catch (error) {
       console.error("Error fetching shop details:", error);
@@ -96,15 +100,23 @@ export function ShopOwnerDetail() {
       return;
     }
 
+    setIsAssigning(true);
     try {
+      console.log("Assigning owner:", { shopId, selectedUserId });
+      
       // Use RPC function to bypass RLS
-      const { error: rpcError } = await supabase
+      const { data, error: rpcError } = await supabase
         .rpc('assign_shop_owner' as RpcFunctions, { 
           shop_id: shopId, 
           owner_id: selectedUserId 
         });
+      
+      console.log("RPC response:", { data, error: rpcError });
         
-      if (rpcError) throw rpcError;
+      if (rpcError) {
+        console.error("RPC Error details:", rpcError);
+        throw rpcError;
+      }
       
       // Update the user profile to assign to this shop
       const { error: profileError } = await supabase
@@ -112,16 +124,21 @@ export function ShopOwnerDetail() {
         .update({ shop_id: shopId, approved: true })
         .eq('id', selectedUserId);
         
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Profile update error:", profileError);
+        throw profileError;
+      }
       
       toast.success("Shop owner successfully assigned");
       
       // Refresh data
       fetchShopDetails();
       setSelectedUserId(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error assigning shop owner:", error);
-      toast.error("Failed to assign shop owner");
+      toast.error(`Failed to assign shop owner: ${error.message || JSON.stringify(error)}`);
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -132,22 +149,32 @@ export function ShopOwnerDetail() {
       return;
     }
     
+    setIsRemoving(true);
     try {
+      console.log("Removing owner from shop:", { shopId });
+      
       // Use RPC function to bypass RLS
-      const { error: rpcError } = await supabase
+      const { data, error: rpcError } = await supabase
         .rpc('remove_shop_owner' as RpcFunctions, { 
           shop_id: shopId
         });
+      
+      console.log("RPC response:", { data, error: rpcError });
         
-      if (rpcError) throw rpcError;
+      if (rpcError) {
+        console.error("RPC Error details:", rpcError);
+        throw rpcError;
+      }
       
       toast.success("Shop owner successfully removed");
       
       // Refresh data
       fetchShopDetails();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error removing shop owner:", error);
-      toast.error("Failed to remove shop owner");
+      toast.error(`Failed to remove shop owner: ${error.message || JSON.stringify(error)}`);
+    } finally {
+      setIsRemoving(false);
     }
   };
 

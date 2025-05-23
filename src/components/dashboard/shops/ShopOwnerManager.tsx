@@ -70,14 +70,21 @@ export const ShopOwnerManager = ({ userId, currentOwnerStatus, shopId }: ShopOwn
     
     setIsLoading(true);
     try {
+      console.log("Assigning user as shop owner:", { shopId: selectedShopId, userId });
+      
       // Use RPC function to bypass RLS
-      const { error: rpcError } = await supabase
+      const { data, error: rpcError } = await supabase
         .rpc('assign_shop_owner' as RpcFunctions, { 
           shop_id: selectedShopId, 
           owner_id: userId 
         });
         
-      if (rpcError) throw rpcError;
+      console.log("RPC response:", { data, error: rpcError });
+        
+      if (rpcError) {
+        console.error("RPC Error details:", rpcError);
+        throw rpcError;
+      }
       
       // Update the user profile to assign to this shop
       const { error: profileError } = await supabase
@@ -85,16 +92,19 @@ export const ShopOwnerManager = ({ userId, currentOwnerStatus, shopId }: ShopOwn
         .update({ shop_id: selectedShopId, approved: true })
         .eq('id', userId);
         
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Profile update error:", profileError);
+        throw profileError;
+      }
       
       setIsOwner(true);
       toast.success("User assigned as shop owner");
       
       // Fetch updated shop info
       fetchUserShop();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error assigning owner:", error);
-      toast.error("Failed to assign as shop owner");
+      toast.error(`Failed to assign as shop owner: ${error.message || JSON.stringify(error)}`);
     } finally {
       setIsLoading(false);
     }
@@ -109,22 +119,29 @@ export const ShopOwnerManager = ({ userId, currentOwnerStatus, shopId }: ShopOwn
     
     setIsLoading(true);
     try {
+      console.log("Removing shop owner:", { shopId: userShop.id });
+      
       // Use RPC function to bypass RLS
-      const { error: rpcError } = await supabase
+      const { data, error: rpcError } = await supabase
         .rpc('remove_shop_owner' as RpcFunctions, { 
           shop_id: userShop.id
         });
+      
+      console.log("RPC response:", { data, error: rpcError });
         
-      if (rpcError) throw rpcError;
+      if (rpcError) {
+        console.error("RPC Error details:", rpcError);
+        throw rpcError;
+      }
       
       setIsOwner(false);
       toast.success("User removed as shop owner");
       
       // Fetch updated shop info
       fetchUserShop();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error removing owner:", error);
-      toast.error("Failed to remove shop owner");
+      toast.error(`Failed to remove shop owner: ${error.message || JSON.stringify(error)}`);
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +170,7 @@ export const ShopOwnerManager = ({ userId, currentOwnerStatus, shopId }: ShopOwn
               onClick={removeAsOwner} 
               disabled={isLoading}
             >
-              Remove as Shop Owner
+              {isLoading ? "Processing..." : "Remove as Shop Owner"}
             </Button>
           </div>
         ) : (
