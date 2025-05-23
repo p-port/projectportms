@@ -158,9 +158,12 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
           );
           
           // Mark the current owner (the most recent one)
-          if (motorcycle.ownershipHistory.length > 0) {
+          if (motorcycle.ownershipHistory && motorcycle.ownershipHistory.length > 0) {
             motorcycle.currentOwner = motorcycle.ownershipHistory[0];
             motorcycle.previousOwners = motorcycle.ownershipHistory.slice(1);
+          } else {
+            motorcycle.currentOwner = null;
+            motorcycle.previousOwners = [];
           }
         });
         
@@ -293,7 +296,7 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                               </div>
                             )}
                             
-                            {motorcycle.previousOwners && motorcycle.previousOwners.length > 0 && (
+                            {motorcycle.previousOwners && motorcycle.previousOwners.length > 0 ? (
                               <div className="space-y-2">
                                 {motorcycle.previousOwners.map((owner: any, ownerIndex: number) => (
                                   <div key={ownerIndex} className="bg-muted p-3 rounded text-sm">
@@ -308,6 +311,8 @@ export const SearchPanel = ({ jobs, translations }: SearchPanelProps) => {
                                   </div>
                                 ))}
                               </div>
+                            ) : (
+                              <div className="text-muted-foreground text-sm">No previous owners found.</div>
                             )}
                           </div>
                         </div>
