@@ -11,7 +11,8 @@ export const defaultTranslations = {
     created: "Created:",
     completed: "Completed:",
     notes: "Notes:",
-    photos: "Photos:"
+    photos: "Photos:",
+    searchTooltip: "Search customers, motorcycles & jobs"
   },
   ko: {
     noActiveJobs: "활성 작업을 찾을 수 없습니다",
@@ -24,7 +25,8 @@ export const defaultTranslations = {
     created: "생성일:",
     completed: "완료일:",
     notes: "메모:",
-    photos: "사진:"
+    photos: "사진:",
+    searchTooltip: "고객, 오토바이 및 작업 검색"
   },
   ru: {
     noActiveJobs: "Активных заказов не найдено",
@@ -37,6 +39,7 @@ export const defaultTranslations = {
     created: "Создан:",
     completed: "Завершен:",
     notes: "Заметки:",
-    photos: "Фото:"
+    photos: "Фото:",
+    searchTooltip: "Поиск клиентов, мотоциклов и заказов"
   }
 };

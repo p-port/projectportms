@@ -3,6 +3,7 @@ import { Briefcase, Check, MessageSquarePlus, User, Wrench, Store, Users, Search
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 interface TabsNavigationProps {
   activeTab: string;
@@ -50,11 +51,20 @@ export const TabsNavigation = ({
   
   return (
     <TabsList className="flex flex-wrap">
-      {/* Search icon moved to the very left */}
-      <TabsTrigger value="customers" onClick={() => setActiveTab("customers")} className="flex gap-2 items-center px-2">
-        <Search className="h-4 w-4" />
-        <span className="sr-only">{translations.search || "Search"}</span>
-      </TabsTrigger>
+      {/* Search icon with tooltip at the very left */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <TabsTrigger value="customers" onClick={() => setActiveTab("customers")} className="flex gap-2 items-center px-2">
+              <Search className="h-4 w-4" />
+              <span className="sr-only">{translations.search || "Search"}</span>
+            </TabsTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{translations.searchTooltip || "Search customers, motorcycles & jobs"}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       
       <TabsTrigger value="active-jobs" onClick={() => setActiveTab("active-jobs")} className="flex gap-2 items-center">
         <Wrench className="h-4 w-4" />
