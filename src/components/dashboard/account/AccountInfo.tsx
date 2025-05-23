@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import { format } from "date-fns";
 import { Bell, Info, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { RoleSwitcher } from "./RoleSwitcher";
 
 interface AccountInfoProps {
   userId: string;
@@ -43,7 +43,13 @@ const translations = {
     pendingApproval: "Pending Approval",
     loading: "Loading account information...",
     error: "Error loading profile",
-    retry: "Retry"
+    retry: "Retry",
+    adminTools: "Admin Tools",
+    switchRole: "Switch Role",
+    roleSwitchDescription: "This allows you to test the application with different permission levels.",
+    roleSwitchSuccess: "Role switched successfully",
+    roleSwitchError: "Failed to switch role",
+    switching: "Switching..."
   },
   ko: {
     accountInfo: "계정 정보",
@@ -67,7 +73,13 @@ const translations = {
     pendingApproval: "승인 대기 중",
     loading: "계정 정보 로드 중...",
     error: "프로필 로드 중 오류 발생",
-    retry: "재시도"
+    retry: "재시도",
+    adminTools: "관리자 도구",
+    switchRole: "역할 전환",
+    roleSwitchDescription: "다양한 권한 수준으로 응용 프로그램을 테스트할 수 있습니다.",
+    roleSwitchSuccess: "역할이 성공적으로 전환되었습니다",
+    roleSwitchError: "역할 전환 실패",
+    switching: "전환 중..."
   }
 };
 
@@ -174,6 +186,21 @@ export const AccountInfo = ({ userId }: AccountInfoProps) => {
     }
   };
 
+  const handleRoleSwitch = (newRole: string) => {
+    if (userProfile) {
+      setUserProfile({ ...userProfile, role: newRole });
+      
+      // Update activities to show the role switch
+      const roleSwitchActivity = {
+        type: "account",
+        description: `Role switched to ${newRole}`,
+        date: new Date().toISOString()
+      };
+      
+      setActivities([roleSwitchActivity, ...activities]);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -196,6 +223,10 @@ export const AccountInfo = ({ userId }: AccountInfoProps) => {
       </div>
     );
   }
+
+  // Check if this is a system admin account (for role switching)
+  const isSystemAdmin = userProfile.email === "admin@projectport.com" || 
+                        userProfile.name === "System Administrator";
 
   return (
     <div className="space-y-6">
@@ -242,6 +273,19 @@ export const AccountInfo = ({ userId }: AccountInfoProps) => {
               </dd>
             </div>
           </dl>
+
+          {/* Add the RoleSwitcher component for system admin */}
+          {(userProfile.role === 'admin' || isSystemAdmin) && (
+            <div className="mt-6">
+              <RoleSwitcher 
+                userId={userId}
+                currentRole={userProfile.role}
+                isAdmin={true}
+                onRoleSwitch={handleRoleSwitch}
+                translations={t}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

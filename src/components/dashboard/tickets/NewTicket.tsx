@@ -68,7 +68,10 @@ export const NewTicket = ({ userId, onCancel, onTicketCreated }: NewTicketProps)
         .select()
         .single();
 
-      if (ticketError) throw ticketError;
+      if (ticketError) {
+        console.error("Ticket creation error:", ticketError);
+        throw ticketError;
+      }
       
       if (!ticketData) {
         throw new Error("Failed to create ticket");
@@ -83,7 +86,10 @@ export const NewTicket = ({ userId, onCancel, onTicketCreated }: NewTicketProps)
           sender_id: userId
         });
 
-      if (messageError) throw messageError;
+      if (messageError) {
+        console.error("Message creation error:", messageError);
+        throw messageError;
+      }
 
       // Fetch creator name separately since we can't use join directly
       const { data: creatorData } = await supabase
@@ -107,6 +113,7 @@ export const NewTicket = ({ userId, onCancel, onTicketCreated }: NewTicketProps)
         description: "Please try again later",
         variant: "destructive"
       });
+    } finally {
       setSubmitting(false);
     }
   };
