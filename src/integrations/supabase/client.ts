@@ -14,7 +14,8 @@ export type RpcFunctions =
   | "is_user_approved" 
   | "assign_shop_owner"
   | "remove_shop_owner"
-  | "assign_user_to_shop_by_identifier";
+  | "assign_user_to_shop_by_identifier"
+  | "exec_sql";  // Added exec_sql for direct SQL execution
 
 // Override the rpc method type with our custom type
 declare module '@supabase/supabase-js' {

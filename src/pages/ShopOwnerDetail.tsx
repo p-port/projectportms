@@ -35,6 +35,35 @@ export function ShopOwnerDetail() {
   const [isAssigning, setIsAssigning] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
 
+  // First, we need to fix the ambiguous column issue by directly running SQL
+  useEffect(() => {
+    const fixAssignOwnerFunction = async () => {
+      // This SQL fixes the parameter name collision issue
+      await supabase.rpc('exec_sql', {
+        sql_string: `
+          CREATE OR REPLACE FUNCTION public.assign_shop_owner(p_shop_id uuid, p_owner_id uuid)
+           RETURNS void
+           LANGUAGE plpgsql
+           SECURITY DEFINER
+           SET search_path TO ''
+          AS $function$
+          BEGIN
+            -- Update the shop owner with explicit table reference and parameter names
+            UPDATE public.shops
+            SET owner_id = p_owner_id
+            WHERE id = p_shop_id;
+          END;
+          $function$;
+        `
+      }).catch(err => {
+        console.error("Failed to fix assign_shop_owner function:", err);
+      });
+    };
+    
+    // Only run this once when component mounts
+    fixAssignOwnerFunction();
+  }, []);
+
   useEffect(() => {
     if (!shopId) return;
     fetchShopDetails();
@@ -103,18 +132,18 @@ export function ShopOwnerDetail() {
     try {
       console.log("Assigning owner:", { shopId, selectedUserId });
       
-      // Use RPC function to bypass RLS
-      const { data, error: rpcError } = await supabase
-        .rpc('assign_shop_owner' as RpcFunctions, { 
-          shop_id: shopId, 
-          owner_id: selectedUserId 
-        });
+      // Use direct SQL query to bypass ambiguous column issue
+      const { error: directSqlError } = await supabase.rpc('exec_sql', {
+        sql_string: `
+          UPDATE public.shops 
+          SET owner_id = '${selectedUserId}'
+          WHERE id = '${shopId}'
+        `
+      });
       
-      console.log("RPC response:", { data, error: rpcError });
-        
-      if (rpcError) {
-        console.error("RPC Error details:", rpcError);
-        throw rpcError;
+      if (directSqlError) {
+        console.error("Direct SQL Error:", directSqlError);
+        throw directSqlError;
       }
       
       // Update the user profile to assign to this shop
@@ -152,17 +181,18 @@ export function ShopOwnerDetail() {
     try {
       console.log("Removing owner from shop:", { shopId });
       
-      // Use RPC function to bypass RLS
-      const { data, error: rpcError } = await supabase
-        .rpc('remove_shop_owner' as RpcFunctions, { 
-          shop_id: shopId
-        });
+      // Use direct SQL query to avoid any issues
+      const { error: directSqlError } = await supabase.rpc('exec_sql', {
+        sql_string: `
+          UPDATE public.shops 
+          SET owner_id = NULL
+          WHERE id = '${shopId}'
+        `
+      });
       
-      console.log("RPC response:", { data, error: rpcError });
-        
-      if (rpcError) {
-        console.error("RPC Error details:", rpcError);
-        throw rpcError;
+      if (directSqlError) {
+        console.error("Direct SQL Error:", directSqlError);
+        throw directSqlError;
       }
       
       toast.success("Shop owner successfully removed");
@@ -259,8 +289,9 @@ export function ShopOwnerDetail() {
                     <Button 
                       variant="destructive" 
                       onClick={removeOwner}
+                      disabled={isRemoving}
                     >
-                      Remove as Owner
+                      {isRemoving ? "Removing..." : "Remove as Owner"}
                     </Button>
                   </div>
                 </div>
@@ -311,9 +342,9 @@ export function ShopOwnerDetail() {
                 
                 <Button 
                   onClick={assignOwner} 
-                  disabled={!selectedUserId}
+                  disabled={!selectedUserId || isAssigning}
                 >
-                  Assign as Owner
+                  {isAssigning ? "Assigning..." : "Assign as Owner"}
                 </Button>
               </div>
             </CardContent>
@@ -326,4 +357,4 @@ export function ShopOwnerDetail() {
       )}
     </div>
   );
-};
+}
