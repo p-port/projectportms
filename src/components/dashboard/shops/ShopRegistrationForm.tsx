@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -89,15 +90,15 @@ export function ShopRegistrationForm() {
 
       if (error) {
         console.error("Error creating shop:", error);
-        toast.error("Failed to register shop: " + error.message);
+        toast.error(`Failed to register shop: ${error.message || "Unknown error"}`);
       } else {
         toast.success("Shop registered successfully!");
         toast.info(`Your shop identifier is: ${uniqueIdentifier}`);
         form.reset();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in shop registration:", error);
-      toast.error("An unexpected error occurred");
+      toast.error(`An unexpected error occurred: ${error.message || "Unknown error"}`);
     } finally {
       setIsSubmitting(false);
     }

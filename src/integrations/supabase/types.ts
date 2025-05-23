@@ -128,6 +128,7 @@ export type Database = {
           id: string
           name: string | null
           role: string | null
+          shop_id: string | null
         }
         Insert: {
           approved?: boolean | null
@@ -136,6 +137,7 @@ export type Database = {
           id: string
           name?: string | null
           role?: string | null
+          shop_id?: string | null
         }
         Update: {
           approved?: boolean | null
@@ -144,6 +146,51 @@ export type Database = {
           id?: string
           name?: string | null
           role?: string | null
+          shop_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shops: {
+        Row: {
+          created_at: string | null
+          district: string
+          employee_count: number
+          id: string
+          name: string
+          owner_id: string | null
+          region: string
+          services: string[]
+          unique_identifier: string
+        }
+        Insert: {
+          created_at?: string | null
+          district: string
+          employee_count?: number
+          id?: string
+          name: string
+          owner_id?: string | null
+          region: string
+          services: string[]
+          unique_identifier: string
+        }
+        Update: {
+          created_at?: string | null
+          district?: string
+          employee_count?: number
+          id?: string
+          name?: string
+          owner_id?: string | null
+          region?: string
+          services?: string[]
+          unique_identifier?: string
         }
         Relationships: []
       }

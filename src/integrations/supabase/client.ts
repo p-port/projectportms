@@ -130,14 +130,19 @@ export async function fetchShops(): Promise<Shop[]> {
 // Function to create a new shop with proper typing
 export async function createShop(shopData: Omit<Shop, 'id' | 'created_at'>): Promise<{data: Shop | null, error: any}> {
   try {
-    // Use any type to bypass TypeScript's type checking
-    const result = await (supabase as any)
+    // Update to use explicit cast to handle the type issues with the new shops table
+    const { data, error } = await (supabase as any)
       .from('shops')
       .insert(shopData)
       .select()
       .single();
       
-    return result;
+    if (error) {
+      console.error("Error in createShop:", error);
+      return { data: null, error };
+    }
+    
+    return { data, error: null };
   } catch (error) {
     console.error("Error creating shop:", error);
     return { data: null, error };
