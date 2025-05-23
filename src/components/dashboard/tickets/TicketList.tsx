@@ -326,7 +326,7 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
     }
   };
 
-  const handleAssignTicket = async (ticketId: string, assignedTo: string | null) => {
+  const handleAssignTicket = async (ticketId: string, assignedTo: string | null): Promise<void> => {
     try {
       // Update the ticket assignment in the database
       const { error } = await supabase
@@ -356,8 +356,6 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
         // The assignee name will be updated through the realtime subscription
         fetchAssigneeName(ticketId, assignedTo);
       }
-      
-      return true;
     } catch (error) {
       console.error('Error assigning ticket:', error);
       toast({
@@ -365,7 +363,6 @@ export const TicketList = ({ userId, userRole = 'mechanic' }: TicketListProps) =
         description: "Please try again later",
         variant: "destructive"
       });
-      return false;
     }
   };
 
