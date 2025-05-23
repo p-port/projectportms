@@ -11,6 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { ShopManagement } from "../shops/ShopManagement";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { SearchPanel } from "../SearchPanel";
 
 interface TabContentProps {
   activeJobs: any[];
@@ -70,7 +71,7 @@ export const TabContent = ({
       </TabsContent>
 
       <TabsContent value="customers" className="mt-6">
-        <SearchCustomers jobs={allJobs} />
+        <SearchPanel jobs={allJobs} translations={translations} />
       </TabsContent>
       
       <TabsContent value="shops" className="mt-6">
