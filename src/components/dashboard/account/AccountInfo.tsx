@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { 
-  Shield, Store, User, Mail, BadgeCheck, 
-  Clock, MapPin, Users, Briefcase, Tag, Key, Lock
+  Shield, User, Mail, BadgeCheck, 
+  Clock, Key, Lock
 } from "lucide-react";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -29,24 +29,11 @@ interface AccountInfoProps {
   userId?: string;
 }
 
-interface ShopDetails {
-  id: string;
-  name: string;
-  region: string;
-  district: string;
-  isOwner: boolean;
-  owner_id: string;
-  employee_count: number;
-  services: string[];
-  unique_identifier: string;
-}
-
 export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [shopDetails, setShopDetails] = useState<ShopDetails | null>(null);
   const [changeEmailOpen, setChangeEmailOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [isChangingEmail, setIsChangingEmail] = useState(false);
@@ -70,29 +57,6 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
 
         setProfile(data);
         setName(data.name || "");
-        
-        // If user has a shop_id, fetch the shop details
-        if (data.shop_id) {
-          const { data: shopData, error: shopError } = await supabase
-            .from('shops')
-            .select('*')
-            .eq('id', data.shop_id)
-            .single();
-            
-          if (!shopError && shopData) {
-            setShopDetails({
-              id: shopData.id,
-              name: shopData.name,
-              region: shopData.region,
-              district: shopData.district,
-              isOwner: shopData.owner_id === userId,
-              owner_id: shopData.owner_id,
-              employee_count: shopData.employee_count,
-              services: shopData.services,
-              unique_identifier: shopData.unique_identifier
-            });
-          }
-        }
       } catch (error) {
         console.error("Error fetching profile:", error);
       } finally {
@@ -277,7 +241,7 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
           {/* Role */}
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              <Shield className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">Role</span>
             </div>
             <div className="bg-muted px-3 py-2 rounded-md flex items-center gap-2">
@@ -445,107 +409,8 @@ export const AccountInfo = ({ userRole = "mechanic", userId }: AccountInfoProps)
         </CardContent>
       </Card>
 
-      {/* Shop Information Card */}
-      {shopDetails && (
-        <Card className="md:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Store className="h-5 w-5 text-blue-400" />
-              Shop Information
-            </CardTitle>
-            <CardDescription>Details about your associated repair shop</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-muted/40 rounded-md p-4 space-y-4">
-              {/* Shop Name and Status */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <Store className="h-5 w-5 text-blue-400 mt-0.5 shrink-0" />
-                  <div>
-                    <h3 className="font-medium text-lg">{shopDetails.name}</h3>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                      <MapPin className="h-3.5 w-3.5 shrink-0" />
-                      <span>{shopDetails.region}, {shopDetails.district}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {shopDetails.isOwner && (
-                  <Badge className="bg-amber-500/90 hover:bg-amber-500 text-white flex items-center gap-1 h-6 px-2">
-                    <Shield className="h-3 w-3" /> 
-                    Shop Owner
-                  </Badge>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-3">
-                {/* Shop ID */}
-                <div className="rounded-md border bg-background p-2.5">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1 text-xs">
-                    <Tag className="h-3.5 w-3.5" />
-                    <span>Shop ID</span>
-                  </div>
-                  <div className="font-mono text-xs bg-muted/50 px-2 py-1 rounded overflow-hidden text-ellipsis">
-                    {shopDetails.unique_identifier}
-                  </div>
-                </div>
-                
-                {/* Staff Count */}
-                <div className="rounded-md border bg-background p-2.5">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1 text-xs">
-                    <Users className="h-3.5 w-3.5" />
-                    <span>Staff</span>
-                  </div>
-                  <div className="text-sm">
-                    {shopDetails.employee_count} employee(s)
-                  </div>
-                </div>
-              </div>
-              
-              {/* Services */}
-              {shopDetails.services && shopDetails.services.length > 0 && (
-                <div className="mt-3">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-2 text-sm">
-                    <Briefcase className="h-3.5 w-3.5" />
-                    <span>Services</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {shopDetails.services.map((service, index) => (
-                      <Badge key={index} variant="secondary" className="capitalize">
-                        {service}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* No Shop Association Message */}
-      {!shopDetails && !loading && (
-        <Card className="md:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Store className="h-5 w-5 text-blue-400" />
-              Shop Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-3 p-3 bg-muted rounded-md">
-              <Store className="h-5 w-5 shrink-0 text-muted-foreground" />
-              <p className="text-sm">
-                You are not currently associated with any shop.
-                {isAdmin && " As an admin, you have access to all shops."}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Role Switcher (if admin or shop owner) */}
-      {(isAdmin || (shopDetails && shopDetails.isOwner)) && (
+      {isAdmin && (
         <div className="md:col-span-2">
           <RoleSwitcher 
             userId={profile.id} 
