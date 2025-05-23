@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase, RpcFunctions } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -72,18 +72,18 @@ export const ShopOwnerManager = ({ userId, currentOwnerStatus, shopId }: ShopOwn
     try {
       console.log("Assigning user as shop owner:", { shopId: selectedShopId, userId });
       
-      // Use RPC function to bypass RLS
-      const { data, error: rpcError } = await supabase
-        .rpc('assign_shop_owner' as RpcFunctions, { 
-          shop_id: selectedShopId, 
-          owner_id: userId 
-        });
-        
-      console.log("RPC response:", { data, error: rpcError });
-        
-      if (rpcError) {
-        console.error("RPC Error details:", rpcError);
-        throw rpcError;
+      // Use direct SQL execution to avoid ambiguous column issues
+      const { error: directSqlError } = await supabase.rpc('exec_sql', {
+        sql_string: `
+          UPDATE public.shops 
+          SET owner_id = '${userId}'
+          WHERE id = '${selectedShopId}'
+        `
+      });
+      
+      if (directSqlError) {
+        console.error("SQL Error:", directSqlError);
+        throw directSqlError;
       }
       
       // Update the user profile to assign to this shop
@@ -121,17 +121,18 @@ export const ShopOwnerManager = ({ userId, currentOwnerStatus, shopId }: ShopOwn
     try {
       console.log("Removing shop owner:", { shopId: userShop.id });
       
-      // Use RPC function to bypass RLS
-      const { data, error: rpcError } = await supabase
-        .rpc('remove_shop_owner' as RpcFunctions, { 
-          shop_id: userShop.id
-        });
+      // Use direct SQL execution to avoid ambiguous column issues
+      const { error: directSqlError } = await supabase.rpc('exec_sql', {
+        sql_string: `
+          UPDATE public.shops 
+          SET owner_id = NULL
+          WHERE id = '${userShop.id}'
+        `
+      });
       
-      console.log("RPC response:", { data, error: rpcError });
-        
-      if (rpcError) {
-        console.error("RPC Error details:", rpcError);
-        throw rpcError;
+      if (directSqlError) {
+        console.error("SQL Error:", directSqlError);
+        throw directSqlError;
       }
       
       setIsOwner(false);

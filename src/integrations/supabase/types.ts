@@ -320,6 +320,10 @@ export type Database = {
         Args: { user_id: string; shop_identifier: string }
         Returns: string
       }
+      exec_sql: {
+        Args: { sql_string: string }
+        Returns: undefined
+      }
       get_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
