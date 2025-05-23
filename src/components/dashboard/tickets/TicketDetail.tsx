@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -117,36 +118,57 @@ export const TicketDetail = ({
     
     fetchMessages();
     
-    // Subscribe to new messages
+    // Enhanced real-time subscription for ticket messages
     const channel = supabase
-      .channel(`ticket-${ticket.id}`)
+      .channel(`ticket-messages-${ticket.id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'ticket_messages', filter: `ticket_id=eq.${ticket.id}` },
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'ticket_messages', 
+          filter: `ticket_id=eq.${ticket.id}` 
+        },
         async (payload) => {
+          console.log('New message received:', payload);
           const newMessage = payload.new as TicketMessage;
           
-          // Fetch sender name
-          if (newMessage.sender_id) {
-            const { data } = await supabase
-              .from('profiles')
-              .select('name')
-              .eq('id', newMessage.sender_id)
-              .single();
-              
-            if (data) {
-              newMessage.sender_name = data.name;
+          try {
+            // Fetch sender name
+            if (newMessage.sender_id) {
+              const { data } = await supabase
+                .from('profiles')
+                .select('name')
+                .eq('id', newMessage.sender_id)
+                .single();
+                
+              if (data) {
+                newMessage.sender_name = data.name;
+              } else {
+                newMessage.sender_name = 'Unknown';
+              }
             } else {
-              newMessage.sender_name = 'Unknown';
+              newMessage.sender_name = 'System';
             }
-          } else {
-            newMessage.sender_name = 'System';
+            
+            // Add new message to state without requiring a full refresh
+            setMessages(prev => [...prev, newMessage]);
+            
+            // Auto-scroll to the latest message
+            setTimeout(() => {
+              const messagesContainer = document.querySelector('.messages-container');
+              if (messagesContainer) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              }
+            }, 100);
+          } catch (error) {
+            console.error('Error processing real-time message:', error);
           }
-          
-          setMessages(prev => [...prev, newMessage]);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
       
     return () => {
       supabase.removeChannel(channel);
@@ -380,7 +402,7 @@ export const TicketDetail = ({
               <h4 className="font-medium">Messages</h4>
             </div>
             
-            <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+            <div className="p-4 space-y-4 max-h-96 overflow-y-auto messages-container">
               {loading ? (
                 <div className="flex justify-center">
                   <div className="animate-spin h-6 w-6 border-4 border-primary border-t-transparent rounded-full"></div>
@@ -417,6 +439,15 @@ export const TicketDetail = ({
                     className="flex-1"
                     rows={3}
                     disabled={submitting}
+                    onKeyDown={(e) => {
+                      // Send message on Ctrl+Enter or Cmd+Enter
+                      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newMessage.trim()) {
+                          handleSendMessage();
+                        }
+                      }
+                    }}
                   />
                   <Button
                     onClick={handleSendMessage}
@@ -424,6 +455,9 @@ export const TicketDetail = ({
                   >
                     <Send className="h-4 w-4" />
                   </Button>
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  Press Ctrl+Enter to send
                 </div>
               </div>
             )}

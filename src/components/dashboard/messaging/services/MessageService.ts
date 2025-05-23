@@ -99,7 +99,58 @@ export const subscribeToNewMessages = (onNewMessage: (messageId: string) => void
         }
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log('Messages real-time subscription status:', status);
+    });
+
+  return channel;
+};
+
+// New function to subscribe to specific ticket messages
+export const subscribeToTicketMessages = (
+  ticketId: string,
+  onNewMessage: (message: any) => void
+) => {
+  const channel = supabase
+    .channel(`ticket-messages-${ticketId}`)
+    .on(
+      'postgres_changes',
+      { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'ticket_messages',
+        filter: `ticket_id=eq.${ticketId}`
+      },
+      async (payload) => {
+        console.log('New ticket message received:', payload);
+        
+        // Get sender name
+        let senderName = 'Unknown';
+        if (payload.new.sender_id) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', payload.new.sender_id)
+            .single();
+            
+          if (data) {
+            senderName = data.name;
+          }
+        } else {
+          senderName = 'System';
+        }
+        
+        const messageWithSender = {
+          ...payload.new,
+          sender_name: senderName
+        };
+        
+        onNewMessage(messageWithSender);
+      }
+    )
+    .subscribe((status) => {
+      console.log('Ticket messages real-time subscription status:', status);
+    });
 
   return channel;
 };
