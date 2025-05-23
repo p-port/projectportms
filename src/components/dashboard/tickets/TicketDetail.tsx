@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -182,17 +181,27 @@ export const TicketDetail = ({
     try {
       setSubmitting(true);
       
+      // Create a new message using the current user's credentials
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
       const { error } = await supabase
         .from('ticket_messages')
         .insert({
           ticket_id: ticket.id,
           content: newMessage.trim(),
-          sender_id: currentUserId
+          sender_id: user.id
         });
         
       if (error) throw error;
       
+      // Clear input after successful send
       setNewMessage("");
+      
+      // No need to update messages state as the subscription will handle it
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -249,18 +258,23 @@ export const TicketDetail = ({
       await onStatusChange(ticket.id, newStatus);
       
       // Add system message about status change
-      const { error } = await supabase
-        .from('ticket_messages')
-        .insert({
-          ticket_id: ticket.id,
-          content: `Ticket status changed to ${newStatus}`,
-          sender_id: currentUserId
-        });
+      if (currentUserId) {
+        const { data: { user } } = await supabase.auth.getUser();
         
-      if (error) {
-        console.error('Error adding status change message:', error);
+        if (user) {
+          const { error } = await supabase
+            .from('ticket_messages')
+            .insert({
+              ticket_id: ticket.id,
+              content: `Ticket status changed to ${newStatus}`,
+              sender_id: user.id
+            });
+            
+          if (error) {
+            console.error('Error adding status change message:', error);
+          }
+        }
       }
-      
     } catch (error) {
       console.error('Error changing ticket status:', error);
     } finally {
