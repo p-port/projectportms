@@ -1,175 +1,336 @@
 
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { supabase } from "@/integrations/supabase/client";
+import { generateUniqueJobId } from "./job-details/JobUtils";
 import { DashboardHeader } from "./features/DashboardHeader";
 import { TabsNavigation } from "./features/TabsNavigation";
 import { TabContent } from "./features/TabContent";
-import { supabase } from "@/integrations/supabase/client";
-import { fetchUnreadTicketsCount, subscribeToTicketUpdates } from "./services/UnreadTicketsService";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { fetchUnreadMessagesCount, subscribeToMessageUpdates } from "./services/UnreadMessagesService";
 import { toast } from "sonner";
 
-export const Dashboard = ({ user }: { user: any }) => {
-  const [activeTab, setActiveTab] = useState("active-jobs");
-  const isMobile = useIsMobile();
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [loadingJobs, setLoadingJobs] = useState(true);
-  const [unreadTickets, setUnreadTickets] = useState(0);
-  const [language] = useLocalStorage("language", "en");
-  const [translations, setTranslations] = useState<any>({
+interface DashboardProps {
+  user: any;
+}
+
+// Dashboard translations
+const translations = {
+  en: {
+    dashboard: "Dashboard",
+    welcome: "Welcome back",
+    searchPlaceholder: "Search jobs by ID, customer name, or motorcycle...",
     activeJobs: "Active Jobs",
     completed: "Completed",
     newJob: "New Job",
-    customers: "Customers"
-  });
+    customers: "Customers",
+    support: "Support",
+    messages: "Messages",
+    account: "Account",
+    loading: "Loading jobs...",
+    error: "Error loading jobs",
+    retry: "Retry",
+    noActiveJobs: "No active jobs found",
+    createNewJob: "Create a new job to get started",
+    noCompletedJobs: "No completed jobs found",
+    completedJobsAppear: "Completed jobs will appear here",
+    jobSynced: "Job synced to cloud storage",
+    jobSyncError: "Failed to sync job to cloud"
+  },
+  ko: {
+    dashboard: "대시보드",
+    welcome: "다시 환영합니다",
+    searchPlaceholder: "작업 ID, 고객 이름 또는 오토바이로 검색...",
+    activeJobs: "활성 작업",
+    completed: "완료됨",
+    newJob: "새 작업",
+    customers: "고객",
+    support: "지원",
+    messages: "메시지",
+    account: "계정",
+    loading: "작업 로딩 중...",
+    error: "작업을 불러오는 중 오류가 발생했습니다",
+    retry: "재시도",
+    noActiveJobs: "활성 작업을 찾을 수 없습니다",
+    createNewJob: "시작하려면 새 작업을 생성하세요",
+    noCompletedJobs: "완료된 작업을 찾을 수 없습니다", 
+    completedJobsAppear: "완료된 작업이 여기에 표시됩니다",
+    jobSynced: "작업이 클라우드 스토리지에 동기화되었습니다",
+    jobSyncError: "작업을 클라우드에 동기화하지 못했습니다"
+  },
+  ru: {
+    dashboard: "Панель управления",
+    welcome: "С возвращением",
+    searchPlaceholder: "Поиск заказов по ID, имени клиента или мотоциклу...",
+    activeJobs: "Активные заказы",
+    completed: "Завершенные",
+    newJob: "Новый заказ",
+    customers: "Клиенты",
+    support: "Поддержка",
+    messages: "Сообщения",
+    account: "Аккаунт",
+    loading: "Загрузка заказов...",
+    error: "Ошибка при загрузке заказов",
+    retry: "Повторить",
+    noActiveJobs: "Активных заказов не найдено",
+    createNewJob: "Создайте новый заказ, чтобы начать",
+    noCompletedJobs: "Завершенных заказов не найдено",
+    completedJobsAppear: "Завершенные заказы будут отображаться здесь",
+    jobSynced: "Заказ синхронизирован с облачным хранилищем",
+    jobSyncError: "Не удалось синхронизировать заказ с облаком"
+  }
+};
 
-  useEffect(() => {
-    const loadTranslations = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('translations')
-          .select('*')
-          .eq('language', language);
-
-        if (error) {
-          throw error;
-        }
-
-        if (data) {
-          const translated: any = {};
-          data.forEach(item => {
-            translated[item.key] = item.value;
-          });
-          setTranslations(translated);
-        }
-      } catch (error) {
-        console.error('Error loading translations:', error);
-        toast.error('Failed to load translations. Using default values.');
-      }
-    };
-
-    loadTranslations();
-  }, [language]);
-
-  useEffect(() => {
-    const fetchJobs = async () => {
-      setLoadingJobs(true);
-      try {
-        const { data, error } = await supabase
-          .from('jobs')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          throw error;
-        }
-
-        setJobs(data || []);
-      } catch (error) {
-        console.error('Error fetching jobs:', error);
-        toast.error('Failed to load jobs. Please try again.');
-      } finally {
-        setLoadingJobs(false);
-      }
-    };
-
-    fetchJobs();
-  }, []);
-
-  const activeJobs = jobs.filter(job => job.status !== 'completed');
-  const completedJobs = jobs.filter(job => job.status === 'completed');
-
-  const handleAddJob = async (jobData: any) => {
-    try {
-      const { data, error } = await supabase
-        .from('jobs')
-        .insert([jobData])
-        .select();
-
-      if (error) {
-        throw error;
-      }
-
-      setJobs(prevJobs => [...prevJobs, data[0]]);
-      toast.success('Job added successfully!');
-    } catch (error) {
-      console.error('Error adding job:', error);
-      toast.error('Failed to add job. Please try again.');
-    }
-  };
-
+export const Dashboard = ({ user }: DashboardProps) => {
+  const [activeTab, setActiveTab] = useState("active-jobs");
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const isMobile = useIsMobile();
+  const [language] = useLocalStorage("language", "en");
+  const t = translations[language as keyof typeof translations];
+  
+  // Add unread messages count
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  
+  // Load unread messages count
   useEffect(() => {
     if (!user?.id) return;
     
-    // Load initial unread tickets count
-    loadUnreadTicketsCount();
+    const loadUnreadMessagesCount = async () => {
+      const count = await fetchUnreadMessagesCount(user.id);
+      setUnreadMessages(count);
+    };
     
-    // Subscribe to ticket changes
-    const channel = subscribeToTicketUpdates(user.id, loadUnreadTicketsCount);
+    loadUnreadMessagesCount();
     
+    // Subscribe to message updates
+    const channel = subscribeToMessageUpdates(
+      user.id,
+      // On new message
+      () => setUnreadMessages(prev => prev + 1),
+      // On message read
+      () => setUnreadMessages(prev => Math.max(0, prev - 1))
+    );
+      
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  // Load jobs from Supabase if user is authenticated, otherwise use localStorage
+  useEffect(() => {
+    const loadJobs = async () => {
+      setLoading(true);
+      setError(false);
+      
+      try {
+        if (user?.id) {
+          // Try to load jobs from Supabase
+          const { data: supabaseJobs, error } = await supabase
+            .from('jobs')
+            .select('*')
+            .order('date_created', { ascending: false });
+            
+          if (error) throw error;
+          
+          if (supabaseJobs && supabaseJobs.length > 0) {
+            // Transform Supabase jobs to match our app's format
+            const formattedJobs = supabaseJobs.map(job => ({
+              id: job.job_id,
+              customer: job.customer,
+              motorcycle: job.motorcycle,
+              serviceType: job.service_type,
+              status: job.status,
+              dateCreated: job.date_created ? new Date(job.date_created).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+              dateCompleted: job.date_completed ? new Date(job.date_completed).toISOString().split('T')[0] : null,
+              notes: job.notes || [],
+              photos: job.photos || { start: [], completion: [] }
+            }));
+            
+            setJobs(formattedJobs);
+            
+            // Also update localStorage for offline access
+            localStorage.setItem('projectPortJobs', JSON.stringify(formattedJobs));
+            return;
+          }
+        }
+        
+        // If no user or no jobs in Supabase, fall back to localStorage
+        const storedJobsString = localStorage.getItem('projectPortJobs');
+        if (storedJobsString) {
+          const storedJobs = JSON.parse(storedJobsString);
+          setJobs(storedJobs);
+          
+          // If user is authenticated, sync to Supabase
+          if (user?.id) {
+            syncJobsToSupabase(storedJobs, user.id);
+            toast.success(t.jobSynced);
+          }
+        } else {
+          // No jobs in localStorage either - no sample jobs needed anymore since we have Supabase
+          setJobs([]);
+          localStorage.setItem('projectPortJobs', JSON.stringify([]));
+        }
+      } catch (err) {
+        console.error("Error loading jobs:", err);
+        setError(true);
+        
+        // Attempt to fall back to localStorage
+        const storedJobsString = localStorage.getItem('projectPortJobs');
+        if (storedJobsString) {
+          setJobs(JSON.parse(storedJobsString));
+        } else {
+          setJobs([]);
+          localStorage.setItem('projectPortJobs', JSON.stringify([]));
+        }
+      } finally {
+        setLoading(false);
       }
     };
-  }, [user]);
 
-  const loadUnreadTicketsCount = async () => {
+    loadJobs();
+  }, [user?.id, t.jobSynced]);
+
+  // Sync jobs to Supabase
+  const syncJobsToSupabase = async (jobsToSync: any[], userId: string) => {
     try {
-      const count = await fetchUnreadTicketsCount(user?.id);
-      setUnreadTickets(count);
+      for (const job of jobsToSync) {
+        await supabase.from('jobs').upsert({
+          job_id: job.id,
+          customer: job.customer,
+          motorcycle: job.motorcycle, 
+          service_type: job.serviceType,
+          status: job.status,
+          date_created: job.dateCreated,
+          date_completed: job.dateCompleted,
+          notes: job.notes,
+          photos: job.photos,
+          user_id: userId
+        });
+      }
     } catch (error) {
-      console.error('Error loading unread tickets count:', error);
+      console.error("Error syncing jobs to Supabase:", error);
+      toast.error(t.jobSyncError);
     }
   };
 
+  const handleAddJob = async (jobData: any) => {
+    // Generate a unique job ID based on motorcycle details
+    const newJobId = generateUniqueJobId(
+      jobData.motorcycle.make,
+      jobData.motorcycle.model,
+      jobs.length + 1
+    );
+    
+    const newJob = {
+      ...jobData,
+      id: newJobId,
+      dateCreated: new Date().toISOString().split('T')[0],
+      status: "pending",
+      notes: [],
+      photos: {
+        start: [],
+        completion: []
+      }
+    };
+    
+    const updatedJobs = [newJob, ...jobs];
+    setJobs(updatedJobs);
+    localStorage.setItem('projectPortJobs', JSON.stringify(updatedJobs));
+    
+    // If user is authenticated, sync to Supabase
+    if (user?.id) {
+      try {
+        const { error } = await supabase.from('jobs').insert({
+          job_id: newJob.id,
+          customer: newJob.customer,
+          motorcycle: newJob.motorcycle,
+          service_type: newJob.serviceType,
+          status: newJob.status,
+          date_created: newJob.dateCreated,
+          notes: newJob.notes,
+          photos: newJob.photos,
+          user_id: user.id
+        });
+        
+        if (error) throw error;
+        toast.success(t.jobSynced);
+      } catch (error) {
+        console.error("Error adding job to Supabase:", error);
+        toast.error(t.jobSyncError);
+      }
+    }
+    
+    setActiveTab("active-jobs");
+  };
+
+  const filteredJobs = searchQuery 
+    ? jobs.filter(job => 
+        job.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.motorcycle.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.motorcycle.model.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : jobs;
+
+  const activeJobs = filteredJobs.filter(job => job.status !== "completed");
+  const completedJobs = filteredJobs.filter(job => job.status === "completed");
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="text-center space-y-4">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+          <p>{t.loading}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="text-center space-y-4">
+          <p className="text-destructive">{t.error}</p>
+          <Button onClick={() => window.location.reload()}>{t.retry}</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container max-w-5xl py-4">
-      <DashboardHeader 
-        userName={user?.name || "User"} 
-        searchQuery="" 
-        onSearchChange={() => {}} 
-        translations={{
-          dashboard: "Dashboard",
-          welcome: "Welcome",
-          searchPlaceholder: "Search"
-        }} 
+    <div className="space-y-6">
+      <DashboardHeader
+        userName={user?.name}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        translations={t}
       />
-      
-      <Tabs
-        defaultValue="active-jobs"
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="mt-6"
-      >
-        <TabsNavigation 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          isMobile={isMobile} 
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsNavigation
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          isMobile={isMobile}
           activeJobs={activeJobs.length}
           completedJobs={completedJobs.length}
-          unreadTickets={unreadTickets}
-          translations={translations}
+          unreadMessages={unreadMessages}
+          translations={t}
         />
-        
-        {loadingJobs ? (
-          <div className="mt-4 p-4 text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">Loading...</p>
-          </div>
-        ) : (
-          <TabContent 
-            activeJobs={activeJobs}
-            completedJobs={completedJobs}
-            allJobs={jobs}
-            setJobs={setJobs}
-            handleAddJob={handleAddJob}
-            userId={user?.id}
-            userRole={user?.role}
-            translations={translations}
-          />
-        )}
+
+        <TabContent
+          activeJobs={activeJobs}
+          completedJobs={completedJobs}
+          allJobs={jobs}
+          setJobs={setJobs}
+          handleAddJob={handleAddJob}
+          userId={user?.id}
+          translations={t}
+        />
       </Tabs>
     </div>
   );
