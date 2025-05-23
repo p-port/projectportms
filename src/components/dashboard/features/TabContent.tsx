@@ -12,6 +12,7 @@ import { ShopManagement } from "../shops/ShopManagement";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SearchPanel } from "../SearchPanel";
+import { Store } from "lucide-react";
 
 interface TabContentProps {
   activeJobs: any[];
@@ -40,6 +41,11 @@ export const TabContent = ({
   const goToShopManagement = () => {
     setIsRedirecting(true);
     navigate('/shop-management');
+  };
+
+  const goToShopOwners = () => {
+    setIsRedirecting(true);
+    navigate('/shop-owners');
   };
 
   const isAdmin = userRole === 'admin';
@@ -76,19 +82,38 @@ export const TabContent = ({
       
       <TabsContent value="shops" className="mt-6">
         {userRole === 'admin' ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Shop Management</CardTitle>
-              <CardDescription>
-                Register new shops and manage existing ones in the Project Port network.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={goToShopManagement} disabled={isRedirecting}>
-                {isRedirecting ? "Redirecting..." : "Go to Shop Management"}
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="grid gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Shop Management</CardTitle>
+                <CardDescription>
+                  Register new shops and manage existing ones in the Project Port network.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={goToShopManagement} disabled={isRedirecting}>
+                  {isRedirecting ? "Redirecting..." : "Go to Shop Management"}
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Store className="h-4 w-4" />
+                  Shop Owners Management
+                </CardTitle>
+                <CardDescription>
+                  View all shops and manage shop ownership permissions.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={goToShopOwners} disabled={isRedirecting} variant="outline">
+                  {isRedirecting ? "Redirecting..." : "Manage Shop Owners"}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           <Card>
             <CardContent className="py-10 text-center">
