@@ -1,0 +1,46 @@
+
+import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ShopRegistrationForm } from "./ShopRegistrationForm";
+import { ShopsList } from "./ShopsList";
+import { Button } from "@/components/ui/button";
+import { PlusCircle, List } from "lucide-react";
+
+export function ShopManagement() {
+  const [activeTab, setActiveTab] = useState<"register" | "list">("list");
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <h1 className="text-3xl font-bold tracking-tight">Shop Management</h1>
+        <p className="text-muted-foreground">
+          Register and manage shops in the Project Port network.
+        </p>
+      </header>
+
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "register" | "list")}>
+        <div className="flex justify-between items-center">
+          <TabsList>
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <List className="h-4 w-4" />
+              Shop Directory
+            </TabsTrigger>
+            <TabsTrigger value="register" className="flex items-center gap-2">
+              <PlusCircle className="h-4 w-4" />
+              Register Shop
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <div className="mt-4">
+          <TabsContent value="register" className="m-0">
+            <ShopRegistrationForm />
+          </TabsContent>
+          <TabsContent value="list" className="m-0">
+            <ShopsList />
+          </TabsContent>
+        </div>
+      </Tabs>
+    </div>
+  );
+}

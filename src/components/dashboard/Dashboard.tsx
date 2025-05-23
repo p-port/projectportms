@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ const translations = {
     support: "Support",
     tickets: "Tickets",
     account: "Account",
+    shops: "Shops",
     loading: "Loading jobs...",
     error: "Error loading jobs",
     retry: "Retry",
@@ -49,6 +51,7 @@ const translations = {
     support: "지원",
     tickets: "티켓",
     account: "계정",
+    shops: "샵",
     loading: "작업 로딩 중...",
     error: "작업을 불러오는 중 오류가 발생했습니다",
     retry: "재시도",
@@ -168,7 +171,8 @@ export const Dashboard = ({ user }: DashboardProps) => {
               dateCreated: job.date_created ? new Date(job.date_created).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
               dateCompleted: job.date_completed ? new Date(job.date_completed).toISOString().split('T')[0] : null,
               notes: job.notes || [],
-              photos: job.photos || { start: [], completion: [] }
+              photos: job.photos || { start: [], completion: [] },
+              shopId: job.shop_id
             }));
             
             setJobs(formattedJobs);
@@ -218,6 +222,15 @@ export const Dashboard = ({ user }: DashboardProps) => {
   // Sync jobs to Supabase
   const syncJobsToSupabase = async (jobsToSync: any[], userId: string) => {
     try {
+      // Get user's shop ID
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('shop_id')
+        .eq('id', userId)
+        .single();
+        
+      const shopId = profileData?.shop_id;
+
       for (const job of jobsToSync) {
         await supabase.from('jobs').upsert({
           job_id: job.id,
@@ -229,7 +242,8 @@ export const Dashboard = ({ user }: DashboardProps) => {
           date_completed: job.dateCompleted,
           notes: job.notes,
           photos: job.photos,
-          user_id: userId
+          user_id: userId,
+          shop_id: shopId
         });
       }
     } catch (error) {
@@ -265,6 +279,15 @@ export const Dashboard = ({ user }: DashboardProps) => {
     // If user is authenticated, sync to Supabase
     if (user?.id) {
       try {
+        // Get user's shop ID
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('shop_id')
+          .eq('id', user.id)
+          .single();
+          
+        const shopId = profileData?.shop_id;
+        
         const { error } = await supabase.from('jobs').insert({
           job_id: newJob.id,
           customer: newJob.customer,
@@ -274,7 +297,8 @@ export const Dashboard = ({ user }: DashboardProps) => {
           date_created: newJob.dateCreated,
           notes: newJob.notes,
           photos: newJob.photos,
-          user_id: user.id
+          user_id: user.id,
+          shop_id: shopId
         });
         
         if (error) throw error;
@@ -340,6 +364,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
           completedJobs={completedJobs.length}
           unreadTickets={unreadTickets}
           translations={t}
+          userRole={userRole}
         />
 
         <TabContent

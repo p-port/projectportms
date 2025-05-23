@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import TrackJob from "./pages/TrackJob";
 import NotFound from "./pages/NotFound";
 import VerificationSuccess from "./pages/VerificationSuccess";
+import { ShopManagement } from "./components/dashboard/shops/ShopManagement";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/track-job/:jobId" element={<TrackJob />} />
             <Route path="/verification-success" element={<VerificationSuccess />} />
+            <Route path="/shop-management" element={<ShopManagement />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

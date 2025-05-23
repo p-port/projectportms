@@ -1,7 +1,6 @@
 
+import { Briefcase, Check, MessageSquarePlus, User, Wrench, Store } from "lucide-react";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Ticket, User } from "lucide-react";
 
 interface TabsNavigationProps {
   activeTab: string;
@@ -10,12 +9,8 @@ interface TabsNavigationProps {
   activeJobs: number;
   completedJobs: number;
   unreadTickets: number;
-  translations: {
-    activeJobs: string;
-    completed: string;
-    newJob: string;
-    customers: string;
-  };
+  translations: any;
+  userRole?: string;
 }
 
 export const TabsNavigation = ({
@@ -25,75 +20,54 @@ export const TabsNavigation = ({
   activeJobs,
   completedJobs,
   unreadTickets,
-  translations
+  translations,
+  userRole = 'mechanic'
 }: TabsNavigationProps) => {
-  if (isMobile) {
-    return (
-      <>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="active-jobs">{translations.activeJobs} ({activeJobs})</TabsTrigger>
-          <TabsTrigger value="completed-jobs">{translations.completed} ({completedJobs})</TabsTrigger>
-        </TabsList>
-        
-        <div className="grid grid-cols-2 gap-2 mt-2 mb-2">
-          <Button 
-            variant="outline" 
-            className={activeTab === "new-job" ? "bg-muted" : ""} 
-            onClick={() => setActiveTab("new-job")}
-          >
-            {translations.newJob}
-          </Button>
-          <Button 
-            variant="outline" 
-            className={activeTab === "search" ? "bg-muted" : ""} 
-            onClick={() => setActiveTab("search")}
-          >
-            Search
-          </Button>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          <Button 
-            variant="outline" 
-            className={activeTab === "tickets" ? "bg-muted" : ""} 
-            onClick={() => setActiveTab("tickets")}
-          >
-            <Ticket className="mr-1 h-4 w-4" />
-            Tickets
-            {unreadTickets > 0 && (
-              <span className="ml-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {unreadTickets}
-              </span>
-            )}
-          </Button>
-          <Button 
-            variant="outline" 
-            className={activeTab === "account" ? "bg-muted" : ""} 
-            onClick={() => setActiveTab("account")}
-          >
-            <User className="mr-1 h-4 w-4" />
-            Account
-          </Button>
-        </div>
-      </>
-    );
-  } 
-
+  const isAdmin = userRole === 'admin';
+  
   return (
-    <TabsList className="grid w-full grid-cols-6">
-      <TabsTrigger value="active-jobs">{translations.activeJobs} ({activeJobs})</TabsTrigger>
-      <TabsTrigger value="completed-jobs">{translations.completed} ({completedJobs})</TabsTrigger>
-      <TabsTrigger value="new-job">{translations.newJob}</TabsTrigger>
-      <TabsTrigger value="search">Search</TabsTrigger>
-      <TabsTrigger value="tickets" className="relative">
-        Tickets
+    <TabsList className="flex flex-wrap">
+      <TabsTrigger value="active-jobs" onClick={() => setActiveTab("active-jobs")} className="flex gap-2 items-center">
+        <Wrench className="h-4 w-4" />
+        {translations.activeJobs}
+        <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
+          {activeJobs}
+        </span>
+      </TabsTrigger>
+      <TabsTrigger value="completed" onClick={() => setActiveTab("completed")} className="flex gap-2 items-center">
+        <Check className="h-4 w-4" />
+        {translations.completed}
+        <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
+          {completedJobs}
+        </span>
+      </TabsTrigger>
+      <TabsTrigger value="new-job" onClick={() => setActiveTab("new-job")} className="flex gap-2 items-center">
+        <Briefcase className="h-4 w-4" />
+        {translations.newJob}
+      </TabsTrigger>
+      <TabsTrigger value="customers" onClick={() => setActiveTab("customers")} className="flex gap-2 items-center">
+        <User className="h-4 w-4" />
+        {translations.customers}
+      </TabsTrigger>
+      {isAdmin && (
+        <TabsTrigger value="shops" onClick={() => setActiveTab("shops")} className="flex gap-2 items-center">
+          <Store className="h-4 w-4" />
+          {translations.shops || "Shops"}
+        </TabsTrigger>
+      )}
+      <TabsTrigger value="support" onClick={() => setActiveTab("support")} className="flex gap-2 items-center">
+        <MessageSquarePlus className="h-4 w-4" />
+        {translations.tickets}
         {unreadTickets > 0 && (
-          <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+          <span className="bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5 text-xs font-medium">
             {unreadTickets}
           </span>
         )}
       </TabsTrigger>
-      <TabsTrigger value="account">Account</TabsTrigger>
+      <TabsTrigger value="account" onClick={() => setActiveTab("account")} className="flex gap-2 items-center">
+        <User className="h-4 w-4" />
+        {translations.account}
+      </TabsTrigger>
     </TabsList>
   );
 };

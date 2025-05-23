@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import { supabase, getUserShopInfo } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { 
   Select,
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Shield, Save } from "lucide-react";
+import { Shield, Save, Store } from "lucide-react";
 
 interface RoleSwitcherProps {
   userId: string;
@@ -30,9 +30,20 @@ export const RoleSwitcher = ({
 }: RoleSwitcherProps) => {
   const [selectedRole, setSelectedRole] = useState(currentRole);
   const [isSaving, setIsSaving] = useState(false);
+  const [shopInfo, setShopInfo] = useState<any>(null);
+
+  useEffect(() => {
+    // Fetch shop info for the current user
+    const fetchShopInfo = async () => {
+      const info = await getUserShopInfo();
+      setShopInfo(info);
+    };
+
+    fetchShopInfo();
+  }, [userId]);
 
   // Only show role switcher for admin accounts
-  if (!isAdmin) return null;
+  if (!isAdmin && !shopInfo) return null;
 
   const handleRoleSwitch = async () => {
     if (selectedRole === currentRole) return;
@@ -58,44 +69,83 @@ export const RoleSwitcher = ({
   };
 
   return (
-    <div className="space-y-4 border p-4 rounded-lg bg-muted/30">
-      <div className="flex items-center gap-2">
-        <Shield className="h-4 w-4 text-amber-500" />
-        <h3 className="font-medium">{translations.adminTools || "Admin Tools"}</h3>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="role-switch">{translations.switchRole || "Switch Role"}</Label>
-        <div className="flex items-center gap-2">
-          <Select
-            value={selectedRole}
-            onValueChange={setSelectedRole}
-            disabled={isSaving}
-          >
-            <SelectTrigger id="role-switch" className="w-[180px]">
-              <SelectValue placeholder="Select role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="admin">Administrator</SelectItem>
-              <SelectItem value="support">Support Staff</SelectItem>
-              <SelectItem value="mechanic">Mechanic</SelectItem>
-            </SelectContent>
-          </Select>
+    <div className="space-y-8">
+      {isAdmin && (
+        <div className="space-y-4 border p-4 rounded-lg bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-amber-500" />
+            <h3 className="font-medium">{translations.adminTools || "Admin Tools"}</h3>
+          </div>
           
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            onClick={handleRoleSwitch} 
-            disabled={isSaving || selectedRole === currentRole}
-          >
-            <Save className="h-4 w-4 mr-1" />
-            {isSaving ? translations.switching || "Switching..." : translations.switchRole || "Switch"}
-          </Button>
+          <div className="space-y-2">
+            <Label htmlFor="role-switch">{translations.switchRole || "Switch Role"}</Label>
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedRole}
+                onValueChange={setSelectedRole}
+                disabled={isSaving}
+              >
+                <SelectTrigger id="role-switch" className="w-[180px]">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrator</SelectItem>
+                  <SelectItem value="support">Support Staff</SelectItem>
+                  <SelectItem value="mechanic">Mechanic</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={handleRoleSwitch} 
+                disabled={isSaving || selectedRole === currentRole}
+              >
+                <Save className="h-4 w-4 mr-1" />
+                {isSaving ? translations.switching || "Switching..." : translations.switchRole || "Switch"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {translations.roleSwitchDescription || "This allows you to test the application with different permission levels."}
+            </p>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {translations.roleSwitchDescription || "This allows you to test the application with different permission levels."}
-        </p>
-      </div>
+      )}
+
+      {shopInfo && (
+        <div className="space-y-4 border p-4 rounded-lg bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Store className="h-4 w-4 text-blue-500" />
+            <h3 className="font-medium">Shop Information</h3>
+          </div>
+          
+          {shopInfo.shop ? (
+            <div className="space-y-2 text-sm">
+              <div className="grid grid-cols-2 gap-1">
+                <span className="text-muted-foreground">Shop Name:</span>
+                <span>{shopInfo.shop.name}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <span className="text-muted-foreground">Region:</span>
+                <span>{shopInfo.shop.region}, {shopInfo.shop.district}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <span className="text-muted-foreground">Shop ID:</span>
+                <span className="font-mono text-xs">{shopInfo.profile.shop_identifier}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <span className="text-muted-foreground">Services:</span>
+                <span>{shopInfo.shop.services.join(", ")}</span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              You are not currently associated with any shop.
+              {isAdmin && " As an admin, you have access to all shops."}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

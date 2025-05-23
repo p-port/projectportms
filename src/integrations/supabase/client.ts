@@ -26,7 +26,7 @@ export async function signIn(email: string, password: string) {
   return { data, error };
 }
 
-export async function signUp(email: string, password: string, userData: { name: string, role?: string }, redirectTo?: string) {
+export async function signUp(email: string, password: string, userData: { name: string, role?: string, shop_identifier?: string }, redirectTo?: string) {
   const options: any = {
     data: userData
   };
@@ -62,4 +62,40 @@ export async function getCurrentUser() {
 export async function ensureAuthenticated() {
   const { data } = await getSession();
   return data.session !== null;
+}
+
+// Get the user's shop identifier
+export async function getUserShopInfo() {
+  const { user } = await getCurrentUser();
+  
+  if (!user) return null;
+  
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('shop_id, shop_identifier, role')
+    .eq('id', user.id)
+    .single();
+    
+  if (error) {
+    console.error("Error fetching user shop info:", error);
+    return null;
+  }
+  
+  // If shop_id exists, fetch shop details
+  if (data?.shop_id) {
+    const { data: shopData, error: shopError } = await supabase
+      .from('shops')
+      .select('*')
+      .eq('id', data.shop_id)
+      .single();
+      
+    if (!shopError && shopData) {
+      return { 
+        profile: data,
+        shop: shopData
+      };
+    }
+  }
+  
+  return { profile: data, shop: null };
 }

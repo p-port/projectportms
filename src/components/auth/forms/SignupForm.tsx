@@ -1,158 +1,193 @@
 
 import { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { signUp } from "@/integrations/supabase/client";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
-interface SignupFormProps {
-  onSignupSuccess: (pendingUser: any) => void;
-}
+// Define the form schema with validation rules
+const signUpFormSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  role: z.enum(["mechanic", "admin", "support"]),
+  shopIdentifier: z.string().optional(),
+});
 
-export const SignupForm = ({ onSignupSuccess }: SignupFormProps) => {
-  const [signupData, setSignupData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    role: "mechanic" // Default role
+type SignUpFormValues = z.infer<typeof signUpFormSchema>;
+
+export default function SignupForm({ onSuccess }: { onSuccess: () => void }) {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  
+  // Initialize the form with react-hook-form
+  const form = useForm<SignUpFormValues>({
+    resolver: zodResolver(signUpFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      role: "mechanic",
+      shopIdentifier: "",
+    },
   });
-  const [isLoading, setIsLoading] = useState(false);
+  
+  // Get the current role value to conditionally render the shop identifier field
+  const watchRole = form.watch("role");
 
-  const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSignupData({ ...signupData, [e.target.name]: e.target.value });
-  };
-
-  const handleRoleChange = (role: string) => {
-    setSignupData({ ...signupData, role });
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Handle form submission
+  const onSubmit = async (values: SignUpFormValues) => {
     setIsLoading(true);
-    
-    // Simple validation
-    if (!signupData.name || !signupData.email || !signupData.password) {
-      toast.error("Please fill in all required fields");
-      setIsLoading(false);
-      return;
-    }
-    
-    if (signupData.password !== signupData.confirmPassword) {
-      toast.error("Passwords don't match");
-      setIsLoading(false);
-      return;
-    }
-    
     try {
-      const userData = {
-        name: signupData.name,
-        role: signupData.role
-      };
-      
-      // Set redirectTo to the verification success page
       const { data, error } = await signUp(
-        signupData.email, 
-        signupData.password, 
-        userData,
+        values.email, 
+        values.password, 
+        { 
+          name: values.name, 
+          role: values.role,
+          shop_identifier: values.shopIdentifier || undefined
+        },
         `${window.location.origin}/verification-success`
       );
       
       if (error) {
-        console.error("Signup error:", error);
-        toast.error(error.message || "Registration failed. Please try again.");
-        setIsLoading(false);
-        return;
+        console.error("Sign up error:", error);
+        toast.error(error.message);
+      } else {
+        toast.success("Signup successful! Please check your email to verify your account.");
+        onSuccess();
       }
-      
-      toast.success("Registration successful! Please check your email for verification instructions.");
-      
-      const pendingUser = {
-        email: signupData.email,
-        name: signupData.name,
-        role: signupData.role
-      };
-      
-      onSignupSuccess(pendingUser);
-    } catch (error: any) {
-      console.error("Signup exception:", error);
-      toast.error(error.message || "Registration failed. Please try again.");
+    } catch (err) {
+      console.error("Unexpected error during signup:", err);
+      toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSignup} className="space-y-4 mt-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Full Name</Label>
-        <Input
-          id="name"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
           name="name"
-          type="text"
-          placeholder="John Smith"
-          value={signupData.name}
-          onChange={handleSignupChange}
-          required
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Full Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter your name" {...field} disabled={isLoading} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="signup-email">Email</Label>
-        <Input
-          id="signup-email"
+
+        <FormField
+          control={form.control}
           name="email"
-          type="email"
-          placeholder="mechanic@workshop.com"
-          value={signupData.email}
-          onChange={handleSignupChange}
-          required
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email Address</FormLabel>
+              <FormControl>
+                <Input placeholder="email@example.com" {...field} disabled={isLoading} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="role">Role</Label>
-        <Select value={signupData.role} onValueChange={handleRoleChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a role" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="admin">Administrator</SelectItem>
-            <SelectItem value="support">Support Staff</SelectItem>
-            <SelectItem value="mechanic">Mechanic</SelectItem>
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          Note: New accounts require approval by an administrator
-        </p>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="signup-password">Password</Label>
-        <Input
-          id="signup-password"
+
+        <FormField
+          control={form.control}
           name="password"
-          type="password"
-          placeholder="••••••••"
-          value={signupData.password}
-          onChange={handleSignupChange}
-          required
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input 
+                  type="password" 
+                  placeholder="Create a secure password" 
+                  {...field} 
+                  disabled={isLoading} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="confirm-password">Confirm Password</Label>
-        <Input
-          id="confirm-password"
-          name="confirmPassword"
-          type="password"
-          placeholder="••••••••"
-          value={signupData.confirmPassword}
-          onChange={handleSignupChange}
-          required
+
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Role</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex space-x-2"
+                  disabled={isLoading}
+                >
+                  <FormItem className="flex items-center space-x-1 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="mechanic" />
+                    </FormControl>
+                    <FormLabel className="font-normal">Mechanic</FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-1 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="admin" />
+                    </FormControl>
+                    <FormLabel className="font-normal">Admin</FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-1 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="support" />
+                    </FormControl>
+                    <FormLabel className="font-normal">Support</FormLabel>
+                  </FormItem>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Creating Account..." : "Create Account"}
-      </Button>
-    </form>
+
+        {watchRole === "mechanic" && (
+          <FormField
+            control={form.control}
+            name="shopIdentifier"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Shop Identifier (Optional)</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Enter your shop's unique identifier" 
+                    {...field} 
+                    disabled={isLoading} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Creating Account..." : "Create Account"}
+        </Button>
+      </form>
+    </Form>
   );
-};
+}

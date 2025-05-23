@@ -115,6 +115,6 @@ const VerificationSuccess = () => {
       </div>
     </Layout>
   );
-};
+}
 
 export default VerificationSuccess;
