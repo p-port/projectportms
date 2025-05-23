@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase, RpcFunctions } from "@/integrations/supabase/client";
@@ -205,7 +204,7 @@ export function ShopOwnerDetail() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/")}
             >
               <Home className="h-4 w-4 mr-2" />
               Home
