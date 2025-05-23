@@ -23,13 +23,6 @@ interface TabContentProps {
   translations: any;
 }
 
-// The AccountInfoProps interface should match the props expected by the AccountInfo component
-// in src/components/dashboard/account/AccountInfo.tsx
-interface AccountInfoProps {
-  userId?: string;
-  userRole?: string;
-}
-
 export const TabContent = ({
   activeJobs,
   completedJobs,

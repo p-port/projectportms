@@ -1,5 +1,4 @@
 
-import { SearchPanel } from "../SearchPanel";
 import { NotificationCenter } from "../notifications/NotificationCenter";
 
 interface DashboardHeaderProps {
@@ -30,11 +29,6 @@ export const DashboardHeader = ({
         </div>
         <div className="flex items-center gap-2">
           <NotificationCenter userId={userId} />
-          <SearchPanel
-            searchQuery={searchQuery}
-            onSearchChange={onSearchChange}
-            placeholder={translations.searchPlaceholder}
-          />
         </div>
       </div>
     </div>
