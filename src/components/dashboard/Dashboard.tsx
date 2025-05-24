@@ -1,22 +1,59 @@
+// src/components/dashboard/Dashboard.tsx
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 import { supabase } from "@/integrations/supabase/client";
 import { generateUniqueJobId } from "./job-details/JobUtils";
 import { DashboardHeader } from "./features/DashboardHeader";
 import { TabsNavigation } from "./features/TabsNavigation";
 import { TabContent } from "./features/TabContent";
-import { fetchUnreadTicketsCount, subscribeToTicketUpdates } from "./services/UnreadTicketsService";
+import {
+  fetchUnreadTicketsCount,
+  subscribeToTicketUpdates,
+} from "./services/UnreadTicketsService";
 import { toast } from "sonner";
+import type { User } from "@supabase/supabase-js";
 
-interface DashboardProps {
-  user: any;
+// -- TYPES ------------------------------------------------------------------
+
+type Language = "en" | "ko" | "ru";
+
+interface Customer {
+  name: string;
+  email: string;
+  phone: string;
 }
 
-// Dashboard translations
-const translations = {
+interface Motorcycle {
+  make: string;
+  model: string;
+  year: string;
+  vin?: string;
+  mileage?: string;
+  plateNumber?: string;
+}
+
+interface Job {
+  id: string;
+  customer: Customer;
+  motorcycle: Motorcycle;
+  serviceType: string;
+  status: "pending" | "in-progress" | "completed" | string;
+  dateCreated: string;
+  dateCompleted: string | null;
+  notes: any; // refine as needed
+  photos: { start: string[]; completion: string[] };
+  shopId?: string | null;
+}
+
+interface DashboardProps {
+  user: User | null;
+}
+
+// -- TRANSLATIONS -----------------------------------------------------------
+
+const translations: Record<Language, Record<string, string>> = {
   en: {
     dashboard: "Dashboard",
     welcome: "Welcome back",
@@ -38,7 +75,7 @@ const translations = {
     noCompletedJobs: "No completed jobs found",
     completedJobsAppear: "Completed jobs will appear here",
     jobSynced: "Job synced to cloud storage",
-    jobSyncError: "Failed to sync job to cloud"
+    jobSyncError: "Failed to sync job to cloud",
   },
   ko: {
     dashboard: "대시보드",
@@ -58,10 +95,10 @@ const translations = {
     retry: "재시도",
     noActiveJobs: "활성 작업을 찾을 수 없습니다",
     createNewJob: "시작하려면 새 작업을 생성하세요",
-    noCompletedJobs: "완료된 작업을 찾을 수 없습니다", 
+    noCompletedJobs: "완료된 작업을 찾을 수 없습니다",
     completedJobsAppear: "완료된 작업이 여기에 표시됩니다",
     jobSynced: "작업이 클라우드 스토리지에 동기화되었습니다",
-    jobSyncError: "작업을 클라우드에 동기화하지 못했습니다"
+    jobSyncError: "작업을 클라우드에 동기화하지 못했습니다",
   },
   ru: {
     dashboard: "Панель управления",
@@ -84,263 +121,184 @@ const translations = {
     noCompletedJobs: "Завершенных заказов не найдено",
     completedJobsAppear: "Завершенные заказы будут отображаться здесь",
     jobSynced: "Заказ синхронизирован с облачным хранилищем",
-    jobSyncError: "Не удалось синхронизировать заказ с облаком"
-  }
+    jobSyncError: "Не удалось синхронизировать заказ с облаком",
+  },
 };
 
 export const Dashboard = ({ user }: DashboardProps) => {
-  const [activeTab, setActiveTab] = useState("active-jobs");
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<"active-jobs" | "completed">(
+    "active-jobs"
+  );
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const isMobile = useIsMobile();
-  const [language] = useLocalStorage("language", "en");
-  const t = translations[language as keyof typeof translations];
-  const [userRole, setUserRole] = useState<string>('mechanic');
-  
-  // Add unread tickets count
-  const [unreadTickets, setUnreadTickets] = useState(0);
-  
-  // Load user role
+  const [language] = useState<Language>(
+    (localStorage.getItem("language") as Language) || "en"
+  );
+  const t = translations[language];
+  const [userRole, setUserRole] = useState<string>("mechanic");
+
+  const [unreadTickets, setUnreadTickets] = useState<number>(0);
+
+  // — fetch user role —
   useEffect(() => {
     if (!user?.id) return;
-    
-    const fetchUserRole = async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      if (!error && data) {
-        setUserRole(data.role);
-      }
-    };
-    
-    fetchUserRole();
+    supabase
+      .from("profiles")
+      .select<{ role: string }>("role")
+      .eq("id", user.id)
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data) setUserRole(data.role);
+      });
   }, [user?.id]);
-  
-  // Load unread tickets count
+
+  // — unread tickets + subscription —
   useEffect(() => {
     if (!user?.id) return;
-    
-    const loadUnreadTicketsCount = async () => {
-      const count = await fetchUnreadTicketsCount(user.id, userRole);
-      setUnreadTickets(count);
-    };
-    
-    loadUnreadTicketsCount();
-    
-    // Subscribe to ticket updates
+
+    fetchUnreadTicketsCount(user.id, userRole).then(setUnreadTickets);
+
     const channel = subscribeToTicketUpdates(
       user.id,
       userRole,
-      // On new ticket or message
-      () => setUnreadTickets(prev => prev + 1),
-      // On ticket read
-      () => setUnreadTickets(prev => Math.max(0, prev - 1))
+      () => setUnreadTickets((c) => c + 1),
+      () => setUnreadTickets((c) => Math.max(0, c - 1))
     );
-      
     return () => {
-      if (channel) supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [user?.id, userRole]);
 
-  // Load jobs from Supabase if user is authenticated, otherwise use localStorage
+  // — load jobs —
   useEffect(() => {
-    const loadJobs = async () => {
-      setLoading(true);
-      setError(false);
-      
+    setLoading(true);
+    setError(false);
+
+    const load = async () => {
       try {
         if (user?.id) {
-          // Try to load jobs from Supabase
-          const { data: supabaseJobs, error } = await supabase
-            .from('jobs')
-            .select('*')
-            .order('date_created', { ascending: false });
-            
-          if (error) throw error;
-          
-          if (supabaseJobs && supabaseJobs.length > 0) {
-            // Transform Supabase jobs to match our app's format
-            const formattedJobs = supabaseJobs.map(job => ({
+          const { data: raw, error: supaErr } = await supabase
+            .from("jobs")
+            .select("*")
+            .order("date_created", { ascending: false });
+          if (supaErr) throw supaErr;
+          if (raw && raw.length) {
+            const formatted: Job[] = raw.map((job) => ({
               id: job.job_id,
               customer: job.customer,
               motorcycle: job.motorcycle,
               serviceType: job.service_type,
               status: job.status,
-              dateCreated: job.date_created ? new Date(job.date_created).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-              dateCompleted: job.date_completed ? new Date(job.date_completed).toISOString().split('T')[0] : null,
-              notes: job.notes || [],
-              photos: job.photos || { start: [], completion: [] },
-              // Handle shop_id safely, using optional chaining and type assertion
-              shopId: (job as any).shop_id || null
+              dateCreated: job.date_created
+                ? new Date(job.date_created).toISOString().split("T")[0]
+                : new Date().toISOString().split("T")[0],
+              dateCompleted: job.date_completed
+                ? new Date(job.date_completed).toISOString().split("T")[0]
+                : null,
+              notes: job.notes ?? [],
+              photos: job.photos ?? { start: [], completion: [] },
+              shopId: (job as any).shop_id ?? null,
             }));
-            
-            setJobs(formattedJobs);
-            
-            // Also update localStorage for offline access
-            localStorage.setItem('projectPortJobs', JSON.stringify(formattedJobs));
+            setJobs(formatted);
+            localStorage.setItem("projectPortJobs", JSON.stringify(formatted));
             return;
           }
         }
-        
-        // If no user or no jobs in Supabase, fall back to localStorage
-        const storedJobsString = localStorage.getItem('projectPortJobs');
-        if (storedJobsString) {
-          const storedJobs = JSON.parse(storedJobsString);
-          setJobs(storedJobs);
-          
-          // If user is authenticated, sync to Supabase
-          if (user?.id) {
-            syncJobsToSupabase(storedJobs, user.id);
-            toast.success(t.jobSynced);
-          }
+
+        // fallback localStorage
+        const stored = localStorage.getItem("projectPortJobs");
+        if (stored) {
+          const arr: Job[] = JSON.parse(stored);
+          setJobs(arr);
         } else {
-          // No jobs in localStorage either - no sample jobs needed anymore since we have Supabase
           setJobs([]);
-          localStorage.setItem('projectPortJobs', JSON.stringify([]));
+          localStorage.setItem("projectPortJobs", "[]");
         }
-      } catch (err) {
-        console.error("Error loading jobs:", err);
+      } catch {
         setError(true);
-        
-        // Attempt to fall back to localStorage
-        const storedJobsString = localStorage.getItem('projectPortJobs');
-        if (storedJobsString) {
-          setJobs(JSON.parse(storedJobsString));
-        } else {
-          setJobs([]);
-          localStorage.setItem('projectPortJobs', JSON.stringify([]));
-        }
+        const stored = localStorage.getItem("projectPortJobs");
+        setJobs(stored ? JSON.parse(stored) : []);
       } finally {
         setLoading(false);
       }
     };
+    load();
+  }, [user?.id]);
 
-    loadJobs();
-  }, [user?.id, t.jobSynced]);
-
-  // Sync jobs to Supabase
-  const syncJobsToSupabase = async (jobsToSync: any[], userId: string) => {
+  // — sync helper —
+  const syncJobsToSupabase = async (jobsToSync: Job[], userId: string) => {
     try {
-      // Get user's shop ID using type assertion to avoid TypeScript errors 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
         .single();
-        
-      // Safely access shop_id using type assertion
-      const shopId = (profileData as any)?.shop_id || null;
-
-      for (const job of jobsToSync) {
-        await supabase.from('jobs').upsert({
-          job_id: job.id,
-          customer: job.customer,
-          motorcycle: job.motorcycle, 
-          service_type: job.serviceType,
-          status: job.status,
-          date_created: job.dateCreated,
-          date_completed: job.dateCompleted,
-          notes: job.notes,
-          photos: job.photos,
+      const shopId = (profile as any)?.shop_id ?? null;
+      for (const j of jobsToSync) {
+        await supabase.from("jobs").upsert({
+          job_id: j.id,
+          customer: j.customer,
+          motorcycle: j.motorcycle,
+          service_type: j.serviceType,
+          status: j.status,
+          date_created: j.dateCreated,
+          date_completed: j.dateCompleted,
+          notes: j.notes,
+          photos: j.photos,
           user_id: userId,
-          shop_id: shopId
+          shop_id: shopId,
         });
       }
-    } catch (error) {
-      console.error("Error syncing jobs to Supabase:", error);
+      toast.success(t.jobSynced);
+    } catch {
       toast.error(t.jobSyncError);
     }
   };
 
-  const handleAddJob = async (jobData: any) => {
-    // Generate a unique job ID based on motorcycle details
-    const newJobId = generateUniqueJobId(
-      jobData.motorcycle.make,
-      jobData.motorcycle.model,
-      jobs.length + 1
-    );
-    
-    const newJob = {
+  const handleAddJob = (jobData: Omit<Job, "id" | "status" | "dateCreated" | "dateCompleted" | "notes" | "photos">) => {
+    const newId = generateUniqueJobId(jobData.motorcycle.make, jobData.motorcycle.model, jobs.length + 1);
+    const newJob: Job = {
       ...jobData,
-      id: newJobId,
-      dateCreated: new Date().toISOString().split('T')[0],
+      id: newId,
       status: "pending",
+      dateCreated: new Date().toISOString().split("T")[0],
+      dateCompleted: null,
       notes: [],
-      photos: {
-        start: [],
-        completion: []
-      }
+      photos: { start: [], completion: [] },
     };
-    
-    const updatedJobs = [newJob, ...jobs];
-    setJobs(updatedJobs);
-    localStorage.setItem('projectPortJobs', JSON.stringify(updatedJobs));
-    
-    // If user is authenticated, sync to Supabase
-    if (user?.id) {
-      try {
-        // Get user's shop ID with type assertion
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-          
-        // Safely access shop_id using type assertion
-        const shopId = (profileData as any)?.shop_id || null;
-        
-        const { error } = await supabase.from('jobs').insert({
-          job_id: newJob.id,
-          customer: newJob.customer,
-          motorcycle: newJob.motorcycle,
-          service_type: newJob.serviceType,
-          status: newJob.status,
-          date_created: newJob.dateCreated,
-          notes: newJob.notes,
-          photos: newJob.photos,
-          user_id: user.id,
-          shop_id: shopId
-        });
-        
-        if (error) throw error;
-        toast.success(t.jobSynced);
-      } catch (error) {
-        console.error("Error adding job to Supabase:", error);
-        toast.error(t.jobSyncError);
-      }
-    }
-    
+    const updated = [newJob, ...jobs];
+    setJobs(updated);
+    localStorage.setItem("projectPortJobs", JSON.stringify(updated));
+    if (user?.id) syncJobsToSupabase(updated, user.id);
     setActiveTab("active-jobs");
   };
 
-  const filteredJobs = searchQuery 
-    ? jobs.filter(job => 
-        job.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.motorcycle.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.motorcycle.model.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = searchQuery
+    ? jobs.filter(
+        (j) =>
+          j.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          j.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          j.motorcycle.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          j.motorcycle.model.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : jobs;
 
-  const activeJobs = filteredJobs.filter(job => job.status !== "completed");
-  const completedJobs = filteredJobs.filter(job => job.status === "completed");
+  const activeJobs = filtered.filter((j) => j.status !== "completed");
+  const completedJobs = filtered.filter((j) => j.status === "completed");
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
         <div className="text-center space-y-4">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
           <p>{t.loading}</p>
         </div>
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -355,7 +313,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
   return (
     <div className="space-y-6">
       <DashboardHeader
-        userName={user?.name}
+        userName={user?.email}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         translations={t}
