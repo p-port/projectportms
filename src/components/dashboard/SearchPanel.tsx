@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchCustomers } from "./SearchCustomers";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, User, Motorcycle, Briefcase } from "lucide-react";
+import { Search, User, Bike, Briefcase } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,17 @@ interface SearchPanelProps {
   translations: any;
   userRole?: string;
   userId?: string;
+}
+
+interface MotorcycleData {
+  make: string;
+  model: string;
+  year: string;
+  vin?: string;
+}
+
+interface CustomerData {
+  name: string;
 }
 
 export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId }: SearchPanelProps) => {
@@ -71,7 +82,7 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
       // Group by motorcycle (VIN or make+model+year)
       const motorcycleMap = new Map();
       data?.forEach(job => {
-        const motorcycle = job.motorcycle;
+        const motorcycle = job.motorcycle as MotorcycleData;
         const key = motorcycle.vin || `${motorcycle.make}-${motorcycle.model}-${motorcycle.year}`;
         
         if (!motorcycleMap.has(key)) {
@@ -90,7 +101,8 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
           customer: job.customer
         });
         
-        motorcycleMap.get(key).owners.add(job.customer.name);
+        const customer = job.customer as CustomerData;
+        motorcycleMap.get(key).owners.add(customer.name);
       });
 
       const results = Array.from(motorcycleMap.entries()).map(([key, data]) => ({
@@ -184,7 +196,7 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
             Customers
           </TabsTrigger>
           <TabsTrigger value="motorcycles" className="flex gap-2 items-center">
-            <Motorcycle className="h-4 w-4" />
+            <Bike className="h-4 w-4" />
             Motorcycles
             {motorcycleResults.length > 0 && (
               <Badge variant="secondary" className="ml-1">
@@ -205,8 +217,7 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
 
         <TabsContent value="customers">
           <SearchCustomers 
-            jobs={jobs} 
-            translations={translations}
+            jobs={jobs}
             userRole={userRole}
             userId={userId}
           />
@@ -304,11 +315,11 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <h4 className="font-medium">Customer:</h4>
-                          <p>{formatCustomerName(job.customer.name)}</p>
+                          <p>{formatCustomerName((job.customer as CustomerData).name)}</p>
                         </div>
                         <div>
                           <h4 className="font-medium">Motorcycle:</h4>
-                          <p>{job.motorcycle.make} {job.motorcycle.model} ({job.motorcycle.year})</p>
+                          <p>{(job.motorcycle as MotorcycleData).make} {(job.motorcycle as MotorcycleData).model} ({(job.motorcycle as MotorcycleData).year})</p>
                         </div>
                       </div>
                     </CardContent>

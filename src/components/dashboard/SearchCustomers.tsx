@@ -1,220 +1,208 @@
 
-import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Search, User } from "lucide-react";
+import { Search } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SearchCustomersProps {
   jobs: any[];
+  userRole?: string;
+  userId?: string;
 }
 
-export const SearchCustomers = ({ jobs }: SearchCustomersProps) => {
+interface CustomerData {
+  name: string;
+  email: string;
+  phone?: string;
+}
+
+export const SearchCustomers = ({ jobs, userRole = 'mechanic', userId }: SearchCustomersProps) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
+  const [customerResults, setCustomerResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [userShopId, setUserShopId] = useState<string | null>(null);
 
-  // Extract unique customers from jobs
-  const uniqueCustomers = jobs.reduce((acc: any[], job) => {
-    const existingCustomer = acc.find(
-      (c) => c.email === job.customer.email
-    );
-    if (!existingCustomer) {
-      acc.push({
-        ...job.customer,
-        jobCount: 1,
-      });
-    } else {
-      existingCustomer.jobCount += 1;
+  const isAdmin = userRole === 'admin';
+  const isSupport = userRole === 'support';
+  const canSeeAllData = isAdmin || isSupport;
+
+  // Get user's shop ID for filtering
+  useEffect(() => {
+    if (userId && !canSeeAllData) {
+      const fetchUserShop = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('shop_id')
+          .eq('id', userId)
+          .single();
+        
+        if (data?.shop_id) {
+          setUserShopId(data.shop_id);
+        }
+      };
+      
+      fetchUserShop();
     }
-    return acc;
-  }, []);
+  }, [userId, canSeeAllData]);
 
-  const handleSearch = () => {
-    if (searchQuery.trim() === "") {
-      setSearchResults([]);
+  const searchCustomers = async (query: string) => {
+    if (!query.trim()) {
+      setCustomerResults([]);
       return;
     }
 
-    const query = searchQuery.toLowerCase();
-    const results = uniqueCustomers.filter(
-      (customer) =>
-        customer.name.toLowerCase().includes(query) ||
-        customer.email.toLowerCase().includes(query) ||
-        customer.phone.toLowerCase().includes(query)
-    );
+    setLoading(true);
+    try {
+      let dbQuery = supabase
+        .from('jobs')
+        .select('*')
+        .or(`customer->>name.ilike.%${query}%,customer->>email.ilike.%${query}%,customer->>phone.ilike.%${query}%`);
 
-    setSearchResults(results);
-    setSelectedCustomer(null);
-  };
+      // Filter by shop for non-admin/support users
+      if (!canSeeAllData && userShopId) {
+        dbQuery = dbQuery.eq('shop_id', userShopId);
+      }
 
-  const handleCustomerClick = (customer: any) => {
-    // Find all jobs for this customer
-    const customerJobs = jobs.filter(
-      (job) => job.customer.email === customer.email
-    );
-    
-    setSelectedCustomer({
-      ...customer,
-      jobs: customerJobs,
-    });
-  };
+      const { data, error } = await dbQuery.order('date_created', { ascending: false });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "in-progress":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "on-hold":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      case "completed":
-        return "bg-green-100 text-green-800 border-green-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+      if (error) throw error;
+
+      // Group by customer
+      const customerMap = new Map();
+      data?.forEach(job => {
+        const customer = job.customer as CustomerData;
+        const key = customer.email || customer.name;
+        
+        if (!customerMap.has(key)) {
+          customerMap.set(key, {
+            customer,
+            jobs: [],
+            motorcycles: new Set()
+          });
+        }
+        
+        customerMap.get(key).jobs.push({
+          jobId: job.job_id,
+          serviceType: job.service_type,
+          date: job.date_created,
+          status: job.status,
+          motorcycle: job.motorcycle
+        });
+        
+        const motorcycle = job.motorcycle as any;
+        customerMap.get(key).motorcycles.add(`${motorcycle.make} ${motorcycle.model} (${motorcycle.year})`);
+      });
+
+      const results = Array.from(customerMap.entries()).map(([key, data]) => ({
+        key,
+        ...data,
+        motorcycles: Array.from(data.motorcycles)
+      }));
+
+      setCustomerResults(results);
+    } catch (error) {
+      console.error('Error searching customers:', error);
+      setCustomerResults([]);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleSearch = () => {
+    searchCustomers(searchQuery);
+  };
+
+  const formatCustomerName = (name: string) => {
+    if (!name) return "Unknown";
+    if (name.length <= 2) return name;
+    return name.charAt(0) + "*".repeat(name.length - 2) + name.charAt(name.length - 1);
+  };
+
+  const formatCustomerEmail = (email: string) => {
+    if (!email) return "No email";
+    const [localPart, domain] = email.split('@');
+    if (localPart.length <= 2) return email;
+    return localPart.charAt(0) + "*".repeat(localPart.length - 2) + localPart.charAt(localPart.length - 1) + '@' + domain;
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search customers by name, email or phone..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          />
-        </div>
-        <Button onClick={handleSearch}>Search</Button>
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <Input
+          placeholder="Search customers..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+        />
+        <Button onClick={handleSearch} disabled={loading}>
+          <Search className="h-4 w-4 mr-2" />
+          Search
+        </Button>
       </div>
 
-      {searchQuery && searchResults.length === 0 && (
+      {loading ? (
         <div className="text-center py-8">
-          <User className="h-12 w-12 mx-auto text-gray-400" />
-          <h3 className="mt-2 text-lg font-medium text-gray-900">
-            No customers found
-          </h3>
-          <p className="mt-1 text-gray-500">
-            Try a different search term or add a new customer
-          </p>
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+          <p className="mt-2">Searching customers...</p>
         </div>
-      )}
-
-      {searchResults.length > 0 && !selectedCustomer && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-medium">
-            Search Results ({searchResults.length})
-          </h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {searchResults.map((customer, index) => (
-              <Card
-                key={index}
-                className="cursor-pointer hover:border-primary transition-colors"
-                onClick={() => handleCustomerClick(customer)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium">{customer.name}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {customer.email}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {customer.phone}
-                      </p>
-                    </div>
-                    <Badge variant="outline">
-                      {customer.jobCount} job{customer.jobCount !== 1 && "s"}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {selectedCustomer && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-medium">{selectedCustomer.name}</h2>
-            <Button
-              variant="outline"
-              onClick={() => setSelectedCustomer(null)}
-            >
-              Back to Results
-            </Button>
-          </div>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="space-y-4">
+      ) : customerResults.length > 0 ? (
+        <div className="grid gap-4">
+          {customerResults.map((result) => (
+            <Card key={result.key}>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  {formatCustomerName(result.customer.name)}
+                </CardTitle>
+                <CardDescription>
+                  {formatCustomerEmail(result.customer.email)}
+                  {result.customer.phone && ` • ${result.customer.phone.charAt(0)}***${result.customer.phone.slice(-2)}`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-medium">Contact Information</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Email:</p>
-                      <p>{selectedCustomer.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Phone:</p>
-                      <p>{selectedCustomer.phone}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-medium">Service History</h3>
-                  <p className="text-sm text-muted-foreground mt-1 mb-3">
-                    This customer has {selectedCustomer.jobs.length} service
-                    {selectedCustomer.jobs.length !== 1 && "s"} on record
-                  </p>
-
-                  <div className="space-y-4">
-                    {selectedCustomer.jobs.map((job: any, index: number) => (
-                      <Card key={index} className="overflow-hidden">
-                        <div className="border-l-4 border-primary p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-medium">{job.id}</p>
-                              <p className="text-sm">
-                                {job.motorcycle.make} {job.motorcycle.model}{" "}
-                                ({job.motorcycle.year})
-                              </p>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {job.serviceType}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <Badge
-                                className={`${getStatusColor(
-                                  job.status
-                                )} capitalize`}
-                              >
-                                {job.status.replace("-", " ")}
-                              </Badge>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Created: {job.dateCreated}
-                              </p>
-                              {job.dateCompleted && (
-                                <p className="text-xs text-muted-foreground">
-                                  Completed: {job.dateCompleted}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
+                  <h4 className="font-medium mb-2">Motorcycles Owned:</h4>
+                  <div className="flex flex-wrap gap-1">
+                    {result.motorcycles.map((motorcycle: string, index: number) => (
+                      <Badge key={index} variant="outline">
+                        {motorcycle}
+                      </Badge>
                     ))}
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Service History:</h4>
+                  <div className="space-y-2">
+                    {result.jobs.map((job: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
+                        <div>
+                          <span className="font-medium">{job.jobId}</span>
+                          <span className="text-muted-foreground ml-2">{job.serviceType}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm">{new Date(job.date).toLocaleDateString()}</div>
+                          <Badge variant={job.status === 'completed' ? 'default' : 'secondary'}>
+                            {job.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : searchQuery ? (
+        <div className="text-center py-8 text-muted-foreground">
+          No customers found matching "{searchQuery}"
+        </div>
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          Enter a search term to find customers
         </div>
       )}
     </div>
