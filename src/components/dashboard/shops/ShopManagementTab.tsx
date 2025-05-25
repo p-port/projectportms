@@ -4,9 +4,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShopsList } from "./ShopsList";
 import { ShopRegistrationForm } from "./ShopRegistrationForm";
 import { AdminShopRegistration } from "./AdminShopRegistration";
-import { useAuthCheck } from "../account/AccountInfo";
+import { useAuthCheck } from "@/hooks/useAuthCheck";
 
-export const ShopManagementTab = () => {
+interface ShopManagementTabProps {
+  userId?: string;
+}
+
+export const ShopManagementTab = ({ userId }: ShopManagementTabProps) => {
   const { userRole } = useAuthCheck();
   const isAdmin = userRole === 'admin';
 

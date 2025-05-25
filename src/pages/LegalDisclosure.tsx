@@ -1,229 +1,202 @@
-
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Shield, FileText, Lock, CheckCircle
+} from "lucide-react";
 import { toast } from "sonner";
-import { FileText, Shield, ArrowRight } from "lucide-react";
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export const LegalDisclosure = () => {
-  const { jobId } = useParams();
-  const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
-  const [customerEmail, setCustomerEmail] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { jobId } = location.state || {};
 
   useEffect(() => {
-    // Get customer info from URL params or localStorage if available
-    const urlParams = new URLSearchParams(window.location.search);
-    const email = urlParams.get('email');
-    const phone = urlParams.get('phone');
-    
-    if (email) setCustomerEmail(email);
-    if (phone) setCustomerPhone(phone);
+    // Load acceptance state from localStorage on component mount
+    const storedTerms = localStorage.getItem('termsAccepted') === 'true';
+    const storedPrivacy = localStorage.getItem('privacyAccepted') === 'true';
+    setTermsAccepted(storedTerms);
+    setPrivacyAccepted(storedPrivacy);
   }, []);
 
-  const handleAcceptTerms = async () => {
-    if (!termsAccepted) {
-      toast.error("Please accept the Terms of Service to continue");
-      return;
+  const handleTermsChange = (checked: boolean | "indeterminate") => {
+    if (typeof checked === 'boolean') {
+      setTermsAccepted(checked);
     }
+  };
 
+  const handlePrivacyChange = (checked: boolean | "indeterminate") => {
+    if (typeof checked === 'boolean') {
+      setPrivacyAccepted(checked);
+    }
+  };
+
+  const submitAcceptance = async () => {
+    setIsSubmitting(true);
     try {
-      setLoading(true);
-      
-      // Record terms acceptance
-      const { error } = await supabase
-        .from('legal_disclosures')
-        .upsert({
-          customer_email: customerEmail,
-          customer_phone: customerPhone,
-          job_id: jobId,
-          terms_accepted: true,
-          terms_accepted_at: new Date().toISOString(),
-          ip_address: await getClientIP(),
-          user_agent: navigator.userAgent
-        });
+      // Store acceptance state in localStorage
+      localStorage.setItem('termsAccepted', String(termsAccepted));
+      localStorage.setItem('privacyAccepted', String(privacyAccepted));
 
-      if (error) throw error;
-
-      setCurrentStep(2);
+      toast.success("Legal disclosures accepted!");
+      navigate(`/track-job/${jobId}`);
     } catch (error) {
-      console.error("Error recording terms acceptance:", error);
-      toast.error("Failed to record acceptance. Please try again.");
+      console.error("Error submitting acceptance:", error);
+      toast.error("Failed to submit acceptance. Please try again.");
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
-
-  const handleAcceptPrivacy = async () => {
-    if (!privacyAccepted) {
-      toast.error("Please accept the Privacy Policy to continue");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      
-      // Record privacy acceptance
-      const { error } = await supabase
-        .from('legal_disclosures')
-        .update({
-          privacy_accepted: true,
-          privacy_accepted_at: new Date().toISOString()
-        })
-        .eq('customer_email', customerEmail)
-        .eq('job_id', jobId);
-
-      if (error) throw error;
-
-      toast.success("Legal disclosures completed");
-      
-      // Redirect to job tracking page
-      if (jobId) {
-        navigate(`/track-job/${jobId}`);
-      } else {
-        navigate('/');
-      }
-    } catch (error) {
-      console.error("Error recording privacy acceptance:", error);
-      toast.error("Failed to record acceptance. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getClientIP = async () => {
-    try {
-      const response = await fetch('https://api.ipify.org?format=json');
-      const data = await response.json();
-      return data.ip;
-    } catch {
-      return null;
-    }
-  };
-
-  if (currentStep === 1) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <FileText className="h-12 w-12 text-blue-600" />
-            </div>
-            <CardTitle className="text-2xl">Terms of Service</CardTitle>
-            <p className="text-muted-foreground">
-              Please review and accept our terms of service to continue
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="bg-gray-50 p-6 rounded-lg max-h-96 overflow-y-auto">
-              <h3 className="font-semibold mb-4">Motorcycle Service Terms</h3>
-              <div className="space-y-4 text-sm">
-                <p>
-                  By using our motorcycle service platform, you agree to the following terms:
-                </p>
-                <ul className="list-disc list-inside space-y-2">
-                  <li>All service work is performed by certified mechanics</li>
-                  <li>Estimated completion times are approximate and may vary</li>
-                  <li>Payment is due upon completion of service</li>
-                  <li>We are not responsible for pre-existing damage not disclosed</li>
-                  <li>All parts and labor come with our standard warranty</li>
-                  <li>Additional work may be required and will be communicated before proceeding</li>
-                </ul>
-                <p>
-                  These terms are subject to change. Continued use of our services implies acceptance of any modifications.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="terms"
-                checked={termsAccepted}
-                onCheckedChange={setTermsAccepted}
-              />
-              <label htmlFor="terms" className="text-sm font-medium">
-                I have read and accept the Terms of Service
-              </label>
-            </div>
-            
-            <Button 
-              onClick={handleAcceptTerms} 
-              disabled={!termsAccepted || loading}
-              className="w-full"
-            >
-              {loading ? "Processing..." : "Accept Terms"}
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Shield className="h-12 w-12 text-green-600" />
-          </div>
-          <CardTitle className="text-2xl">Privacy Policy</CardTitle>
-          <p className="text-muted-foreground">
-            Your privacy and data protection are important to us
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="bg-gray-50 p-6 rounded-lg max-h-96 overflow-y-auto">
-            <h3 className="font-semibold mb-4">Data Collection and Usage</h3>
-            <div className="space-y-4 text-sm">
-              <p>
-                We collect and use your personal information to provide motorcycle repair services:
-              </p>
-              <ul className="list-disc list-inside space-y-2">
-                <li>Contact information for service updates and communication</li>
-                <li>Vehicle information for proper service delivery</li>
-                <li>Service history for warranty and future reference</li>
-                <li>Payment information for transaction processing</li>
-                <li>Photos of your motorcycle for documentation purposes</li>
-              </ul>
-              <h4 className="font-semibold mt-4">Data Protection</h4>
-              <ul className="list-disc list-inside space-y-2">
-                <li>Your data is stored securely and encrypted</li>
-                <li>We do not share your information with third parties without consent</li>
-                <li>You can request data deletion at any time</li>
-                <li>We comply with local data protection regulations</li>
-              </ul>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="max-w-4xl w-full bg-white rounded-xl shadow-xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6">
+          <div className="flex items-center gap-3">
+            <Shield className="h-8 w-8" />
+            <div>
+              <h1 className="text-2xl font-bold">Legal Disclosure & Consent</h1>
+              <p className="text-blue-100">Please review and accept our terms to continue</p>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="privacy"
-              checked={privacyAccepted}
-              onCheckedChange={setPrivacyAccepted}
-            />
-            <label htmlFor="privacy" className="text-sm font-medium">
-              I consent to the collection and use of my personal data as described
-            </label>
+        </div>
+
+        <div className="p-6 space-y-8">
+          {/* Terms of Service Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-blue-600" />
+                Terms of Service
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="max-h-64 overflow-y-auto border rounded-md p-4 bg-gray-50">
+                <div className="space-y-4 text-sm">
+                  <h3 className="font-semibold">1. Service Agreement</h3>
+                  <p>By using our motorcycle repair tracking service, you agree to be bound by these terms and conditions. Our service provides real-time updates on repair progress and facilitates communication between customers and repair shops.</p>
+                  
+                  <h3 className="font-semibold">2. Service Limitations</h3>
+                  <p>While we strive to provide accurate and timely updates, repair timelines may vary due to parts availability, complexity of repairs, and shop workload. We are not responsible for delays beyond our control.</p>
+                  
+                  <h3 className="font-semibold">3. Payment and Billing</h3>
+                  <p>All repair costs are determined by the service shop. Our platform may facilitate payment processing but does not set pricing. Final costs will be communicated before completion.</p>
+                  
+                  <h3 className="font-semibold">4. Liability</h3>
+                  <p>Our liability is limited to the platform service itself. We are not responsible for the quality of repairs, parts used, or any damage that may occur during the repair process.</p>
+                  
+                  <h3 className="font-semibold">5. Termination</h3>
+                  <p>Either party may terminate this agreement at any time. Upon termination, you will retain access to historical repair records for your reference.</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="terms"
+                  checked={termsAccepted}
+                  onCheckedChange={handleTermsChange}
+                />
+                <label
+                  htmlFor="terms"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  I have read and agree to the Terms of Service
+                </label>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Privacy Policy Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-green-600" />
+                Privacy Policy & Data Collection Consent
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="max-h-64 overflow-y-auto border rounded-md p-4 bg-gray-50">
+                <div className="space-y-4 text-sm">
+                  <h3 className="font-semibold">Data We Collect</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Contact information (email, phone number)</li>
+                    <li>Vehicle information (make, model, year, license plate)</li>
+                    <li>Service history and repair details</li>
+                    <li>Communication logs between customer and shop</li>
+                    <li>Location data for service pickup/delivery (if applicable)</li>
+                  </ul>
+                  
+                  <h3 className="font-semibold">How We Use Your Data</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Provide repair tracking and status updates</li>
+                    <li>Facilitate communication with service providers</li>
+                    <li>Send notifications about your vehicle's service</li>
+                    <li>Improve our service quality and user experience</li>
+                    <li>Maintain service records for warranty purposes</li>
+                  </ul>
+                  
+                  <h3 className="font-semibold">Data Sharing</h3>
+                  <p>We share your data only with authorized repair shops working on your vehicle and trusted service providers who help us operate our platform. We never sell your personal information to third parties.</p>
+                  
+                  <h3 className="font-semibold">Data Security</h3>
+                  <p>We use industry-standard security measures to protect your information, including encryption, secure servers, and access controls. However, no system is 100% secure.</p>
+                  
+                  <h3 className="font-semibold">Your Rights</h3>
+                  <p>You can request to view, update, or delete your personal data at any time by contacting us. You may also opt out of non-essential communications.</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="privacy"
+                  checked={privacyAccepted}
+                  onCheckedChange={handlePrivacyChange}
+                />
+                <label
+                  htmlFor="privacy"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  I consent to the collection and use of my personal data as described
+                </label>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-4 pt-6 border-t">
+            <Button
+              variant="outline"
+              onClick={() => window.history.back()}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={submitAcceptance}
+              disabled={!termsAccepted || !privacyAccepted || isSubmitting}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Accept & Continue
+                </>
+              )}
+            </Button>
           </div>
-          
-          <Button 
-            onClick={handleAcceptPrivacy} 
-            disabled={!privacyAccepted || loading}
-            className="w-full"
-          >
-            {loading ? "Processing..." : "Accept Privacy Policy"}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

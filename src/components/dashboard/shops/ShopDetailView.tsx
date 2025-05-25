@@ -1,40 +1,34 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { 
-  ArrowLeft, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Users, 
-  Wrench, 
-  Building,
-  Fax,
-  Smartphone,
-  FileText
-} from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
 import { Shop } from "@/types/shop";
+import { 
+  ArrowLeft, Building2, MapPin, Users, Phone, 
+  Mail, FileText, Smartphone, Printer
+} from "lucide-react";
+import { toast } from "sonner";
 
 export const ShopDetailView = () => {
-  const { shopId } = useParams();
+  const { shopId } = useParams<{ shopId: string }>();
   const navigate = useNavigate();
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
+  const [memberCount, setMemberCount] = useState(0);
 
   useEffect(() => {
     if (shopId) {
       fetchShopDetails();
+      fetchMemberCount();
     }
   }, [shopId]);
 
   const fetchShopDetails = async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('shops')
         .select('*')
@@ -42,73 +36,69 @@ export const ShopDetailView = () => {
         .single();
 
       if (error) throw error;
-      setShop(data as Shop);
+      setShop(data);
     } catch (error) {
-      console.error("Error fetching shop details:", error);
-      toast.error("Failed to load shop details");
-      navigate('/shop-management');
+      console.error('Error fetching shop details:', error);
+      toast.error('Failed to load shop details');
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchMemberCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact' })
+        .eq('shop_id', shopId);
+
+      if (error) throw error;
+      setMemberCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching member count:', error);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/shop-management')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Shops
-          </Button>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">Loading shop details...</div>
-          </CardContent>
-        </Card>
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
   if (!shop) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/shop-management')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Shops
-          </Button>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">Shop not found</div>
-          </CardContent>
-        </Card>
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Shop not found</p>
+        <Button onClick={() => navigate('/shop-management')} className="mt-4">
+          Back to Shops
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/shop-management')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Shops
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{shop.name}</h1>
-            <p className="text-muted-foreground">Shop Details</p>
-          </div>
-        </div>
+    <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="flex items-center gap-4 mb-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/shop-management')}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Shops
+        </Button>
+        <h1 className="text-2xl font-bold">Shop Details</h1>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Basic Information */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Building className="h-5 w-5" />
+              <Building2 className="h-5 w-5 text-blue-500" />
               Basic Information
             </CardTitle>
           </CardHeader>
@@ -135,11 +125,11 @@ export const ShopDetailView = () => {
             </div>
             
             <div>
-              <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+              <label className="text-sm font-medium text-muted-foreground">Employee Count</label>
+              <p className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Employee Count
-              </label>
-              <p>{shop.employee_count} employees</p>
+                {shop.employee_count} employees ({memberCount} registered)
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -148,58 +138,64 @@ export const ShopDetailView = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Phone className="h-5 w-5" />
+              <Phone className="h-5 w-5 text-green-500" />
               Contact Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {shop.business_phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Business Phone</label>
-                  <p>{shop.business_phone}</p>
-                </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Business Phone</label>
+                <p className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  <a href={`tel:${shop.business_phone}`} className="text-blue-600 hover:underline">
+                    {shop.business_phone}
+                  </a>
+                </p>
               </div>
             )}
             
             {shop.mobile_phone && (
-              <div className="flex items-center gap-2">
-                <Smartphone className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Mobile Phone</label>
-                  <p>{shop.mobile_phone}</p>
-                </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Mobile Phone</label>
+                <p className="flex items-center gap-2">
+                  <Smartphone className="h-4 w-4" />
+                  <a href={`tel:${shop.mobile_phone}`} className="text-blue-600 hover:underline">
+                    {shop.mobile_phone}
+                  </a>
+                </p>
               </div>
             )}
             
             {shop.fax_number && (
-              <div className="flex items-center gap-2">
-                <Fax className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Fax Number</label>
-                  <p>{shop.fax_number}</p>
-                </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Fax Number</label>
+                <p className="flex items-center gap-2">
+                  <Printer className="h-4 w-4" />
+                  {shop.fax_number}
+                </p>
               </div>
             )}
             
             {shop.tax_email && (
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Tax Email</label>
-                  <p>{shop.tax_email}</p>
-                </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Tax Email</label>
+                <p className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  <a href={`mailto:${shop.tax_email}`} className="text-blue-600 hover:underline">
+                    {shop.tax_email}
+                  </a>
+                </p>
               </div>
             )}
             
             {shop.full_address && (
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Full Address</label>
-                  <p>{shop.full_address}</p>
-                </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Full Address</label>
+                <p className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 mt-0.5" />
+                  {shop.full_address}
+                </p>
               </div>
             )}
           </CardContent>
@@ -209,35 +205,26 @@ export const ShopDetailView = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+              <FileText className="h-5 w-5 text-purple-500" />
               Business Registration
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {shop.business_registration_number && (
+          <CardContent>
+            {shop.business_registration_number ? (
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Registration Number</label>
                 <p className="font-mono text-sm bg-muted px-2 py-1 rounded">{shop.business_registration_number}</p>
               </div>
+            ) : (
+              <p className="text-muted-foreground">No registration number on file</p>
             )}
-            
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Created Date</label>
-              <p>{new Date(shop.created_at).toLocaleDateString()}</p>
-            </div>
           </CardContent>
         </Card>
 
         {/* Services Offered */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wrench className="h-5 w-5" />
-              Services Offered
-            </CardTitle>
-            <CardDescription>
-              All services provided by this shop
-            </CardDescription>
+            <CardTitle>Services Offered</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
