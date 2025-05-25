@@ -6,54 +6,71 @@ import { JobList } from "../JobList";
 import { NewJobForm } from "../NewJobForm";
 
 interface JobsTabProps {
-  jobs: any[];
-  onJobUpdate: () => void;
+  activeJobs: any[];
+  completedJobs: any[];
+  allJobs: any[];
+  setJobs: (jobs: any[]) => void;
+  handleAddJob: (job: any) => void;
+  translations: any;
   userRole?: string;
   userId?: string;
 }
 
-export const JobsTab = ({ jobs, onJobUpdate, userRole, userId }: JobsTabProps) => {
+export const JobsTab = ({ 
+  activeJobs, 
+  completedJobs, 
+  allJobs, 
+  setJobs, 
+  handleAddJob, 
+  translations, 
+  userRole, 
+  userId 
+}: JobsTabProps) => {
   const [activeTab, setActiveTab] = useState("new");
 
-  const activeJobs = jobs.filter(job => job.status !== 'completed');
-  const completedJobs = jobs.filter(job => job.status === 'completed');
+  const handleJobUpdate = () => {
+    // This function will be called when jobs are updated
+    // The actual job updates are handled by the parent component
+  };
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="new" className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          New Job
+          {translations?.newJob || "New Job"}
         </TabsTrigger>
         <TabsTrigger value="active">
-          Active Jobs ({activeJobs.length})
+          {translations?.activeJobs || "Active Jobs"} ({activeJobs.length})
         </TabsTrigger>
         <TabsTrigger value="completed">
-          Completed Jobs ({completedJobs.length})
+          {translations?.completedJobs || "Completed Jobs"} ({completedJobs.length})
         </TabsTrigger>
       </TabsList>
       
       <TabsContent value="new">
-        <NewJobForm onJobCreated={onJobUpdate} />
+        <NewJobForm onJobCreated={handleJobUpdate} />
       </TabsContent>
       
       <TabsContent value="active">
         <JobList 
           jobs={activeJobs} 
-          onJobUpdate={onJobUpdate}
-          title="Active Jobs"
+          allJobs={allJobs}
+          setJobs={setJobs}
+          jobType="active"
+          translations={translations}
           userRole={userRole}
-          userId={userId}
         />
       </TabsContent>
       
       <TabsContent value="completed">
         <JobList 
           jobs={completedJobs} 
-          onJobUpdate={onJobUpdate}
-          title="Completed Jobs"
+          allJobs={allJobs}
+          setJobs={setJobs}
+          jobType="completed"
+          translations={translations}
           userRole={userRole}
-          userId={userId}
         />
       </TabsContent>
     </Tabs>

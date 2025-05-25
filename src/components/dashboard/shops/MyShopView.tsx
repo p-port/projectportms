@@ -136,6 +136,13 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     }
   };
 
+  const handleInputChange = (field: keyof Shop, value: string | number) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const canEdit = isShopOwner || userRole === 'admin';
 
   if (loading) {
@@ -189,7 +196,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
                     <div className="space-y-1">
                       <Input
                         value={editForm.name || ''}
-                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
                         className="text-lg font-semibold"
                         disabled={true}
                       />
@@ -209,14 +216,14 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
                       <Input
                         placeholder="Region"
                         value={editForm.region || ''}
-                        onChange={(e) => setEditForm({ ...editForm, region: e.target.value })}
+                        onChange={(e) => handleInputChange('region', e.target.value)}
                         className="w-32"
                         disabled={true}
                       />
                       <Input
                         placeholder="District"
                         value={editForm.district || ''}
-                        onChange={(e) => setEditForm({ ...editForm, district: e.target.value })}
+                        onChange={(e) => handleInputChange('district', e.target.value)}
                         className="w-32"
                         disabled={true}
                       />
@@ -287,7 +294,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
                   <Input
                     type="number"
                     value={editForm.employee_count || ''}
-                    onChange={(e) => setEditForm({ ...editForm, employee_count: parseInt(e.target.value) })}
+                    onChange={(e) => handleInputChange('employee_count', parseInt(e.target.value) || 0)}
                     disabled={true}
                   />
                   <div className="flex items-center gap-1 text-xs text-orange-600">
@@ -319,7 +326,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
                 {editing ? (
                   <Input
                     value={editForm.business_phone || ''}
-                    onChange={(e) => setEditForm({ ...editForm, business_phone: e.target.value })}
+                    onChange={(e) => handleInputChange('business_phone', e.target.value)}
                   />
                 ) : (
                   <p className="text-sm mt-1">{shop.business_phone || 'Not provided'}</p>
@@ -330,7 +337,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
                 {editing ? (
                   <Input
                     value={editForm.mobile_phone || ''}
-                    onChange={(e) => setEditForm({ ...editForm, mobile_phone: e.target.value })}
+                    onChange={(e) => handleInputChange('mobile_phone', e.target.value)}
                   />
                 ) : (
                   <p className="text-sm mt-1">{shop.mobile_phone || 'Not provided'}</p>
@@ -341,7 +348,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
                 {editing ? (
                   <Input
                     value={editForm.fax_number || ''}
-                    onChange={(e) => setEditForm({ ...editForm, fax_number: e.target.value })}
+                    onChange={(e) => handleInputChange('fax_number', e.target.value)}
                   />
                 ) : (
                   <p className="text-sm mt-1">{shop.fax_number || 'Not provided'}</p>
@@ -353,7 +360,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
                   <Input
                     type="email"
                     value={editForm.tax_email || ''}
-                    onChange={(e) => setEditForm({ ...editForm, tax_email: e.target.value })}
+                    onChange={(e) => handleInputChange('tax_email', e.target.value)}
                   />
                 ) : (
                   <p className="text-sm mt-1">{shop.tax_email || 'Not provided'}</p>
@@ -369,7 +376,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
               <div className="space-y-1">
                 <Textarea
                   value={editForm.full_address || ''}
-                  onChange={(e) => setEditForm({ ...editForm, full_address: e.target.value })}
+                  onChange={(e) => handleInputChange('full_address', e.target.value)}
                   rows={3}
                   disabled={true}
                 />
@@ -402,7 +409,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
               <div className="space-y-1">
                 <Input
                   value={editForm.business_registration_number || ''}
-                  onChange={(e) => setEditForm({ ...editForm, business_registration_number: e.target.value })}
+                  onChange={(e) => handleInputChange('business_registration_number', e.target.value)}
                   disabled={true}
                 />
                 <div className="flex items-center gap-1 text-xs text-orange-600">

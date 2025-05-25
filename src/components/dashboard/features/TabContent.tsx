@@ -62,13 +62,13 @@ export const TabContent = ({
           handleAddJob={handleAddJob}
           translations={translations}
           userRole={userRole}
+          userId={userId}
         />
       </TabsContent>
       
       <TabsContent value="customers">
         <SearchPanel
           jobs={allJobs}
-          translations={translations}
           userRole={userRole}
           userId={userId}
         />
