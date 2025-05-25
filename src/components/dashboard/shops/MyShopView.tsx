@@ -28,7 +28,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
   const [shopOwner, setShopOwner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState<Partial<Pick<Shop, EditableShopFields>>>({});
+  const [editForm, setEditForm] = useState<Partial<Shop>>({});
   const [userEmail, setUserEmail] = useState<string>("");
   const { userRole } = useAuthCheck();
   const [isShopOwner, setIsShopOwner] = useState(false);
@@ -134,7 +134,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
       const updateData: Partial<Shop> = {};
       Object.entries(editForm).forEach(([key, value]) => {
         if (!restrictedFields.includes(key as EditableShopFields)) {
-          updateData[key as keyof Shop] = value as Shop[keyof Shop];
+          updateData[key as keyof Shop] = value as any;
         }
       });
 
@@ -162,7 +162,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     setEditForm(prev => ({ ...prev, logo_url: logoUrl }));
   };
 
-  const handleInputChange = <K extends EditableShopFields>(field: K, value: Shop[K]) => {
+  const handleInputChange = <K extends keyof Shop>(field: K, value: Shop[K]) => {
     setEditForm(prev => ({
       ...prev,
       [field]: value
