@@ -11,13 +11,10 @@ import NotFound from "./pages/NotFound";
 import VerificationSuccess from "./pages/VerificationSuccess";
 import { LegalDisclosure } from "./pages/LegalDisclosure";
 import { ShopManagement } from "./components/dashboard/shops/ShopManagement";
-import { ShopDetailView } from "./components/dashboard/shops/ShopDetailView";
 import { UserManagement } from "./components/dashboard/admin/UserManagement";
 import { UserDetails } from "./components/dashboard/admin/UserDetails";
 import { MessageList } from "./components/dashboard/messaging/MessageList";
 import { MessageDetail } from "./components/dashboard/messaging/MessageDetail";
-import { ShopOwners } from "./pages/ShopOwners";
-import { ShopOwnerDetail } from "./pages/ShopOwnerDetail";
 
 const queryClient = new QueryClient();
 
@@ -34,11 +31,8 @@ const App = () => (
             <Route path="/legal-disclosure/:jobId" element={<LegalDisclosure />} />
             <Route path="/verification-success" element={<VerificationSuccess />} />
             <Route path="/shop-management" element={<ShopManagement />} />
-            <Route path="/shop-detail/:shopId" element={<ShopDetailView />} />
             <Route path="/user-management" element={<UserManagement />} />
             <Route path="/user-management/:userId" element={<UserDetails />} />
-            <Route path="/shop-owners" element={<ShopOwners />} />
-            <Route path="/shop-owner/:shopId" element={<ShopOwnerDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

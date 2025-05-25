@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Building2, MapPin, Users, Edit, Save, X, AlertTriangle } from "lucide-react";
+import { Building2, MapPin, Users, Edit, Save, X, AlertTriangle, Home } from "lucide-react";
 import { Shop } from "@/types/shop";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 import { ShopLogoUpload } from "./ShopLogoUpload";
@@ -145,11 +145,22 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
 
   const canEdit = isShopOwner || userRole === 'admin';
 
+  const navigateToHome = () => {
+    // Navigate to main dashboard by dispatching custom event
+    window.dispatchEvent(new CustomEvent('navigate-to-tab', { detail: 'jobs' }));
+  };
+
   if (loading) {
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="text-center">Loading shop information...</div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-center">Loading shop information...</div>
+            <Button variant="outline" size="sm" onClick={navigateToHome}>
+              <Home className="h-4 w-4 mr-2" />
+              Home
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -159,10 +170,16 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            My Shop
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              My Shop
+            </CardTitle>
+            <Button variant="outline" size="sm" onClick={navigateToHome}>
+              <Home className="h-4 w-4 mr-2" />
+              Home
+            </Button>
+          </div>
           <CardDescription>
             You are not currently assigned to any shop
           </CardDescription>
@@ -234,30 +251,36 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
                 </CardDescription>
               </div>
             </div>
-            {canEdit && (
-              <div className="flex gap-2">
-                {editing ? (
-                  <>
-                    <Button size="sm" onClick={handleSave}>
-                      <Save className="h-4 w-4 mr-1" />
-                      Save
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={navigateToHome}>
+                <Home className="h-4 w-4 mr-2" />
+                Home
+              </Button>
+              {canEdit && (
+                <>
+                  {editing ? (
+                    <>
+                      <Button size="sm" onClick={handleSave}>
+                        <Save className="h-4 w-4 mr-1" />
+                        Save
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setEditing(false);
+                        setEditForm(shop);
+                      }}>
+                        <X className="h-4 w-4 mr-1" />
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      setEditing(false);
-                      setEditForm(shop);
-                    }}>
-                      <X className="h-4 w-4 mr-1" />
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-                    <Edit className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                )}
-              </div>
-            )}
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">

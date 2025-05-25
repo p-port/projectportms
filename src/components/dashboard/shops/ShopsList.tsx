@@ -1,13 +1,12 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Search, MapPin, Users, Eye, Building2 } from "lucide-react";
+import { Search, MapPin, Users, Building2, Home } from "lucide-react";
 import { Shop } from "@/types/shop";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 
@@ -16,7 +15,6 @@ export const ShopsList = () => {
   const [filteredShops, setFilteredShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const navigate = useNavigate();
   const { userRole, userId } = useAuthCheck();
 
   useEffect(() => {
@@ -76,15 +74,22 @@ export const ShopsList = () => {
     }
   };
 
-  const handleViewShop = (shopId: string) => {
-    navigate(`/shop-detail/${shopId}`);
+  const navigateToHome = () => {
+    // Navigate to main dashboard by dispatching custom event
+    window.dispatchEvent(new CustomEvent('navigate-to-tab', { detail: 'jobs' }));
   };
 
   if (loading) {
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="text-center">Loading shops...</div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-center">Loading shops...</div>
+            <Button variant="outline" size="sm" onClick={navigateToHome}>
+              <Home className="h-4 w-4 mr-2" />
+              Home
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -97,10 +102,16 @@ export const ShopsList = () => {
       {/* Search Bar */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            {canSeeAllShops ? "All Shops" : "My Shop"}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              {canSeeAllShops ? "All Shops" : "My Shop"}
+            </CardTitle>
+            <Button variant="outline" size="sm" onClick={navigateToHome}>
+              <Home className="h-4 w-4 mr-2" />
+              Home
+            </Button>
+          </div>
           <CardDescription>
             {canSeeAllShops 
               ? "Browse and search all registered motorcycle service shops"
@@ -146,14 +157,6 @@ export const ShopsList = () => {
                     {shop.region}, {shop.district}
                   </CardDescription>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleViewShop(shop.id)}
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  View
-                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -181,6 +184,19 @@ export const ShopsList = () => {
               <div className="text-xs text-muted-foreground">
                 ID: {shop.unique_identifier}
               </div>
+              
+              {shop.full_address && (
+                <div className="text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3 inline mr-1" />
+                  {shop.full_address}
+                </div>
+              )}
+              
+              {(shop.business_phone || shop.mobile_phone) && (
+                <div className="text-xs text-muted-foreground">
+                  Phone: {shop.business_phone || shop.mobile_phone}
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
