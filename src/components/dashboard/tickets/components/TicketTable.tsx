@@ -15,11 +15,11 @@ export const TicketTable = ({ tickets, onSelectTicket, isStaff }: TicketTablePro
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'open':
-        return <Badge variant="destructive" className="flex items-center gap-1"><Clock className="h-3 w-3 text-red-500" /> Open</Badge>;
+        return <Badge variant="destructive" className="flex items-center gap-1"><Clock className="h-3 w-3" /> Open</Badge>;
       case 'in-progress':
-        return <Badge variant="default" className="flex items-center gap-1 bg-amber-500"><Clock className="h-3 w-3 text-amber-100" /> In Progress</Badge>;
+        return <Badge variant="default" className="flex items-center gap-1 bg-amber-500"><Clock className="h-3 w-3" /> In Progress</Badge>;
       case 'closed':
-        return <Badge variant="outline" className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-green-500" /> Closed</Badge>;
+        return <Badge variant="outline" className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Closed</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -28,7 +28,7 @@ export const TicketTable = ({ tickets, onSelectTicket, isStaff }: TicketTablePro
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case 'high':
-        return <Badge variant="destructive" className="flex items-center gap-1"><AlertCircle className="h-3 w-3 text-red-500" /> High</Badge>;
+        return <Badge variant="destructive" className="flex items-center gap-1"><AlertCircle className="h-3 w-3" /> High</Badge>;
       case 'normal':
         return <Badge variant="secondary">Normal</Badge>;
       case 'low':
