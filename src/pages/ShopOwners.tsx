@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Building, Store, Shield, Home } from "lucide-react";
 import { Shop } from "@/types/shop";
+import { useAuthCheck } from "@/hooks/useAuthCheck";
 
 interface ShopOwnerData {
   shopId: string;
@@ -30,10 +31,20 @@ export function ShopOwners() {
   const [loading, setLoading] = useState(true);
   const [shopOwners, setShopOwners] = useState<ShopOwnerData[]>([]);
   const navigate = useNavigate();
+  const { userRole } = useAuthCheck();
 
   useEffect(() => {
-    fetchShopOwners();
-  }, []);
+    // Only allow admin and support users to access this page
+    if (userRole && userRole !== 'admin' && userRole !== 'support') {
+      toast.error("Access denied. Only administrators and support staff can access this page.");
+      navigate('/dashboard');
+      return;
+    }
+    
+    if (userRole) {
+      fetchShopOwners();
+    }
+  }, [userRole, navigate]);
 
   const fetchShopOwners = async () => {
     try {
@@ -97,6 +108,11 @@ export function ShopOwners() {
       navigate(`/user-management/${userId}`);
     }
   };
+
+  // Don't render anything if user doesn't have permission
+  if (userRole && userRole !== 'admin' && userRole !== 'support') {
+    return null;
+  }
 
   return (
     <div className="space-y-6">

@@ -13,30 +13,39 @@ interface ShopManagementTabProps {
 export const ShopManagementTab = ({ userId }: ShopManagementTabProps) => {
   const { userRole } = useAuthCheck();
   const isAdmin = userRole === 'admin';
+  const isSupport = userRole === 'support';
+  const canSeeAllShops = isAdmin || isSupport;
+
+  // For non-admin/support users, they should only see their own shop
+  const tabsToShow = canSeeAllShops 
+    ? ["list", "register", "my-shop"]
+    : ["my-shop"];
 
   return (
-    <Tabs defaultValue="list" className="space-y-6">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="list">All Shops</TabsTrigger>
-        <TabsTrigger value="register" disabled={!isAdmin}>
-          {isAdmin ? "Admin Registration" : "Registration (Admin Only)"}
-        </TabsTrigger>
+    <Tabs defaultValue={canSeeAllShops ? "list" : "my-shop"} className="space-y-6">
+      <TabsList className={`grid w-full ${canSeeAllShops ? 'grid-cols-3' : 'grid-cols-1'}`}>
+        {canSeeAllShops && (
+          <TabsTrigger value="list">All Shops</TabsTrigger>
+        )}
+        {isAdmin && (
+          <TabsTrigger value="register">
+            Admin Registration
+          </TabsTrigger>
+        )}
         <TabsTrigger value="my-shop">My Shop</TabsTrigger>
       </TabsList>
       
-      <TabsContent value="list">
-        <ShopsList />
-      </TabsContent>
+      {canSeeAllShops && (
+        <TabsContent value="list">
+          <ShopsList />
+        </TabsContent>
+      )}
       
-      <TabsContent value="register">
-        {isAdmin ? (
+      {isAdmin && (
+        <TabsContent value="register">
           <AdminShopRegistration />
-        ) : (
-          <div className="text-center text-muted-foreground py-12">
-            Only administrators can register new shops.
-          </div>
-        )}
-      </TabsContent>
+        </TabsContent>
+      )}
       
       <TabsContent value="my-shop">
         <ShopRegistrationForm />

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Search, MapPin, Users, Eye, Building2 } from "lucide-react";
 import { Shop } from "@/types/shop";
+import { useAuthCheck } from "@/hooks/useAuthCheck";
 
 export const ShopsList = () => {
   const [shops, setShops] = useState<Shop[]>([]);
@@ -16,10 +17,11 @@ export const ShopsList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
+  const { userRole, userId } = useAuthCheck();
 
   useEffect(() => {
     fetchShops();
-  }, []);
+  }, [userRole, userId]);
 
   useEffect(() => {
     // Filter shops based on search term
@@ -40,10 +42,29 @@ export const ShopsList = () => {
   const fetchShops = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('shops')
-        .select('*')
-        .order('created_at', { ascending: false });
+      
+      let query = supabase.from('shops').select('*');
+      
+      // If user is not admin or support, only show their shop
+      if (userRole !== 'admin' && userRole !== 'support' && userId) {
+        // Get user's shop through their profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('shop_id')
+          .eq('id', userId)
+          .single();
+          
+        if (profile?.shop_id) {
+          query = query.eq('id', profile.shop_id);
+        } else {
+          // User has no shop assigned
+          setShops([]);
+          setLoading(false);
+          return;
+        }
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       setShops(data || []);
@@ -69,6 +90,8 @@ export const ShopsList = () => {
     );
   }
 
+  const canSeeAllShops = userRole === 'admin' || userRole === 'support';
+
   return (
     <div className="space-y-6">
       {/* Search Bar */}
@@ -76,21 +99,28 @@ export const ShopsList = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            All Shops
+            {canSeeAllShops ? "All Shops" : "My Shop"}
           </CardTitle>
-          <CardDescription>Browse and search all registered motorcycle service shops</CardDescription>
+          <CardDescription>
+            {canSeeAllShops 
+              ? "Browse and search all registered motorcycle service shops"
+              : "Your assigned motorcycle service shop"
+            }
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search shops by name, location, services..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-        </CardContent>
+        {canSeeAllShops && (
+          <CardContent>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search shops by name, location, services..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       {/* Results Summary */}
@@ -98,7 +128,7 @@ export const ShopsList = () => {
         <p className="text-sm text-muted-foreground">
           {searchTerm 
             ? `Found ${filteredShops.length} of ${shops.length} shops`
-            : `Showing all ${shops.length} shops`
+            : `Showing ${canSeeAllShops ? 'all' : ''} ${shops.length} shop${shops.length !== 1 ? 's' : ''}`
           }
         </p>
       </div>
@@ -156,13 +186,19 @@ export const ShopsList = () => {
         ))}
       </div>
 
-      {filteredShops.length === 0 && searchTerm && (
+      {filteredShops.length === 0 && !loading && (
         <Card>
           <CardContent className="p-12 text-center">
             <div className="text-muted-foreground">
               <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium mb-2">No shops found</h3>
-              <p>Try adjusting your search terms or browse all shops.</p>
+              <h3 className="text-lg font-medium mb-2">
+                {searchTerm ? "No shops found" : 
+                 canSeeAllShops ? "No shops registered yet" : "No shop assigned"}
+              </h3>
+              <p>
+                {searchTerm ? "Try adjusting your search terms or browse all shops." :
+                 canSeeAllShops ? "Register the first shop to get started." : "Contact your administrator to assign you to a shop."}
+              </p>
             </div>
           </CardContent>
         </Card>

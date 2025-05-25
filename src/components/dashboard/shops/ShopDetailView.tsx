@@ -9,9 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Shop } from "@/types/shop";
 import { 
   ArrowLeft, Building2, MapPin, Users, Phone, 
-  Mail, FileText, Smartphone, Printer
+  Mail, FileText, Smartphone, Printer, Edit
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuthCheck } from "@/hooks/useAuthCheck";
 
 export const ShopDetailView = () => {
   const { shopId } = useParams<{ shopId: string }>();
@@ -19,13 +20,15 @@ export const ShopDetailView = () => {
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
   const [memberCount, setMemberCount] = useState(0);
+  const [isOwner, setIsOwner] = useState(false);
+  const { userRole, userId } = useAuthCheck();
 
   useEffect(() => {
     if (shopId) {
       fetchShopDetails();
       fetchMemberCount();
     }
-  }, [shopId]);
+  }, [shopId, userId]);
 
   const fetchShopDetails = async () => {
     try {
@@ -37,6 +40,11 @@ export const ShopDetailView = () => {
 
       if (error) throw error;
       setShop(data);
+      
+      // Check if current user is the owner of this shop
+      if (userId && data.owner_id === userId) {
+        setIsOwner(true);
+      }
     } catch (error) {
       console.error('Error fetching shop details:', error);
       toast.error('Failed to load shop details');
@@ -58,6 +66,8 @@ export const ShopDetailView = () => {
       console.error('Error fetching member count:', error);
     }
   };
+
+  const canEdit = userRole === 'admin' || isOwner;
 
   if (loading) {
     return (
@@ -91,6 +101,17 @@ export const ShopDetailView = () => {
           Back to Shops
         </Button>
         <h1 className="text-2xl font-bold">Shop Details</h1>
+        {canEdit && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto flex items-center gap-2"
+            onClick={() => navigate(`/shop-edit/${shopId}`)}
+          >
+            <Edit className="h-4 w-4" />
+            Edit Shop
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -58,7 +57,6 @@ export const SearchPanel = ({
   placeholder,
   translations 
 }: SearchPanelProps) => {
-  const [searchType, setSearchType] = useState<string>("customer");
   const [customerQuery, setCustomerQuery] = useState<string>(externalSearchQuery || "");
   const [motorcycleQuery, setMotorcycleQuery] = useState<string>("");
   const [jobQuery, setJobQuery] = useState<string>("");
@@ -70,11 +68,23 @@ export const SearchPanel = ({
   const [hasSearched, setHasSearched] = useState<boolean>(false);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
 
+  // Ensure jobs is an array and filter out invalid jobs
+  const validJobs = Array.isArray(jobs) ? jobs.filter(job => 
+    job && 
+    typeof job === 'object' && 
+    job.id &&
+    job.customer &&
+    job.motorcycle
+  ) : [];
+
   const handleCustomerSearch = () => {
     if (!customerQuery.trim()) {
       toast.error("Please enter a search term");
       return;
     }
+
+    console.log("Searching customers with query:", customerQuery);
+    console.log("Available jobs:", validJobs);
 
     // If this component is controlled by a parent, update the parent's state
     if (externalOnSearchChange) {
@@ -86,7 +96,7 @@ export const SearchPanel = ({
     
     // Find unique customers matching the search query
     const customerMap = new Map();
-    jobs.forEach(job => {
+    validJobs.forEach(job => {
       if (job.customer && job.customer.name && 
           job.customer.name.toLowerCase().includes(query)) {
         if (!customerMap.has(job.customer.name)) {
@@ -106,6 +116,7 @@ export const SearchPanel = ({
       }
     });
     const results = Array.from(customerMap.values());
+    console.log("Customer search results:", results);
     setCustomerResults(results);
     
     if (results.length === 0) {
@@ -119,13 +130,15 @@ export const SearchPanel = ({
       return;
     }
 
+    console.log("Searching motorcycles with query:", motorcycleQuery);
+
     setHasSearched(true);
     setSelectedOwner(null);
     const query = motorcycleQuery.toLowerCase().trim();
     
     // Find unique motorcycles matching the search query (make, model, or VIN)
     const motorcycleMap = new Map();
-    jobs.forEach(job => {
+    validJobs.forEach(job => {
       if (job.motorcycle && 
           ((job.motorcycle.make && job.motorcycle.make.toLowerCase().includes(query)) || 
            (job.motorcycle.model && job.motorcycle.model.toLowerCase().includes(query)) || 
@@ -134,7 +147,6 @@ export const SearchPanel = ({
         const key = `${job.motorcycle.make}-${job.motorcycle.model}-${job.motorcycle.vin || ''}`;
         
         if (!motorcycleMap.has(key)) {
-          // Create a new motorcycle entry
           motorcycleMap.set(key, {
             make: job.motorcycle.make,
             model: job.motorcycle.model,
@@ -220,6 +232,7 @@ export const SearchPanel = ({
       });
     });
     
+    console.log("Motorcycle search results:", motorcycleResults);
     setMotorcycleResults(motorcycleResults);
     
     if (motorcycleResults.length === 0) {
@@ -233,14 +246,17 @@ export const SearchPanel = ({
       return;
     }
 
+    console.log("Searching jobs with query:", jobQuery);
+
     setHasSearched(true);
     const query = jobQuery.toLowerCase().trim();
     
     // Find jobs matching the search query (by ID)
-    const results = jobs.filter(job => 
-      job.id.toLowerCase().includes(query)
+    const results = validJobs.filter(job => 
+      job.id && job.id.toLowerCase().includes(query)
     );
     
+    console.log("Job search results:", results);
     setJobResults(results);
     
     if (results.length === 0) {
@@ -294,12 +310,15 @@ export const SearchPanel = ({
           )}
         </div>
         
-        {job.notes && job.notes.length > 0 && (
+        {job.notes && Array.isArray(job.notes) && job.notes.length > 0 && (
           <div className="space-y-1">
             <h5 className="text-xs font-medium">Latest Note:</h5>
             <p className="text-xs italic bg-muted p-2 rounded">
-              {job.notes[0].content?.substring(0, 100)}
-              {job.notes[0].content?.length > 100 ? "..." : ""}
+              {typeof job.notes[0] === 'string' 
+                ? job.notes[0].substring(0, 100)
+                : (job.notes[0]?.text || job.notes[0]?.content || 'No content').substring(0, 100)
+              }
+              {(typeof job.notes[0] === 'string' ? job.notes[0] : (job.notes[0]?.text || job.notes[0]?.content || '')).length > 100 ? "..." : ""}
             </p>
           </div>
         )}
@@ -313,7 +332,7 @@ export const SearchPanel = ({
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="customer">
             <User className="mr-2 h-4 w-4" />
-            Customers
+            Customers ({validJobs.length} jobs)
           </TabsTrigger>
           <TabsTrigger value="motorcycle">
             <Battery className="mr-2 h-4 w-4" />
@@ -668,8 +687,8 @@ export const SearchPanel = ({
                           <TableCell>
                             <Badge 
                               variant={
-                                job.status === "completed" ? "success" : 
-                                job.status === "in_progress" ? "warning" : 
+                                job.status === "completed" ? "default" : 
+                                job.status === "in-progress" ? "secondary" : 
                                 "outline"
                               }
                             >
