@@ -77,6 +77,10 @@ export const ShopLogoUpload = ({ shopId, currentLogoUrl, onLogoUpdate, disabled 
       toast.error('Failed to upload logo');
     } finally {
       setUploading(false);
+      // Reset the file input
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -115,7 +119,7 @@ export const ShopLogoUpload = ({ shopId, currentLogoUrl, onLogoUpdate, disabled 
       <label className="text-sm font-medium">Shop Logo</label>
       
       {currentLogoUrl ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center gap-4">
             <img 
               src={currentLogoUrl} 
@@ -124,36 +128,64 @@ export const ShopLogoUpload = ({ shopId, currentLogoUrl, onLogoUpdate, disabled 
             />
             <div className="flex gap-2">
               <Button
-                variant="outline"
+                variant="destructive"
                 size="sm"
                 onClick={removeLogo}
                 disabled={disabled || removing}
               >
                 <X className="h-4 w-4 mr-1" />
-                {removing ? 'Removing...' : 'Remove'}
+                {removing ? 'Removing...' : 'Remove Logo'}
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">
+              Upload new logo to replace current one:
+            </label>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={uploadLogo}
+              disabled={disabled || uploading}
+              className="cursor-pointer"
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
+            <Image className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground mb-2">No logo uploaded</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">
+              Choose logo file:
+            </label>
+            <div className="flex gap-2">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={uploadLogo}
+                disabled={disabled || uploading}
+                className="cursor-pointer flex-1"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => document.querySelector('input[type="file"]')?.click()}
+                disabled={disabled || uploading}
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                {uploading ? 'Uploading...' : 'Upload'}
               </Button>
             </div>
           </div>
         </div>
-      ) : (
-        <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
-          <Image className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground mb-2">No logo uploaded</p>
-        </div>
       )}
 
-      <div>
-        <Input
-          type="file"
-          accept="image/*"
-          onChange={uploadLogo}
-          disabled={disabled || uploading}
-          className="cursor-pointer"
-        />
-        <p className="text-xs text-muted-foreground mt-1">
-          Max file size: 5MB. Supported formats: JPG, PNG, WebP, GIF
-        </p>
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Max file size: 5MB. Supported formats: JPG, PNG, WebP, GIF
+      </p>
     </div>
   );
 };
