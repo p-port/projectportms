@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SearchCustomers } from "./SearchCustomers";
@@ -82,7 +81,7 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
       // Group by motorcycle (VIN or make+model+year)
       const motorcycleMap = new Map();
       data?.forEach(job => {
-        const motorcycle = job.motorcycle as MotorcycleData;
+        const motorcycle = job.motorcycle as unknown as MotorcycleData;
         const key = motorcycle.vin || `${motorcycle.make}-${motorcycle.model}-${motorcycle.year}`;
         
         if (!motorcycleMap.has(key)) {
@@ -101,7 +100,7 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
           customer: job.customer
         });
         
-        const customer = job.customer as CustomerData;
+        const customer = job.customer as unknown as CustomerData;
         motorcycleMap.get(key).owners.add(customer.name);
       });
 
@@ -198,20 +197,10 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
           <TabsTrigger value="motorcycles" className="flex gap-2 items-center">
             <Bike className="h-4 w-4" />
             Motorcycles
-            {motorcycleResults.length > 0 && (
-              <Badge variant="secondary" className="ml-1">
-                {motorcycleResults.length}
-              </Badge>
-            )}
           </TabsTrigger>
           <TabsTrigger value="jobs" className="flex gap-2 items-center">
             <Briefcase className="h-4 w-4" />
             Jobs
-            {jobResults.length > 0 && (
-              <Badge variant="secondary" className="ml-1">
-                {jobResults.length}
-              </Badge>
-            )}
           </TabsTrigger>
         </TabsList>
 
@@ -315,11 +304,11 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <h4 className="font-medium">Customer:</h4>
-                          <p>{formatCustomerName((job.customer as CustomerData).name)}</p>
+                          <p>{formatCustomerName((job.customer as unknown as CustomerData).name)}</p>
                         </div>
                         <div>
                           <h4 className="font-medium">Motorcycle:</h4>
-                          <p>{(job.motorcycle as MotorcycleData).make} {(job.motorcycle as MotorcycleData).model} ({(job.motorcycle as MotorcycleData).year})</p>
+                          <p>{(job.motorcycle as unknown as MotorcycleData).make} {(job.motorcycle as unknown as MotorcycleData).model} ({(job.motorcycle as unknown as MotorcycleData).year})</p>
                         </div>
                       </div>
                     </CardContent>

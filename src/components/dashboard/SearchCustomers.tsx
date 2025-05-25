@@ -73,7 +73,7 @@ export const SearchCustomers = ({ jobs, userRole = 'mechanic', userId }: SearchC
       // Group by customer
       const customerMap = new Map();
       data?.forEach(job => {
-        const customer = job.customer as CustomerData;
+        const customer = job.customer as unknown as CustomerData;
         const key = customer.email || customer.name;
         
         if (!customerMap.has(key)) {
