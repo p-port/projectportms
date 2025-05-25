@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShopsList } from "./ShopsList";
-import { ShopRegistrationForm } from "./ShopRegistrationForm";
 import { AdminShopRegistration } from "./AdminShopRegistration";
+import { MyShopView } from "./MyShopView";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 
 interface ShopManagementTabProps {
@@ -16,20 +16,15 @@ export const ShopManagementTab = ({ userId }: ShopManagementTabProps) => {
   const isSupport = userRole === 'support';
   const canSeeAllShops = isAdmin || isSupport;
 
-  // For non-admin/support users, they should only see their own shop
-  const tabsToShow = canSeeAllShops 
-    ? ["list", "register", "my-shop"]
-    : ["my-shop"];
-
   return (
     <Tabs defaultValue={canSeeAllShops ? "list" : "my-shop"} className="space-y-6">
-      <TabsList className={`grid w-full ${canSeeAllShops ? 'grid-cols-3' : 'grid-cols-1'}`}>
+      <TabsList className={`grid w-full ${canSeeAllShops ? (isAdmin ? 'grid-cols-3' : 'grid-cols-2') : 'grid-cols-1'}`}>
         {canSeeAllShops && (
           <TabsTrigger value="list">All Shops</TabsTrigger>
         )}
         {isAdmin && (
           <TabsTrigger value="register">
-            Admin Registration
+            Register Shop
           </TabsTrigger>
         )}
         <TabsTrigger value="my-shop">My Shop</TabsTrigger>
@@ -48,7 +43,7 @@ export const ShopManagementTab = ({ userId }: ShopManagementTabProps) => {
       )}
       
       <TabsContent value="my-shop">
-        <ShopRegistrationForm />
+        <MyShopView userId={userId} />
       </TabsContent>
     </Tabs>
   );

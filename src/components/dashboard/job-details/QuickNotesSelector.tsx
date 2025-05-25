@@ -1,37 +1,44 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, X, Edit2 } from "lucide-react";
+import { Plus, FileText } from "lucide-react";
 
-interface QuickNote {
-  id: string;
-  category: string;
-  note_text: string;
-  is_default: boolean;
-  user_id: string;
-  shop_id?: string;
-}
-
-interface QuickNotesSelectorProps {
+interface QuickNotesProps {
   onSelectNote: (noteText: string) => void;
   userId: string;
   shopId?: string;
 }
 
-export const QuickNotesSelector = ({ onSelectNote, userId, shopId }: QuickNotesSelectorProps) => {
-  const [quickNotes, setQuickNotes] = useState<QuickNote[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newNote, setNewNote] = useState({ category: "", note_text: "" });
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+interface QuickNote {
+  id: string;
+  note_text: string;
+  category: string;
+  is_default: boolean;
+}
 
-  const categories = ["Maintenance", "Electrical", "Tires", "Brakes", "Engine", "Body", "Other"];
+export const QuickNotesSelector = ({ onSelectNote, userId, shopId }: QuickNotesProps) => {
+  const [quickNotes, setQuickNotes] = useState<QuickNote[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [newNote, setNewNote] = useState("");
+  const [newCategory, setNewCategory] = useState("");
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const categories = [
+    "Service Started",
+    "Parts Ordered", 
+    "Waiting for Customer",
+    "Quality Check",
+    "Service Completed",
+    "Customer Pickup",
+    "General"
+  ];
 
   useEffect(() => {
     fetchQuickNotes();
@@ -39,108 +46,56 @@ export const QuickNotesSelector = ({ onSelectNote, userId, shopId }: QuickNotesS
 
   const fetchQuickNotes = async () => {
     try {
-      setLoading(true);
-      
-      // Fetch user's personal notes and shop notes
-      const { data, error } = await supabase
+      let query = supabase
         .from('quick_notes')
         .select('*')
-        .or(`user_id.eq.${userId},shop_id.eq.${shopId}`)
-        .order('category', { ascending: true })
-        .order('note_text', { ascending: true });
+        .eq('user_id', userId);
 
-      if (error) throw error;
-      
-      // Add some default notes if none exist
-      if (!data || data.length === 0) {
-        await createDefaultNotes();
-        return fetchQuickNotes();
+      if (shopId) {
+        query = query.or(`shop_id.eq.${shopId},is_default.eq.true`);
+      } else {
+        query = query.eq('is_default', true);
       }
-      
-      setQuickNotes(data);
-    } catch (error) {
-      console.error("Error fetching quick notes:", error);
-      toast.error("Failed to load quick notes");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const createDefaultNotes = async () => {
-    const defaultNotes = [
-      { category: "Maintenance", note_text: "Oil change completed" },
-      { category: "Maintenance", note_text: "Chain cleaned and lubricated" },
-      { category: "Maintenance", note_text: "Air filter replaced" },
-      { category: "Electrical", note_text: "Battery tested - good condition" },
-      { category: "Electrical", note_text: "Headlight bulb replaced" },
-      { category: "Tires", note_text: "Tire pressure adjusted" },
-      { category: "Tires", note_text: "Front tire replaced" },
-      { category: "Brakes", note_text: "Brake pads replaced" },
-      { category: "Brakes", note_text: "Brake fluid changed" },
-      { category: "Engine", note_text: "Engine diagnostics completed" }
-    ];
-
-    try {
-      const notesToInsert = defaultNotes.map(note => ({
-        ...note,
-        user_id: userId,
-        shop_id: shopId,
-        is_default: true
-      }));
-
-      const { error } = await supabase
-        .from('quick_notes')
-        .insert(notesToInsert);
+      const { data, error } = await query.order('category').order('note_text');
 
       if (error) throw error;
+      setQuickNotes(data || []);
     } catch (error) {
-      console.error("Error creating default notes:", error);
+      console.error('Error fetching quick notes:', error);
     }
   };
 
-  const addQuickNote = async () => {
-    if (!newNote.category || !newNote.note_text) {
-      toast.error("Please fill in both category and note text");
+  const handleAddNote = async () => {
+    if (!newNote.trim() || !newCategory) {
+      toast.error("Please fill in both note and category");
       return;
     }
 
+    setLoading(true);
     try {
       const { error } = await supabase
         .from('quick_notes')
         .insert({
-          category: newNote.category,
-          note_text: newNote.note_text,
           user_id: userId,
           shop_id: shopId,
+          note_text: newNote.trim(),
+          category: newCategory,
           is_default: false
         });
 
       if (error) throw error;
 
-      toast.success("Quick note added");
-      setNewNote({ category: "", note_text: "" });
+      toast.success("Quick note added successfully");
+      setNewNote("");
+      setNewCategory("");
       setShowAddDialog(false);
       fetchQuickNotes();
     } catch (error) {
-      console.error("Error adding quick note:", error);
+      console.error('Error adding quick note:', error);
       toast.error("Failed to add quick note");
-    }
-  };
-
-  const deleteQuickNote = async (noteId: string) => {
-    try {
-      const { error } = await supabase
-        .from('quick_notes')
-        .delete()
-        .eq('id', noteId);
-
-      if (error) throw error;
-
-      toast.success("Quick note deleted");
-      fetchQuickNotes();
-    } catch (error) {
-      console.error("Error deleting quick note:", error);
-      toast.error("Failed to delete quick note");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -148,28 +103,13 @@ export const QuickNotesSelector = ({ onSelectNote, userId, shopId }: QuickNotesS
     ? quickNotes.filter(note => note.category === selectedCategory)
     : quickNotes;
 
-  const notesByCategory = categories.reduce((acc, category) => {
-    acc[category] = quickNotes.filter(note => note.category === category);
-    return acc;
-  }, {} as Record<string, QuickNote[]>);
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-4">
-          <div className="text-center">Loading quick notes...</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">Quick Notes</CardTitle>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium">Quick Notes</h4>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button size="sm" variant="outline">
+            <Button variant="outline" size="sm">
               <Plus className="h-4 w-4 mr-1" />
               Add Note
             </Button>
@@ -181,104 +121,80 @@ export const QuickNotesSelector = ({ onSelectNote, userId, shopId }: QuickNotesS
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Category</label>
-                <select
-                  value={newNote.category}
-                  onChange={(e) => setNewNote({ ...newNote, category: e.target.value })}
-                  className="w-full mt-1 p-2 border rounded-md"
-                >
-                  <option value="">Select category</option>
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                <Select value={newCategory} onValueChange={setNewCategory}>
+                  <SelectTrigger className="bg-background border-input">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-input">
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category} className="hover:bg-muted">
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-sm font-medium">Note Text</label>
-                <Input
-                  value={newNote.note_text}
-                  onChange={(e) => setNewNote({ ...newNote, note_text: e.target.value })}
-                  placeholder="Enter note text"
-                  className="mt-1"
+                <Textarea
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  placeholder="Enter your quick note..."
+                  className="min-h-[80px]"
                 />
               </div>
-              <Button onClick={addQuickNote} className="w-full">
-                Add Note
-              </Button>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleAddNote} disabled={loading}>
+                  {loading ? "Adding..." : "Add Note"}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Category Filter */}
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant={selectedCategory === null ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedCategory(null)}
-          >
-            All
-          </Button>
-          {categories.map(category => (
+      </div>
+
+      <div className="space-y-2">
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="bg-background border-input">
+            <SelectValue placeholder="Filter by category" />
+          </SelectTrigger>
+          <SelectContent className="bg-background border-input">
+            <SelectItem value="" className="hover:bg-muted">All Categories</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category} value={category} className="hover:bg-muted">
+                {category}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="grid gap-2 max-h-32 overflow-y-auto">
+          {filteredNotes.map((note) => (
             <Button
-              key={category}
-              variant={selectedCategory === category ? "default" : "outline"}
+              key={note.id}
+              variant="outline"
               size="sm"
-              onClick={() => setSelectedCategory(category)}
+              className="h-auto p-2 text-left justify-start whitespace-normal"
+              onClick={() => onSelectNote(note.note_text)}
             >
-              {category}
-              {notesByCategory[category]?.length > 0 && (
-                <Badge variant="secondary" className="ml-1 px-1 text-xs">
-                  {notesByCategory[category].length}
-                </Badge>
-              )}
+              <FileText className="h-3 w-3 mr-2 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-muted-foreground">{note.category}</div>
+                <div className="text-sm truncate">{note.note_text}</div>
+              </div>
             </Button>
           ))}
         </div>
 
-        {/* Quick Notes Grid */}
-        <div className="grid gap-2 max-h-64 overflow-y-auto">
-          {filteredNotes.map((note) => (
-            <div
-              key={note.id}
-              className="flex items-center justify-between p-2 border rounded-md hover:bg-muted cursor-pointer group"
-            >
-              <div
-                className="flex-1"
-                onClick={() => onSelectNote(note.note_text)}
-              >
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    {note.category}
-                  </Badge>
-                  {note.is_default && (
-                    <Badge variant="secondary" className="text-xs">
-                      Default
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm mt-1">{note.note_text}</p>
-              </div>
-              {!note.is_default && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => deleteQuickNote(note.id)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-
         {filteredNotes.length === 0 && (
-          <div className="text-center text-muted-foreground py-8">
+          <div className="text-center text-sm text-muted-foreground py-4">
             No quick notes available
-            {selectedCategory && ` for ${selectedCategory}`}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

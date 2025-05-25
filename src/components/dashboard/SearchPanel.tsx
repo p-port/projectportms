@@ -12,9 +12,8 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 
 interface SearchPanelProps {
   jobs?: any[];
-  searchQuery?: string;
-  onSearchChange?: (value: string) => void;
-  placeholder?: string;
+  userRole?: string;
+  userId?: string;
   translations?: any;
 }
 
@@ -22,29 +21,25 @@ interface SearchPanelProps {
 const censorName = (name: string) => {
   if (!name || name.length <= 2) return name;
   
-  // For names with multiple parts (first name, last name)
   if (name.includes(" ")) {
     const parts = name.split(" ");
     return parts.map(part => {
-      if (part.length <= 2) return part; // Don't censor very short name parts
+      if (part.length <= 2) return part;
       
-      // Show first two letters and last letter, censor middle
       const firstChars = part.substring(0, 2);
       const lastChar = part.charAt(part.length - 1);
-      const middleLength = Math.max(1, part.length - 3); // At least 1 asterisk
+      const middleLength = Math.max(1, part.length - 3);
       const middle = '*'.repeat(middleLength);
       
       return `${firstChars}${middle}${lastChar}`;
     }).join(" ");
   }
   
-  // For single names
-  if (name.length <= 3) return name; // Don't censor very short names
+  if (name.length <= 3) return name;
   
-  // Show first two letters and last letter, censor middle
   const firstChars = name.substring(0, 2);
   const lastChar = name.charAt(name.length - 1);
-  const middleLength = Math.max(1, name.length - 3); // At least 1 asterisk
+  const middleLength = Math.max(1, name.length - 3);
   const middle = '*'.repeat(middleLength);
   
   return `${firstChars}${middle}${lastChar}`;
@@ -52,12 +47,11 @@ const censorName = (name: string) => {
 
 export const SearchPanel = ({ 
   jobs = [], 
-  searchQuery: externalSearchQuery,
-  onSearchChange: externalOnSearchChange,
-  placeholder,
+  userRole = 'mechanic',
+  userId,
   translations 
 }: SearchPanelProps) => {
-  const [customerQuery, setCustomerQuery] = useState<string>(externalSearchQuery || "");
+  const [customerQuery, setCustomerQuery] = useState<string>("");
   const [motorcycleQuery, setMotorcycleQuery] = useState<string>("");
   const [jobQuery, setJobQuery] = useState<string>("");
   
@@ -68,8 +62,22 @@ export const SearchPanel = ({
   const [hasSearched, setHasSearched] = useState<boolean>(false);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
 
-  // Ensure jobs is an array and filter out invalid jobs
-  const validJobs = Array.isArray(jobs) ? jobs.filter(job => 
+  const isAdmin = userRole === 'admin';
+  const isSupport = userRole === 'support';
+  const canSeeAllData = isAdmin || isSupport;
+
+  // Filter jobs based on user role and shop assignment
+  const getFilteredJobs = () => {
+    if (canSeeAllData) {
+      return jobs; // Admins and support can see all jobs
+    }
+    
+    // For mechanics, filter by their shop
+    // This would need to be implemented with proper shop filtering
+    return jobs; // For now, return all jobs
+  };
+
+  const validJobs = Array.isArray(getFilteredJobs()) ? getFilteredJobs().filter(job => 
     job && 
     typeof job === 'object' && 
     job.id &&
@@ -86,11 +94,6 @@ export const SearchPanel = ({
     console.log("Searching customers with query:", customerQuery);
     console.log("Available jobs:", validJobs);
 
-    // If this component is controlled by a parent, update the parent's state
-    if (externalOnSearchChange) {
-      externalOnSearchChange(customerQuery);
-    }
-
     setHasSearched(true);
     const query = customerQuery.toLowerCase().trim();
     
@@ -99,19 +102,21 @@ export const SearchPanel = ({
     validJobs.forEach(job => {
       if (job.customer && job.customer.name && 
           job.customer.name.toLowerCase().includes(query)) {
-        if (!customerMap.has(job.customer.name)) {
-          customerMap.set(job.customer.name, {
-            name: job.customer.name,
+        const customerKey = job.customer.name;
+        if (!customerMap.has(customerKey)) {
+          customerMap.set(customerKey, {
+            name: canSeeAllData ? job.customer.name : censorName(job.customer.name),
+            originalName: job.customer.name,
             phone: job.customer.phone || "N/A",
             email: job.customer.email || "N/A",
             jobsCount: 1,
             jobs: [job]
           });
         } else {
-          const customer = customerMap.get(job.customer.name);
+          const customer = customerMap.get(customerKey);
           customer.jobsCount += 1;
           customer.jobs.push(job);
-          customerMap.set(job.customer.name, customer);
+          customerMap.set(customerKey, customer);
         }
       }
     });
@@ -153,43 +158,42 @@ export const SearchPanel = ({
             year: job.motorcycle.year || "N/A",
             vin: job.motorcycle.vin || "N/A",
             ownershipHistory: job.customer ? [{
-              name: censorName(job.customer.name),
+              name: canSeeAllData ? job.customer.name : censorName(job.customer.name),
+              originalName: job.customer.name,
               jobId: job.id,
               dateServiced: job.dateCreated,
               lastDateServiced: job.dateCreated
             }] : [],
             serviceHistory: [job],
             allServicesByOwner: job.customer ? {
-              [censorName(job.customer.name)]: [job]
+              [canSeeAllData ? job.customer.name : censorName(job.customer.name)]: [job]
             } : {}
           });
         } else {
           const motorcycle = motorcycleMap.get(key);
           
-          // Add this job to service history
           motorcycle.serviceHistory.push(job);
           
-          // Group services by owner
           if (job.customer) {
-            const ownerName = censorName(job.customer.name);
+            const ownerName = canSeeAllData ? job.customer.name : censorName(job.customer.name);
             if (!motorcycle.allServicesByOwner[ownerName]) {
               motorcycle.allServicesByOwner[ownerName] = [];
             }
             motorcycle.allServicesByOwner[ownerName].push(job);
           }
           
-          // Check if this is a different owner than the last one in ownership history
           if (job.customer) {
             const lastOwner = motorcycle.ownershipHistory.length > 0 ? 
               motorcycle.ownershipHistory[motorcycle.ownershipHistory.length - 1] : null;
             
-            if (lastOwner && censorName(job.customer.name) === lastOwner.name) {
-              // Same owner, just update the last service date
+            const displayName = canSeeAllData ? job.customer.name : censorName(job.customer.name);
+            
+            if (lastOwner && lastOwner.originalName === job.customer.name) {
               lastOwner.lastDateServiced = job.dateCreated;
             } else {
-              // Different owner, add to ownership history
               motorcycle.ownershipHistory.push({
-                name: censorName(job.customer.name),
+                name: displayName,
+                originalName: job.customer.name,
                 jobId: job.id,
                 dateServiced: job.dateCreated,
                 lastDateServiced: job.dateCreated
@@ -202,20 +206,16 @@ export const SearchPanel = ({
       }
     });
     
-    // Sort service history by date (newest first) for each motorcycle
     const motorcycleResults = Array.from(motorcycleMap.values());
     motorcycleResults.forEach(motorcycle => {
-      // Sort service history by date (newest first)
       motorcycle.serviceHistory.sort((a: any, b: any) => 
         new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
       );
       
-      // Sort ownership history by last service date (newest first)
       motorcycle.ownershipHistory.sort((a: any, b: any) => 
         new Date(b.lastDateServiced).getTime() - new Date(a.lastDateServiced).getTime()
       );
       
-      // Mark the current owner (the most recent one)
       if (motorcycle.ownershipHistory && motorcycle.ownershipHistory.length > 0) {
         motorcycle.currentOwner = motorcycle.ownershipHistory[0];
         motorcycle.previousOwners = motorcycle.ownershipHistory.slice(1);
@@ -224,7 +224,6 @@ export const SearchPanel = ({
         motorcycle.previousOwners = [];
       }
 
-      // For each owner, sort their services by date (newest first)
       Object.keys(motorcycle.allServicesByOwner).forEach(owner => {
         motorcycle.allServicesByOwner[owner].sort((a: any, b: any) => 
           new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
@@ -251,9 +250,10 @@ export const SearchPanel = ({
     setHasSearched(true);
     const query = jobQuery.toLowerCase().trim();
     
-    // Find jobs matching the search query (by ID)
+    // Find jobs matching the search query (by ID or service type)
     const results = validJobs.filter(job => 
-      job.id && job.id.toLowerCase().includes(query)
+      (job.id && job.id.toLowerCase().includes(query)) ||
+      (job.serviceType && job.serviceType.toLowerCase().includes(query))
     );
     
     console.log("Job search results:", results);
@@ -264,29 +264,26 @@ export const SearchPanel = ({
     }
   };
 
-  // Function to handle owner selection to filter service history
   const handleOwnerSelect = (motorcycle: any, ownerName: string) => {
     setSelectedOwner(ownerName === selectedOwner ? null : ownerName);
   };
 
-  // Function to get filtered service history based on selected owner
   const getFilteredServiceHistory = (motorcycle: any) => {
     if (!selectedOwner) {
-      // If no owner selected, return the last 10 services
       return motorcycle.serviceHistory.slice(0, 10);
     }
     
-    // Return services for the selected owner (up to 10)
     return motorcycle.allServicesByOwner[selectedOwner]?.slice(0, 10) || [];
   };
 
-  // Helper function to render job summary in popover
   const renderJobSummary = (job: any) => {
     return (
       <div className="space-y-3">
         <div className="space-y-1">
           <h4 className="font-medium">{job.motorcycle?.make} {job.motorcycle?.model}</h4>
-          <p className="text-muted-foreground text-xs">Customer: {job.customer?.name || "N/A"}</p>
+          <p className="text-muted-foreground text-xs">
+            Customer: {canSeeAllData ? job.customer?.name || "N/A" : censorName(job.customer?.name || "N/A")}
+          </p>
         </div>
         <div className="grid grid-cols-2 gap-1 text-sm">
           <span className="text-muted-foreground">Service:</span>
@@ -351,6 +348,9 @@ export const SearchPanel = ({
               <CardTitle className="text-lg flex items-center">
                 <User className="mr-2 h-5 w-5" />
                 Customer Search
+                {!canSeeAllData && (
+                  <Badge variant="outline" className="ml-2">Shop Only</Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>

@@ -1,14 +1,12 @@
 
 import { useState, useEffect } from "react";
 import { TabsContent } from "@/components/ui/tabs";
-import { JobList } from "@/components/dashboard/JobList";
-import { NewJobForm } from "@/components/dashboard/NewJobForm";
+import { JobsTab } from "@/components/dashboard/jobs/JobsTab";
 import { SearchPanel } from "@/components/dashboard/SearchPanel";
 import { AccountInfo } from "@/components/dashboard/account/AccountInfo";
 import { MessageList } from "@/components/dashboard/messaging/MessageList";
 import { TicketList } from "@/components/dashboard/tickets/TicketList";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
-import { ShopsList } from "@/components/dashboard/shops/ShopsList";
 import { ShopManagementTab } from "@/components/dashboard/shops/ShopManagementTab";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -55,36 +53,25 @@ export const TabContent = ({
   
   return (
     <div className="mt-2">
-      <TabsContent value="active-jobs">
-        <JobList
-          jobs={activeJobs}
+      <TabsContent value="jobs">
+        <JobsTab
+          activeJobs={activeJobs}
+          completedJobs={completedJobs}
           allJobs={allJobs}
           setJobs={setJobs}
-          jobType="active"
+          handleAddJob={handleAddJob}
           translations={translations}
-          emptyStateMessage={translations.noActiveJobs}
-          emptyStateAction={translations.createNewJob}
+          userRole={userRole}
         />
-      </TabsContent>
-      
-      <TabsContent value="completed">
-        <JobList
-          jobs={completedJobs}
-          allJobs={allJobs}
-          setJobs={setJobs}
-          jobType="completed"
-          translations={translations}
-          emptyStateMessage={translations.noCompletedJobs}
-          emptyStateAction={translations.completedJobsAppear}
-        />
-      </TabsContent>
-      
-      <TabsContent value="new-job">
-        <NewJobForm onSubmit={handleAddJob} />
       </TabsContent>
       
       <TabsContent value="customers">
-        <SearchPanel />
+        <SearchPanel
+          jobs={allJobs}
+          translations={translations}
+          userRole={userRole}
+          userId={userId}
+        />
       </TabsContent>
       
       <TabsContent value="support">
@@ -92,11 +79,7 @@ export const TabContent = ({
       </TabsContent>
       
       <TabsContent value="shops">
-        {userRole === 'admin' ? (
-          <ShopsList />
-        ) : (
-          <ShopManagementTab userId={userId || ''} />
-        )}
+        <ShopManagementTab userId={userId || ''} />
       </TabsContent>
       
       <TabsContent value="users">
@@ -106,12 +89,6 @@ export const TabContent = ({
       <TabsContent value="account">
         <AccountInfo userRole={userRole} userId={userId} />
       </TabsContent>
-      
-      {isShopOwner && (
-        <TabsContent value="shop-management">
-          <ShopManagementTab userId={userId || ''} />
-        </TabsContent>
-      )}
     </div>
   );
 };

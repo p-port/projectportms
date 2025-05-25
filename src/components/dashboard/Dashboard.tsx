@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ const translations = {
     dashboard: "Dashboard",
     welcome: "Welcome back",
     searchPlaceholder: "Search jobs by ID, customer name, or motorcycle...",
+    jobs: "Jobs",
     activeJobs: "Active Jobs",
     completed: "Completed",
     newJob: "New Job",
@@ -44,6 +46,7 @@ const translations = {
     dashboard: "대시보드",
     welcome: "다시 환영합니다",
     searchPlaceholder: "작업 ID, 고객 이름 또는 오토바이로 검색...",
+    jobs: "작업",
     activeJobs: "활성 작업",
     completed: "완료됨",
     newJob: "새 작업",
@@ -67,6 +70,7 @@ const translations = {
     dashboard: "Панель управления",
     welcome: "С возвращением",
     searchPlaceholder: "Поиск заказов по ID, имени клиента или мотоциклу...",
+    jobs: "Заказы",
     activeJobs: "Активные заказы",
     completed: "Завершенные",
     newJob: "Новый заказ",
@@ -89,7 +93,7 @@ const translations = {
 };
 
 export const Dashboard = ({ user }: DashboardProps) => {
-  const [activeTab, setActiveTab] = useState("active-jobs");
+  const [activeTab, setActiveTab] = useState("jobs");
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -175,7 +179,6 @@ export const Dashboard = ({ user }: DashboardProps) => {
               dateCompleted: job.date_completed ? new Date(job.date_completed).toISOString().split('T')[0] : null,
               notes: job.notes || [],
               photos: job.photos || { start: [], completion: [] },
-              // Handle shop_id safely, using optional chaining and type assertion
               shopId: (job as any).shop_id || null
             }));
             
@@ -199,7 +202,6 @@ export const Dashboard = ({ user }: DashboardProps) => {
             toast.success(t.jobSynced);
           }
         } else {
-          // No jobs in localStorage either - no sample jobs needed anymore since we have Supabase
           setJobs([]);
           localStorage.setItem('projectPortJobs', JSON.stringify([]));
         }
@@ -315,7 +317,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
       }
     }
     
-    setActiveTab("active-jobs");
+    setActiveTab("jobs");
   };
 
   const filteredJobs = searchQuery 

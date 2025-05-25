@@ -29,6 +29,7 @@ export const TabsNavigation = ({
   userId
 }: TabsNavigationProps) => {
   const isAdmin = userRole === 'admin';
+  const isSupport = userRole === 'support';
   const [isShopOwner, setIsShopOwner] = useState(false);
   
   // Check if user is a shop owner
@@ -66,25 +67,15 @@ export const TabsNavigation = ({
         </Tooltip>
       </TooltipProvider>
       
-      <TabsTrigger value="active-jobs" onClick={() => setActiveTab("active-jobs")} className="flex gap-2 items-center">
-        <Wrench className="h-4 w-4" />
-        {translations.activeJobs}
-        <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
-          {activeJobs}
-        </span>
-      </TabsTrigger>
-      <TabsTrigger value="completed" onClick={() => setActiveTab("completed")} className="flex gap-2 items-center">
-        <Check className="h-4 w-4" />
-        {translations.completed}
-        <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
-          {completedJobs}
-        </span>
-      </TabsTrigger>
-      <TabsTrigger value="new-job" onClick={() => setActiveTab("new-job")} className="flex gap-2 items-center">
+      <TabsTrigger value="jobs" onClick={() => setActiveTab("jobs")} className="flex gap-2 items-center">
         <Briefcase className="h-4 w-4" />
-        {translations.newJob}
+        {translations.jobs || "Jobs"}
+        <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
+          {activeJobs + completedJobs}
+        </span>
       </TabsTrigger>
-      {(isAdmin || isShopOwner) && (
+      
+      {(isAdmin || isSupport || isShopOwner) && (
         <TabsTrigger value="shops" onClick={() => setActiveTab("shops")} className="flex gap-2 items-center">
           <Store className="h-4 w-4" />
           {translations.shops || "Shops"}
