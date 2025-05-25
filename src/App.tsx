@@ -9,7 +9,9 @@ import Index from "./pages/Index";
 import TrackJob from "./pages/TrackJob";
 import NotFound from "./pages/NotFound";
 import VerificationSuccess from "./pages/VerificationSuccess";
+import { LegalDisclosure } from "./pages/LegalDisclosure";
 import { ShopManagement } from "./components/dashboard/shops/ShopManagement";
+import { ShopDetailView } from "./components/dashboard/shops/ShopDetailView";
 import { UserManagement } from "./components/dashboard/admin/UserManagement";
 import { UserDetails } from "./components/dashboard/admin/UserDetails";
 import { MessageList } from "./components/dashboard/messaging/MessageList";
@@ -29,8 +31,10 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/track-job/:jobId" element={<TrackJob />} />
+            <Route path="/legal-disclosure/:jobId" element={<LegalDisclosure />} />
             <Route path="/verification-success" element={<VerificationSuccess />} />
             <Route path="/shop-management" element={<ShopManagement />} />
+            <Route path="/shop-detail/:shopId" element={<ShopDetailView />} />
             <Route path="/user-management" element={<UserManagement />} />
             <Route path="/user-management/:userId" element={<UserDetails />} />
             <Route path="/shop-owners" element={<ShopOwners />} />
