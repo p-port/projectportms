@@ -5,8 +5,8 @@ import { Shop } from "@/types/shop";
 interface ShopContactInfoProps {
   shop: Shop;
   editing: boolean;
-  editForm: Shop;
-  onInputChange: (field: keyof Shop, value: any) => void;
+  editForm: Partial<Shop>;
+  onInputChange: <K extends keyof Shop>(field: K, value: Shop[K]) => void;
 }
 
 export const ShopContactInfo = ({ shop, editing, editForm, onInputChange }: ShopContactInfoProps) => {

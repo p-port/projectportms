@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +25,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
   const [shopOwner, setShopOwner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState<Shop>({} as Shop);
+  const [editForm, setEditForm] = useState<Partial<Shop>>({});
   const [userEmail, setUserEmail] = useState<string>("");
   const { userRole } = useAuthCheck();
   const [isShopOwner, setIsShopOwner] = useState(false);
@@ -124,9 +123,9 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     
     try {
       const updateData: Partial<Shop> = {};
-      Object.keys(editForm).forEach(key => {
+      Object.entries(editForm).forEach(([key, value]) => {
         if (!restrictedFields.includes(key)) {
-          updateData[key as keyof Shop] = editForm[key as keyof Shop];
+          updateData[key as keyof Shop] = value;
         }
       });
 
@@ -152,7 +151,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     }
   };
 
-  const handleInputChange = (field: keyof Shop, value: any) => {
+  const handleInputChange = <K extends keyof Shop>(field: K, value: Shop[K]) => {
     setEditForm(prev => ({
       ...prev,
       [field]: value

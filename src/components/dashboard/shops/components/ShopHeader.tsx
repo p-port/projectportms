@@ -8,12 +8,12 @@ import { Shop } from "@/types/shop";
 interface ShopHeaderProps {
   shop: Shop;
   editing: boolean;
-  editForm: Shop;
+  editForm: Partial<Shop>;
   canEdit: boolean;
   onEdit: () => void;
   onSave: () => void;
   onCancel: () => void;
-  onInputChange: (field: keyof Shop, value: any) => void;
+  onInputChange: <K extends keyof Shop>(field: K, value: Shop[K]) => void;
   onNavigateHome: () => void;
 }
 
