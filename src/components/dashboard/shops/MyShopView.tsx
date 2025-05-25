@@ -155,7 +155,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     }
   };
 
-  const handleInputChange = (field: keyof Shop, value: string | number | string[]) => {
+  const handleInputChange = (field: keyof Shop, value: any) => {
     setEditForm(prev => ({
       ...prev,
       [field]: value
