@@ -243,7 +243,13 @@ export const JobDetailsDialog = ({
 
             <TabsContent value="notes">
               <NotesTab 
-                currentJob={currentJob} 
+                job={currentJob}
+                allJobs={[currentJob]}
+                setJobs={(jobs) => {
+                  const updatedJob = jobs[0];
+                  setCurrentJob(updatedJob);
+                  onUpdateJob(updatedJob);
+                }}
                 onUpdateJob={(updatedJob) => {
                   setCurrentJob(updatedJob);
                   onUpdateJob(updatedJob);
