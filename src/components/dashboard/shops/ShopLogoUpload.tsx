@@ -114,6 +114,13 @@ export const ShopLogoUpload = ({ shopId, currentLogoUrl, onLogoUpdate, disabled 
     }
   };
 
+  const triggerFileInput = () => {
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  };
+
   return (
     <div className="space-y-4">
       <label className="text-sm font-medium">Shop Logo</label>
@@ -172,7 +179,7 @@ export const ShopLogoUpload = ({ shopId, currentLogoUrl, onLogoUpdate, disabled 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => document.querySelector('input[type="file"]')?.click()}
+                onClick={triggerFileInput}
                 disabled={disabled || uploading}
               >
                 <Upload className="h-4 w-4 mr-1" />
