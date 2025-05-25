@@ -1,16 +1,16 @@
+
 import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SearchCustomers } from "./SearchCustomers";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, User, Bike, Briefcase } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Search, Users, Wrench, Briefcase } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { SearchCustomers } from "./SearchCustomers";
 
 interface SearchPanelProps {
   jobs: any[];
-  translations: any;
   userRole?: string;
   userId?: string;
 }
@@ -18,19 +18,20 @@ interface SearchPanelProps {
 interface MotorcycleData {
   make: string;
   model: string;
-  year: string;
+  year: number;
   vin?: string;
+  engineNumber?: string;
+  plateNumber?: string;
 }
 
-interface CustomerData {
-  name: string;
-}
-
-export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId }: SearchPanelProps) => {
-  const [searchQuery, setSearchQuery] = useState("");
+export const SearchPanel = ({ jobs, userRole = 'mechanic', userId }: SearchPanelProps) => {
+  const [activeTab, setActiveTab] = useState("customers");
   const [motorcycleResults, setMotorcycleResults] = useState<any[]>([]);
   const [jobResults, setJobResults] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [motorcycleQuery, setMotorcycleQuery] = useState("");
+  const [jobQuery, setJobQuery] = useState("");
+  const [motorcycleLoading, setMotorcycleLoading] = useState(false);
+  const [jobLoading, setJobLoading] = useState(false);
   const [userShopId, setUserShopId] = useState<string | null>(null);
 
   const isAdmin = userRole === 'admin';
@@ -62,12 +63,12 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
       return;
     }
 
-    setLoading(true);
+    setMotorcycleLoading(true);
     try {
       let dbQuery = supabase
         .from('jobs')
         .select('*')
-        .or(`motorcycle->>make.ilike.%${query}%,motorcycle->>model.ilike.%${query}%,motorcycle->>year.ilike.%${query}%,motorcycle->>vin.ilike.%${query}%`);
+        .or(`motorcycle->>make.ilike.%${query}%,motorcycle->>model.ilike.%${query}%,motorcycle->>vin.ilike.%${query}%,motorcycle->>engineNumber.ilike.%${query}%,motorcycle->>plateNumber.ilike.%${query}%`);
 
       // Filter by shop for non-admin/support users
       if (!canSeeAllData && userShopId) {
@@ -78,21 +79,21 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
 
       if (error) throw error;
 
-      // Group by motorcycle (VIN or make+model+year)
+      // Group by motorcycle
       const motorcycleMap = new Map();
       data?.forEach(job => {
         const motorcycle = job.motorcycle as unknown as MotorcycleData;
-        const key = motorcycle.vin || `${motorcycle.make}-${motorcycle.model}-${motorcycle.year}`;
+        const key = `${motorcycle.make}-${motorcycle.model}-${motorcycle.year}-${motorcycle.vin || ''}`;
         
         if (!motorcycleMap.has(key)) {
           motorcycleMap.set(key, {
             motorcycle,
-            services: [],
-            owners: new Set()
+            jobs: [],
+            customers: new Set()
           });
         }
         
-        motorcycleMap.get(key).services.push({
+        motorcycleMap.get(key).jobs.push({
           jobId: job.job_id,
           serviceType: job.service_type,
           date: job.date_created,
@@ -100,14 +101,14 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
           customer: job.customer
         });
         
-        const customer = job.customer as unknown as CustomerData;
-        motorcycleMap.get(key).owners.add(customer.name);
+        const customer = job.customer as any;
+        motorcycleMap.get(key).customers.add(customer.name || customer.email);
       });
 
       const results = Array.from(motorcycleMap.entries()).map(([key, data]) => ({
         key,
         ...data,
-        owners: Array.from(data.owners)
+        customers: Array.from(data.customers)
       }));
 
       setMotorcycleResults(results);
@@ -115,7 +116,7 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
       console.error('Error searching motorcycles:', error);
       setMotorcycleResults([]);
     } finally {
-      setLoading(false);
+      setMotorcycleLoading(false);
     }
   };
 
@@ -125,12 +126,12 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
       return;
     }
 
-    setLoading(true);
+    setJobLoading(true);
     try {
       let dbQuery = supabase
         .from('jobs')
         .select('*')
-        .or(`job_id.ilike.%${query}%,service_type.ilike.%${query}%,customer->>name.ilike.%${query}%,motorcycle->>make.ilike.%${query}%,motorcycle->>model.ilike.%${query}%`);
+        .or(`job_id.ilike.%${query}%,service_type.ilike.%${query}%,status.ilike.%${query}%`);
 
       // Filter by shop for non-admin/support users
       if (!canSeeAllData && userShopId) {
@@ -145,76 +146,62 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
       console.error('Error searching jobs:', error);
       setJobResults([]);
     } finally {
-      setLoading(false);
+      setJobLoading(false);
     }
   };
 
-  const handleSearch = () => {
-    searchMotorcycles(searchQuery);
-    searchJobs(searchQuery);
+  const handleMotorcycleSearch = () => {
+    searchMotorcycles(motorcycleQuery);
   };
 
-  const formatCustomerName = (name: string) => {
-    if (!name) return "Unknown";
-    if (name.length <= 2) return name;
-    return name.charAt(0) + "*".repeat(name.length - 2) + name.charAt(name.length - 1);
+  const handleJobSearch = () => {
+    searchJobs(jobQuery);
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            {translations.search || "Search"}
-          </CardTitle>
-          <CardDescription>
-            Search for customers, motorcycles, and jobs
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder={translations.searchPlaceholder || "Search..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            />
-            <Button onClick={handleSearch} disabled={loading}>
-              <Search className="h-4 w-4 mr-2" />
-              Search
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Search className="h-5 w-5" />
+          Search
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="customers" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Customers
+            </TabsTrigger>
+            <TabsTrigger value="motorcycles" className="flex items-center gap-2">
+              <Wrench className="h-4 w-4" />
+              Motorcycles
+            </TabsTrigger>
+            <TabsTrigger value="jobs" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Jobs
+            </TabsTrigger>
+          </TabsList>
 
-      <Tabs defaultValue="customers" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="customers" className="flex gap-2 items-center">
-            <User className="h-4 w-4" />
-            Customers
-          </TabsTrigger>
-          <TabsTrigger value="motorcycles" className="flex gap-2 items-center">
-            <Bike className="h-4 w-4" />
-            Motorcycles
-          </TabsTrigger>
-          <TabsTrigger value="jobs" className="flex gap-2 items-center">
-            <Briefcase className="h-4 w-4" />
-            Jobs
-          </TabsTrigger>
-        </TabsList>
+          <TabsContent value="customers" className="space-y-4">
+            <SearchCustomers jobs={jobs} userRole={userRole} userId={userId} />
+          </TabsContent>
 
-        <TabsContent value="customers">
-          <SearchCustomers 
-            jobs={jobs}
-            userRole={userRole}
-            userId={userId}
-          />
-        </TabsContent>
+          <TabsContent value="motorcycles" className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Search motorcycles..."
+                value={motorcycleQuery}
+                onChange={(e) => setMotorcycleQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleMotorcycleSearch()}
+              />
+              <Button onClick={handleMotorcycleSearch} disabled={motorcycleLoading}>
+                <Search className="h-4 w-4 mr-2" />
+                Search
+              </Button>
+            </div>
 
-        <TabsContent value="motorcycles">
-          <div className="space-y-4">
-            {loading ? (
+            {motorcycleLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
                 <p className="mt-2">Searching motorcycles...</p>
@@ -227,17 +214,18 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
                       <CardTitle className="text-lg">
                         {result.motorcycle.make} {result.motorcycle.model} ({result.motorcycle.year})
                       </CardTitle>
-                      {result.motorcycle.vin && (
-                        <CardDescription>VIN: {result.motorcycle.vin}</CardDescription>
-                      )}
+                      <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                        {result.motorcycle.vin && <span>VIN: {result.motorcycle.vin}</span>}
+                        {result.motorcycle.plateNumber && <span>Plate: {result.motorcycle.plateNumber}</span>}
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div>
-                        <h4 className="font-medium mb-2">Ownership History:</h4>
+                        <h4 className="font-medium mb-2">Owners:</h4>
                         <div className="flex flex-wrap gap-1">
-                          {result.owners.map((owner: string, index: number) => (
+                          {result.customers.map((customer: string, index: number) => (
                             <Badge key={index} variant="outline">
-                              {formatCustomerName(owner)}
+                              {customer}
                             </Badge>
                           ))}
                         </div>
@@ -246,16 +234,16 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
                       <div>
                         <h4 className="font-medium mb-2">Service History:</h4>
                         <div className="space-y-2">
-                          {result.services.map((service: any, index: number) => (
+                          {result.jobs.map((job: any, index: number) => (
                             <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
                               <div>
-                                <span className="font-medium">{service.jobId}</span>
-                                <span className="text-muted-foreground ml-2">{service.serviceType}</span>
+                                <span className="font-medium">{job.jobId}</span>
+                                <span className="text-muted-foreground ml-2">{job.serviceType}</span>
                               </div>
                               <div className="text-right">
-                                <div className="text-sm">{new Date(service.date).toLocaleDateString()}</div>
-                                <Badge variant={service.status === 'completed' ? 'default' : 'secondary'}>
-                                  {service.status}
+                                <div className="text-sm">{new Date(job.date).toLocaleDateString()}</div>
+                                <Badge variant={job.status === 'completed' ? 'default' : 'secondary'}>
+                                  {job.status}
                                 </Badge>
                               </div>
                             </div>
@@ -266,21 +254,32 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
                   </Card>
                 ))}
               </div>
-            ) : searchQuery ? (
+            ) : motorcycleQuery ? (
               <div className="text-center py-8 text-muted-foreground">
-                No motorcycles found matching "{searchQuery}"
+                No motorcycles found matching "{motorcycleQuery}"
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 Enter a search term to find motorcycles
               </div>
             )}
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="jobs">
-          <div className="space-y-4">
-            {loading ? (
+          <TabsContent value="jobs" className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Search jobs..."
+                value={jobQuery}
+                onChange={(e) => setJobQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleJobSearch()}
+              />
+              <Button onClick={handleJobSearch} disabled={jobLoading}>
+                <Search className="h-4 w-4 mr-2" />
+                Search
+              </Button>
+            </div>
+
+            {jobLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
                 <p className="mt-2">Searching jobs...</p>
@@ -290,43 +289,45 @@ export const SearchPanel = ({ jobs, translations, userRole = 'mechanic', userId 
                 {jobResults.map((job) => (
                   <Card key={job.id}>
                     <CardHeader>
-                      <CardTitle className="flex justify-between items-center">
-                        <span>{job.job_id}</span>
+                      <CardTitle className="text-lg">{job.job_id}</CardTitle>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">{job.service_type}</span>
                         <Badge variant={job.status === 'completed' ? 'default' : 'secondary'}>
                           {job.status}
                         </Badge>
-                      </CardTitle>
-                      <CardDescription>
-                        {job.service_type} • {new Date(job.date_created).toLocaleDateString()}
-                      </CardDescription>
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
                         <div>
-                          <h4 className="font-medium">Customer:</h4>
-                          <p>{formatCustomerName((job.customer as unknown as CustomerData).name)}</p>
+                          <span className="font-medium">Customer: </span>
+                          <span>{(job.customer as any).name || (job.customer as any).email}</span>
                         </div>
                         <div>
-                          <h4 className="font-medium">Motorcycle:</h4>
-                          <p>{(job.motorcycle as unknown as MotorcycleData).make} {(job.motorcycle as unknown as MotorcycleData).model} ({(job.motorcycle as unknown as MotorcycleData).year})</p>
+                          <span className="font-medium">Motorcycle: </span>
+                          <span>{(job.motorcycle as any).make} {(job.motorcycle as any).model} ({(job.motorcycle as any).year})</span>
+                        </div>
+                        <div>
+                          <span className="font-medium">Date: </span>
+                          <span>{new Date(job.date_created).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
-            ) : searchQuery ? (
+            ) : jobQuery ? (
               <div className="text-center py-8 text-muted-foreground">
-                No jobs found matching "{searchQuery}"
+                No jobs found matching "{jobQuery}"
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 Enter a search term to find jobs
               </div>
             )}
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };

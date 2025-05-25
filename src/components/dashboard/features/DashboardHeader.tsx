@@ -1,3 +1,4 @@
+
 import { NotificationCenter } from "../notifications/NotificationCenter";
 
 interface DashboardHeaderProps {
@@ -15,7 +16,7 @@ export const DashboardHeader = ({
   translations,
   userId
 }: DashboardHeaderProps) => {
-  // Extract first name from full name or use email as fallback
+  // Extract display name - prioritize the actual name over email
   const getDisplayName = (name?: string) => {
     if (!name) return "User";
     
@@ -24,8 +25,8 @@ export const DashboardHeader = ({
       return name.split("@")[0];
     }
     
-    // Otherwise, get the first name (first word)
-    return name.split(" ")[0];
+    // Use the full name as display name instead of just first name
+    return name;
   };
 
   return (

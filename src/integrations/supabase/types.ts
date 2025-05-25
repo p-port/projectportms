@@ -350,6 +350,7 @@ export type Database = {
           fax_number: string | null
           full_address: string | null
           id: string
+          logo_url: string | null
           mobile_phone: string | null
           name: string
           owner_id: string | null
@@ -367,6 +368,7 @@ export type Database = {
           fax_number?: string | null
           full_address?: string | null
           id?: string
+          logo_url?: string | null
           mobile_phone?: string | null
           name: string
           owner_id?: string | null
@@ -384,6 +386,7 @@ export type Database = {
           fax_number?: string | null
           full_address?: string | null
           id?: string
+          logo_url?: string | null
           mobile_phone?: string | null
           name?: string
           owner_id?: string | null

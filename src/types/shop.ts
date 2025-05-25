@@ -16,4 +16,5 @@ export interface Shop {
   business_phone?: string;
   fax_number?: string;
   mobile_phone?: string;
+  logo_url?: string;
 }

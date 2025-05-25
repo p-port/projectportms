@@ -1,80 +1,60 @@
 
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { JobList } from "@/components/dashboard/JobList";
-import { NewJobForm } from "@/components/dashboard/NewJobForm";
-import { Wrench, Check, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import { JobList } from "../JobList";
+import { NewJobForm } from "../NewJobForm";
 
 interface JobsTabProps {
-  activeJobs: any[];
-  completedJobs: any[];
-  allJobs: any[];
-  setJobs: (jobs: any[]) => void;
-  handleAddJob: (job: any) => void;
-  translations: any;
+  jobs: any[];
+  onJobUpdate: () => void;
   userRole?: string;
+  userId?: string;
 }
 
-export const JobsTab = ({
-  activeJobs,
-  completedJobs,
-  allJobs,
-  setJobs,
-  handleAddJob,
-  translations,
-  userRole
-}: JobsTabProps) => {
+export const JobsTab = ({ jobs, onJobUpdate, userRole, userId }: JobsTabProps) => {
+  const [activeTab, setActiveTab] = useState("new");
+
+  const activeJobs = jobs.filter(job => job.status !== 'completed');
+  const completedJobs = jobs.filter(job => job.status === 'completed');
+
   return (
-    <Tabs defaultValue="active" className="space-y-6">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
       <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="active" className="flex gap-2 items-center">
-          <Wrench className="h-4 w-4" />
-          {translations.activeJobs || "Active Jobs"}
-          <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
-            {activeJobs.length}
-          </span>
-        </TabsTrigger>
-        <TabsTrigger value="completed" className="flex gap-2 items-center">
-          <Check className="h-4 w-4" />
-          {translations.completed || "Completed"}
-          <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
-            {completedJobs.length}
-          </span>
-        </TabsTrigger>
-        <TabsTrigger value="new-job" className="flex gap-2 items-center">
+        <TabsTrigger value="new" className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          {translations.newJob || "New Job"}
+          New Job
+        </TabsTrigger>
+        <TabsTrigger value="active">
+          Active Jobs ({activeJobs.length})
+        </TabsTrigger>
+        <TabsTrigger value="completed">
+          Completed Jobs ({completedJobs.length})
         </TabsTrigger>
       </TabsList>
       
+      <TabsContent value="new">
+        <NewJobForm onJobCreated={onJobUpdate} />
+      </TabsContent>
+      
       <TabsContent value="active">
-        <JobList
-          jobs={activeJobs}
-          allJobs={allJobs}
-          setJobs={setJobs}
-          jobType="active"
-          translations={translations}
-          emptyStateMessage={translations.noActiveJobs}
-          emptyStateAction={translations.createNewJob}
+        <JobList 
+          jobs={activeJobs} 
+          onJobUpdate={onJobUpdate}
+          title="Active Jobs"
           userRole={userRole}
+          userId={userId}
         />
       </TabsContent>
       
       <TabsContent value="completed">
-        <JobList
-          jobs={completedJobs}
-          allJobs={allJobs}
-          setJobs={setJobs}
-          jobType="completed"
-          translations={translations}
-          emptyStateMessage={translations.noCompletedJobs}
-          emptyStateAction={translations.completedJobsAppear}
+        <JobList 
+          jobs={completedJobs} 
+          onJobUpdate={onJobUpdate}
+          title="Completed Jobs"
           userRole={userRole}
+          userId={userId}
         />
-      </TabsContent>
-      
-      <TabsContent value="new-job">
-        <NewJobForm onSubmit={handleAddJob} />
       </TabsContent>
     </Tabs>
   );

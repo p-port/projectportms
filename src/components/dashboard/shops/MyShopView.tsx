@@ -5,12 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Building2, MapPin, Users, Edit, Save, X } from "lucide-react";
+import { Building2, MapPin, Users, Edit, Save, X, AlertTriangle } from "lucide-react";
 import { Shop } from "@/types/shop";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
+import { ShopLogoUpload } from "./ShopLogoUpload";
+import { ShopUserInvitation } from "./ShopUserInvitation";
 
 interface MyShopViewProps {
   userId?: string;
@@ -25,6 +26,9 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
   const { userRole } = useAuthCheck();
 
   const [isShopOwner, setIsShopOwner] = useState(false);
+
+  // Fields that require admin approval to change
+  const restrictedFields = ['region', 'district', 'full_address', 'name', 'employee_count', 'business_registration_number'];
 
   useEffect(() => {
     if (userId) {
@@ -102,19 +106,33 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     if (!shop || !editForm) return;
     
     try {
+      // Only allow updating non-restricted fields
+      const updateData: Partial<Shop> = {};
+      Object.keys(editForm).forEach(key => {
+        if (!restrictedFields.includes(key)) {
+          updateData[key as keyof Shop] = editForm[key as keyof Shop];
+        }
+      });
+
       const { error } = await supabase
         .from('shops')
-        .update(editForm)
+        .update(updateData)
         .eq('id', shop.id);
 
       if (error) throw error;
       
-      setShop({ ...shop, ...editForm });
+      setShop({ ...shop, ...updateData });
       setEditing(false);
       toast.success("Shop information updated successfully");
     } catch (error) {
       console.error("Error updating shop:", error);
       toast.error("Failed to update shop information");
+    }
+  };
+
+  const handleLogoUpdate = (logoUrl: string | null) => {
+    if (shop) {
+      setShop({ ...shop, logo_url: logoUrl });
     }
   };
 
@@ -156,40 +174,58 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                {editing ? (
-                  <Input
-                    value={editForm.name || ''}
-                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className="text-lg font-semibold"
-                  />
-                ) : (
-                  shop.name
-                )}
-              </CardTitle>
-              <CardDescription className="flex items-center gap-1 mt-1">
-                <MapPin className="h-3 w-3" />
-                {editing ? (
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Region"
-                      value={editForm.region || ''}
-                      onChange={(e) => setEditForm({ ...editForm, region: e.target.value })}
-                      className="w-32"
-                    />
-                    <Input
-                      placeholder="District"
-                      value={editForm.district || ''}
-                      onChange={(e) => setEditForm({ ...editForm, district: e.target.value })}
-                      className="w-32"
-                    />
-                  </div>
-                ) : (
-                  `${shop.region}, ${shop.district}`
-                )}
-              </CardDescription>
+            <div className="flex items-start gap-4">
+              {shop.logo_url && (
+                <img 
+                  src={shop.logo_url} 
+                  alt={`${shop.name} logo`}
+                  className="w-16 h-16 object-cover rounded border"
+                />
+              )}
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  {editing ? (
+                    <div className="space-y-1">
+                      <Input
+                        value={editForm.name || ''}
+                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                        className="text-lg font-semibold"
+                        disabled={true}
+                      />
+                      <div className="flex items-center gap-1 text-xs text-orange-600">
+                        <AlertTriangle className="h-3 w-3" />
+                        Requires admin approval to change
+                      </div>
+                    </div>
+                  ) : (
+                    shop.name
+                  )}
+                </CardTitle>
+                <CardDescription className="flex items-center gap-1 mt-1">
+                  <MapPin className="h-3 w-3" />
+                  {editing ? (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Region"
+                        value={editForm.region || ''}
+                        onChange={(e) => setEditForm({ ...editForm, region: e.target.value })}
+                        className="w-32"
+                        disabled={true}
+                      />
+                      <Input
+                        placeholder="District"
+                        value={editForm.district || ''}
+                        onChange={(e) => setEditForm({ ...editForm, district: e.target.value })}
+                        className="w-32"
+                        disabled={true}
+                      />
+                    </div>
+                  ) : (
+                    `${shop.region}, ${shop.district}`
+                  )}
+                </CardDescription>
+              </div>
             </div>
             {canEdit && (
               <div className="flex gap-2">
@@ -218,6 +254,16 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Logo Upload - Only for shop owners */}
+          {isShopOwner && (
+            <ShopLogoUpload
+              shopId={shop.id}
+              currentLogoUrl={shop.logo_url}
+              onLogoUpdate={handleLogoUpdate}
+              disabled={editing}
+            />
+          )}
+
           {/* Shop Owner */}
           <div>
             <h4 className="text-sm font-medium mb-2">Shop Owner</h4>
@@ -237,11 +283,18 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
             <div>
               <label className="text-sm font-medium">Employee Count</label>
               {editing ? (
-                <Input
-                  type="number"
-                  value={editForm.employee_count || ''}
-                  onChange={(e) => setEditForm({ ...editForm, employee_count: parseInt(e.target.value) })}
-                />
+                <div className="space-y-1">
+                  <Input
+                    type="number"
+                    value={editForm.employee_count || ''}
+                    onChange={(e) => setEditForm({ ...editForm, employee_count: parseInt(e.target.value) })}
+                    disabled={true}
+                  />
+                  <div className="flex items-center gap-1 text-xs text-orange-600">
+                    <AlertTriangle className="h-3 w-3" />
+                    Requires admin approval
+                  </div>
+                </div>
               ) : (
                 <div className="flex items-center gap-2 mt-1">
                   <Users className="h-4 w-4" />
@@ -313,11 +366,18 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
           <div>
             <label className="text-sm font-medium">Full Address</label>
             {editing ? (
-              <Textarea
-                value={editForm.full_address || ''}
-                onChange={(e) => setEditForm({ ...editForm, full_address: e.target.value })}
-                rows={3}
-              />
+              <div className="space-y-1">
+                <Textarea
+                  value={editForm.full_address || ''}
+                  onChange={(e) => setEditForm({ ...editForm, full_address: e.target.value })}
+                  rows={3}
+                  disabled={true}
+                />
+                <div className="flex items-center gap-1 text-xs text-orange-600">
+                  <AlertTriangle className="h-3 w-3" />
+                  Requires admin approval to change
+                </div>
+              </div>
             ) : (
               <p className="text-sm mt-1">{shop.full_address || 'Not provided'}</p>
             )}
@@ -339,16 +399,44 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
           <div>
             <label className="text-sm font-medium">Business Registration Number</label>
             {editing ? (
-              <Input
-                value={editForm.business_registration_number || ''}
-                onChange={(e) => setEditForm({ ...editForm, business_registration_number: e.target.value })}
-              />
+              <div className="space-y-1">
+                <Input
+                  value={editForm.business_registration_number || ''}
+                  onChange={(e) => setEditForm({ ...editForm, business_registration_number: e.target.value })}
+                  disabled={true}
+                />
+                <div className="flex items-center gap-1 text-xs text-orange-600">
+                  <AlertTriangle className="h-3 w-3" />
+                  Requires admin approval to change
+                </div>
+              </div>
             ) : (
               <p className="text-sm mt-1">{shop.business_registration_number || 'Not provided'}</p>
             )}
           </div>
+
+          {/* Restricted Fields Notice */}
+          {isShopOwner && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-orange-800">Admin Approval Required</p>
+                  <p className="text-orange-700 mt-1">
+                    To change shop name, region, district, address, employee count, or business registration number, 
+                    please create a support ticket for administrator approval.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* User Invitation - Only for shop owners */}
+      {isShopOwner && (
+        <ShopUserInvitation shopId={shop.id} />
+      )}
     </div>
   );
 };
