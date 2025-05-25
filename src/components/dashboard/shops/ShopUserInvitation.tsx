@@ -98,6 +98,13 @@ export const ShopUserInvitation = ({ shopId }: ShopUserInvitationProps) => {
       const invitationCode = Math.random().toString(36).substring(2, 15) + 
                            Math.random().toString(36).substring(2, 15);
 
+      // Get shop name for the notification
+      const { data: shopData } = await supabase
+        .from('shops')
+        .select('name')
+        .eq('id', shopId)
+        .single();
+
       const { error } = await supabase
         .from('shop_invitations')
         .insert({
@@ -109,6 +116,26 @@ export const ShopUserInvitation = ({ shopId }: ShopUserInvitationProps) => {
         });
 
       if (error) throw error;
+
+      // Check if user exists and create notification
+      const { data: userData } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email.trim())
+        .single();
+
+      if (userData) {
+        // Create notification for existing user
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: userData.id,
+            title: 'Shop Invitation',
+            content: `You have been invited to join ${shopData?.name || 'a shop'}. Check your shop section to respond.`,
+            type: 'shop',
+            reference_id: shopId
+          });
+      }
 
       toast.success('Invitation sent successfully!');
       setEmail('');

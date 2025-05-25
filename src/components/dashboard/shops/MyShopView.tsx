@@ -11,6 +11,7 @@ import { Shop } from "@/types/shop";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 import { ShopLogoUpload } from "./ShopLogoUpload";
 import { ShopUserInvitation } from "./ShopUserInvitation";
+import { ShopInvitationHandler } from "./ShopInvitationHandler";
 
 interface MyShopViewProps {
   userId?: string;
@@ -22,6 +23,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Shop>>({});
+  const [userEmail, setUserEmail] = useState<string>("");
   const { userRole } = useAuthCheck();
 
   const [isShopOwner, setIsShopOwner] = useState(false);
@@ -33,8 +35,25 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     if (userId) {
       fetchMyShop();
       checkShopOwnership();
+      fetchUserEmail();
     }
   }, [userId]);
+
+  const fetchUserEmail = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', userId)
+        .single();
+        
+      if (!error && data) {
+        setUserEmail(data.email);
+      }
+    } catch (error) {
+      console.error('Error fetching user email:', error);
+    }
+  };
 
   const checkShopOwnership = async () => {
     if (!userId) return;
@@ -135,7 +154,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     }
   };
 
-  const handleInputChange = (field: keyof Shop, value: string | number | string[]) => {
+  const handleInputChange = (field: keyof Shop, value: any) => {
     setEditForm(prev => ({
       ...prev,
       [field]: value
@@ -167,28 +186,35 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
 
   if (!shop) {
     return (
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              My Shop
-            </CardTitle>
-            <Button variant="outline" size="sm" onClick={navigateToHome}>
-              <Home className="h-4 w-4 mr-2" />
-              Home
-            </Button>
-          </div>
-          <CardDescription>
-            You are not currently assigned to any shop
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Please contact your administrator to be assigned to a shop.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        {/* Show shop invitations if user has any */}
+        {userId && userEmail && (
+          <ShopInvitationHandler userId={userId} userEmail={userEmail} />
+        )}
+        
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                My Shop
+              </CardTitle>
+              <Button variant="outline" size="sm" onClick={navigateToHome}>
+                <Home className="h-4 w-4 mr-2" />
+                Home
+              </Button>
+            </div>
+            <CardDescription>
+              You are not currently assigned to any shop
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Please contact your administrator to be assigned to a shop.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 

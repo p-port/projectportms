@@ -1,0 +1,166 @@
+
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { CheckCircle, XCircle, Building2 } from "lucide-react";
+
+interface ShopInvitation {
+  id: string;
+  shop_id: string;
+  email: string;
+  invitation_code: string;
+  status: string;
+  created_at: string;
+  shops: {
+    name: string;
+    region: string;
+    district: string;
+  };
+}
+
+interface ShopInvitationHandlerProps {
+  userId: string;
+  userEmail: string;
+}
+
+export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandlerProps) => {
+  const [invitations, setInvitations] = useState<ShopInvitation[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchInvitations();
+  }, [userEmail]);
+
+  const fetchInvitations = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('shop_invitations')
+        .select(`
+          *,
+          shops (
+            name,
+            region,
+            district
+          )
+        `)
+        .eq('email', userEmail)
+        .eq('status', 'pending');
+
+      if (error) throw error;
+      setInvitations(data || []);
+    } catch (error) {
+      console.error('Error fetching invitations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const respondToInvitation = async (invitationId: string, shopId: string, accept: boolean) => {
+    try {
+      if (accept) {
+        // Update user's shop_id
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ shop_id: shopId })
+          .eq('id', userId);
+
+        if (profileError) throw profileError;
+
+        // Update invitation status
+        const { error: invitationError } = await supabase
+          .from('shop_invitations')
+          .update({ status: 'accepted' })
+          .eq('id', invitationId);
+
+        if (invitationError) throw invitationError;
+
+        toast.success('Shop invitation accepted! Welcome to your new shop.');
+        
+        // Refresh the page to show the shop
+        window.location.reload();
+      } else {
+        // Decline invitation
+        const { error } = await supabase
+          .from('shop_invitations')
+          .update({ status: 'declined' })
+          .eq('id', invitationId);
+
+        if (error) throw error;
+
+        toast.success('Invitation declined.');
+        fetchInvitations();
+      }
+    } catch (error) {
+      console.error('Error responding to invitation:', error);
+      toast.error('Failed to respond to invitation');
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center">Loading invitations...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (invitations.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Building2 className="h-5 w-5" />
+          Shop Invitations
+        </CardTitle>
+        <CardDescription>
+          You have been invited to join the following shops
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {invitations.map((invitation) => (
+          <div key={invitation.id} className="border rounded-lg p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h4 className="font-medium">{invitation.shops.name}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {invitation.shops.region}, {invitation.shops.district}
+                </p>
+                <Badge variant="secondary" className="mt-2">
+                  Pending Invitation
+                </Badge>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => respondToInvitation(invitation.id, invitation.shop_id, true)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Accept
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => respondToInvitation(invitation.id, invitation.shop_id, false)}
+                  className="border-red-200 text-red-600 hover:bg-red-50"
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Decline
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+};
