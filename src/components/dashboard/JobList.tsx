@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { JobDetailsDialog } from "./JobDetailsDialog";
 import { JobCard } from "./job-card/JobCard";
@@ -16,9 +15,20 @@ interface JobListProps {
   emptyStateAction?: string;
   type?: "active" | "completed"; // Keep the old prop for backward compatibility
   translations?: any;
+  userRole?: string; // Add userRole to the interface
 }
 
-export const JobList = ({ jobs, type, setJobs, allJobs, jobType = type, translations, emptyStateMessage, emptyStateAction }: JobListProps) => {
+export const JobList = ({ 
+  jobs, 
+  type, 
+  setJobs, 
+  allJobs, 
+  jobType = type, 
+  translations, 
+  emptyStateMessage, 
+  emptyStateAction,
+  userRole 
+}: JobListProps) => {
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [language] = useLocalStorage("language", "en");
