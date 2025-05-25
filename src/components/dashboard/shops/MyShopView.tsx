@@ -47,7 +47,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
         .select('email')
         .eq('id', userId)
         .single();
-        
+
       if (!error && data) {
         setUserEmail(data.email);
       }
@@ -58,13 +58,13 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
 
   const checkShopOwnership = async () => {
     if (!userId) return;
-    
+
     try {
       const { data, error } = await supabase
         .from('shops')
         .select('id')
         .eq('owner_id', userId);
-        
+
       if (!error && data && data.length > 0) {
         setIsShopOwner(true);
       }
@@ -76,19 +76,19 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
   const fetchMyShop = async () => {
     try {
       setLoading(true);
-      
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('shop_id')
         .eq('id', userId)
         .single();
-        
+
       if (!profile?.shop_id) {
         setShop(null);
         setLoading(false);
         return;
       }
-      
+
       const { data: shopData, error } = await supabase
         .from('shops')
         .select('*')
@@ -96,20 +96,19 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
         .single();
 
       if (error) throw error;
-      
+
       setShop(shopData);
       setEditForm(shopData);
-      
+
       if (shopData.owner_id) {
         const { data: ownerData } = await supabase
           .from('profiles')
           .select('name, email')
           .eq('id', shopData.owner_id)
           .single();
-          
+
         setShopOwner(ownerData);
       }
-      
     } catch (error) {
       console.error("Error fetching shop:", error);
       toast.error("Failed to load shop information");
@@ -120,7 +119,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
 
   const handleSave = async () => {
     if (!shop || !editForm) return;
-    
+
     try {
       const updateData: Partial<Shop> = {};
       Object.entries(editForm).forEach(([key, value]) => {
@@ -135,8 +134,8 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
         .eq('id', shop.id);
 
       if (error) throw error;
-      
-      setShop({ ...shop, ...updateData });
+
+      setShop(prev => prev ? { ...prev, ...updateData } : prev);
       setEditing(false);
       toast.success("Shop information updated successfully");
     } catch (error) {
@@ -146,9 +145,11 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
   };
 
   const handleLogoUpdate = (logoUrl: string | null) => {
-    if (shop) {
-      setShop({ ...shop, logo_url: logoUrl });
-    }
+    if (!shop) return;
+
+    const updated = { ...shop, logo_url: logoUrl };
+    setShop(updated);
+    setEditForm(prev => ({ ...prev, logo_url: logoUrl }));
   };
 
   const handleInputChange = <K extends keyof Shop>(field: K, value: Shop[K]) => {
@@ -178,10 +179,10 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
 
   if (!shop) {
     return (
-      <EmptyShopState 
-        userId={userId} 
-        userEmail={userEmail} 
-        onNavigateHome={navigateToHome} 
+      <EmptyShopState
+        userId={userId}
+        userEmail={userEmail}
+        onNavigateHome={navigateToHome}
       />
     );
   }
@@ -209,45 +210,43 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
           {isShopOwner && (
             <ShopLogoUpload
               shopId={shop.id}
-              currentLogoUrl={shop.logo_url}
+              currentLogoUrl={shop.logo_url ?? undefined}
               onLogoUpdate={handleLogoUpdate}
               disabled={editing}
             />
           )}
 
           <ShopOwnerInfo shopOwner={shopOwner} />
-          <ShopBasicInfo 
-            shop={shop} 
-            editing={editing} 
-            editForm={editForm} 
-            onInputChange={handleInputChange} 
+          <ShopBasicInfo
+            shop={shop}
+            editing={editing}
+            editForm={editForm}
+            onInputChange={handleInputChange}
           />
-          <ShopContactInfo 
-            shop={shop} 
-            editing={editing} 
-            editForm={editForm} 
-            onInputChange={handleInputChange} 
+          <ShopContactInfo
+            shop={shop}
+            editing={editing}
+            editForm={editForm}
+            onInputChange={handleInputChange}
           />
-          <ShopAddressInfo 
-            shop={shop} 
-            editing={editing} 
-            editForm={editForm} 
-            onInputChange={handleInputChange} 
+          <ShopAddressInfo
+            shop={shop}
+            editing={editing}
+            editForm={editForm}
+            onInputChange={handleInputChange}
           />
           <ShopServices shop={shop} />
-          <ShopBusinessInfo 
-            shop={shop} 
-            editing={editing} 
-            editForm={editForm} 
-            onInputChange={handleInputChange} 
+          <ShopBusinessInfo
+            shop={shop}
+            editing={editing}
+            editForm={editForm}
+            onInputChange={handleInputChange}
           />
           <AdminApprovalNotice isShopOwner={isShopOwner} />
         </CardContent>
       </Card>
 
-      {isShopOwner && (
-        <ShopUserInvitation shopId={shop.id} />
-      )}
+      {isShopOwner && <ShopUserInvitation shopId={shop.id} />}
     </div>
   );
 };
