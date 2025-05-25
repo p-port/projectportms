@@ -24,7 +24,7 @@ interface QuickNote {
 
 export const QuickNotesSelector = ({ onSelectNote, userId, shopId }: QuickNotesProps) => {
   const [quickNotes, setQuickNotes] = useState<QuickNote[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [newNote, setNewNote] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -99,7 +99,7 @@ export const QuickNotesSelector = ({ onSelectNote, userId, shopId }: QuickNotesP
     }
   };
 
-  const filteredNotes = selectedCategory 
+  const filteredNotes = selectedCategory && selectedCategory !== "all"
     ? quickNotes.filter(note => note.category === selectedCategory)
     : quickNotes;
 
@@ -162,7 +162,7 @@ export const QuickNotesSelector = ({ onSelectNote, userId, shopId }: QuickNotesP
             <SelectValue placeholder="Filter by category" />
           </SelectTrigger>
           <SelectContent className="bg-background border-input">
-            <SelectItem value="" className="hover:bg-muted">All Categories</SelectItem>
+            <SelectItem value="all" className="hover:bg-muted">All Categories</SelectItem>
             {categories.map((category) => (
               <SelectItem key={category} value={category} className="hover:bg-muted">
                 {category}
