@@ -23,7 +23,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
   const [shopOwner, setShopOwner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState<Partial<Shop>>({});
+  const [editForm, setEditForm] = useState<Shop>({} as Shop);
   const [userEmail, setUserEmail] = useState<string>("");
   const { userRole } = useAuthCheck();
 
@@ -155,7 +155,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     }
   };
 
-  const handleInputChange = (field: keyof Shop, value: any) => {
+  const handleInputChange = <K extends keyof Shop>(field: K, value: Shop[K]) => {
     setEditForm(prev => ({
       ...prev,
       [field]: value
