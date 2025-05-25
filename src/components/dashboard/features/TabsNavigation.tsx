@@ -70,9 +70,6 @@ export const TabsNavigation = ({
       <TabsTrigger value="jobs" onClick={() => setActiveTab("jobs")} className="flex gap-2 items-center">
         <Briefcase className="h-4 w-4" />
         {translations.jobs || "Jobs"}
-        <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
-          {activeJobs + completedJobs}
-        </span>
       </TabsTrigger>
       
       {(isAdmin || isSupport || isShopOwner) && (

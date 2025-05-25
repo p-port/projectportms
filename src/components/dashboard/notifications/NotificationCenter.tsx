@@ -7,7 +7,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 
 interface Notification {
   id: string;
@@ -23,7 +22,6 @@ export const NotificationCenter = ({ userId }: { userId?: string }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const navigate = useNavigate();
 
   // Fetch notifications
   useEffect(() => {
@@ -99,29 +97,28 @@ export const NotificationCenter = ({ userId }: { userId?: string }) => {
     setIsOpen(open);
   };
 
-  const handleNavigateToReference = (notification: Notification) => {
+  const handleNavigateToReference = async (notification: Notification) => {
     // Mark notification as read first
     markAsRead(notification.id);
     
     // Navigate based on notification type
-    if (notification.type === 'verification') {
-      // Navigate to verification success page
-      navigate('/verification-success');
-    } else if (notification.type === 'ticket' && notification.reference_id) {
-      // Navigate to support tab instead of direct ticket URL
-      navigate('/?tab=support');
-      toast.info(`Showing support tickets. Reference: ${notification.reference_id}`);
-    } else if (notification.type === 'message' && notification.reference_id) {
-      // Currently no dedicated message viewing page, so we'll just show a toast
-      navigate('/?tab=account');
-      toast.info(`Message notification: ${notification.title}`);
-    } else if (notification.type === 'job' && notification.reference_id) {
-      // Navigate to active jobs tab
-      navigate('/?tab=active-jobs');
-      toast.info(`Job notification: ${notification.title}`);
+    if (notification.type === 'ticket' && notification.reference_id) {
+      // Set the active tab to support and close notification
+      const event = new CustomEvent('navigate-to-tab', { detail: 'support' });
+      window.dispatchEvent(event);
+      toast.info(`Opening support tickets`);
+    } else if (notification.type === 'shop_invitation' && notification.reference_id) {
+      // Navigate to shops tab
+      const event = new CustomEvent('navigate-to-tab', { detail: 'shops' });
+      window.dispatchEvent(event);
+      toast.info(`Opening shop invitations`);
+    } else if (notification.type === 'verification') {
+      // Navigate to account tab
+      const event = new CustomEvent('navigate-to-tab', { detail: 'account' });
+      window.dispatchEvent(event);
+      toast.success(`Account verified successfully!`);
     } else {
       // Generic fallback
-      navigate('/');
       toast.info(`Notification: ${notification.title}`);
     }
     

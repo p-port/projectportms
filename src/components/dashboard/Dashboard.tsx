@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { generateUniqueJobId } from "./job-details/JobUtils";
 import { DashboardHeader } from "./features/DashboardHeader";
 import { TabsNavigation } from "./features/TabsNavigation";
 import { TabContent } from "./features/TabContent";
+import { TicketAlert } from "./tickets/TicketAlert";
 import { fetchUnreadTicketsCount, subscribeToTicketUpdates } from "./services/UnreadTicketsService";
 import { toast } from "sonner";
 
@@ -105,6 +105,19 @@ export const Dashboard = ({ user }: DashboardProps) => {
   
   // Add unread tickets count
   const [unreadTickets, setUnreadTickets] = useState(0);
+  
+  // Listen for navigation events from notifications
+  useEffect(() => {
+    const handleNavigateToTab = (event: any) => {
+      setActiveTab(event.detail);
+    };
+
+    window.addEventListener('navigate-to-tab', handleNavigateToTab);
+    
+    return () => {
+      window.removeEventListener('navigate-to-tab', handleNavigateToTab);
+    };
+  }, []);
   
   // Load user role
   useEffect(() => {
@@ -388,6 +401,9 @@ export const Dashboard = ({ user }: DashboardProps) => {
           translations={t}
         />
       </Tabs>
+      
+      {/* Add ticket alert for support accounts */}
+      <TicketAlert userId={user?.id} userRole={userRole} />
     </div>
   );
 };
