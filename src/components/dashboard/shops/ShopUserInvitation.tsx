@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -157,21 +156,48 @@ export const ShopUserInvitation = ({ shopId }: ShopUserInvitationProps) => {
 
     setDirectInviting(true);
     try {
-      // Directly assign user to shop
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ shop_id: shopId })
-        .eq('id', selectedUser.id);
+      // Generate invitation code
+      const invitationCode = Math.random().toString(36).substring(2, 15) + 
+                           Math.random().toString(36).substring(2, 15);
 
-      if (profileError) throw profileError;
+      // Get shop name for the notification
+      const { data: shopData } = await supabase
+        .from('shops')
+        .select('name')
+        .eq('id', shopId)
+        .single();
 
-      toast.success(`${selectedUser.name || selectedUser.email} has been added to your shop!`);
+      // Create invitation instead of directly assigning
+      const { error: invitationError } = await supabase
+        .from('shop_invitations')
+        .insert({
+          shop_id: shopId,
+          email: selectedUser.email!,
+          invitation_code: invitationCode,
+          invited_by: (await supabase.auth.getUser()).data.user?.id
+        });
+
+      if (invitationError) throw invitationError;
+
+      // Create notification for the user
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: selectedUser.id,
+          title: 'Shop Invitation',
+          content: `You have been invited to join ${shopData?.name || 'a shop'}. Check your shop section to respond.`,
+          type: 'shop',
+          reference_id: shopId
+        });
+
+      toast.success(`Invitation sent to ${selectedUser.name || selectedUser.email}!`);
       setSelectedUser(null);
       setSearchQuery('');
       setSearchResults([]);
+      fetchInvitations();
     } catch (error: any) {
-      console.error('Error adding user to shop:', error);
-      toast.error(error.message || 'Failed to add user to shop');
+      console.error('Error sending invitation:', error);
+      toast.error(error.message || 'Failed to send invitation');
     } finally {
       setDirectInviting(false);
     }
@@ -202,7 +228,7 @@ export const ShopUserInvitation = ({ shopId }: ShopUserInvitationProps) => {
           Invite Users to Shop
         </CardTitle>
         <CardDescription>
-          Add new members to your shop team
+          Send invitations to add new members to your shop team
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -264,7 +290,7 @@ export const ShopUserInvitation = ({ shopId }: ShopUserInvitationProps) => {
                     disabled={directInviting}
                     size="sm"
                   >
-                    {directInviting ? 'Adding...' : 'Add to Shop'}
+                    {directInviting ? 'Sending Invite...' : 'Send Invitation'}
                   </Button>
                 </div>
               )}

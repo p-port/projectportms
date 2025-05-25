@@ -72,12 +72,12 @@ export const TabsNavigation = ({
         {translations.jobs || "Jobs"}
       </TabsTrigger>
       
-      {(isAdmin || isSupport || isShopOwner) && (
-        <TabsTrigger value="shops" onClick={() => setActiveTab("shops")} className="flex gap-2 items-center">
-          <Store className="h-4 w-4" />
-          {translations.shops || "Shops"}
-        </TabsTrigger>
-      )}
+      {/* Show shops tab for all users so they can see their invitations and shop info */}
+      <TabsTrigger value="shops" onClick={() => setActiveTab("shops")} className="flex gap-2 items-center">
+        <Store className="h-4 w-4" />
+        {translations.shops || "Shops"}
+      </TabsTrigger>
+      
       {isAdmin && (
         <TabsTrigger value="users" onClick={() => setActiveTab("users")} className="flex gap-2 items-center">
           <Users className="h-4 w-4" />

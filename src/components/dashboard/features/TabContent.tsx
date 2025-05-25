@@ -8,6 +8,7 @@ import { MessageList } from "@/components/dashboard/messaging/MessageList";
 import { TicketList } from "@/components/dashboard/tickets/TicketList";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
 import { ShopManagementTab } from "@/components/dashboard/shops/ShopManagementTab";
+import { MyShopView } from "@/components/dashboard/shops/MyShopView";
 import { supabase } from "@/integrations/supabase/client";
 
 interface TabContentProps {
@@ -79,7 +80,12 @@ export const TabContent = ({
       </TabsContent>
       
       <TabsContent value="shops">
-        <ShopManagementTab userId={userId || ''} />
+        {/* Show admin management for admins/support, personal shop view for everyone else */}
+        {(userRole === 'admin' || userRole === 'support') ? (
+          <ShopManagementTab userId={userId || ''} />
+        ) : (
+          <MyShopView userId={userId} />
+        )}
       </TabsContent>
       
       <TabsContent value="users">

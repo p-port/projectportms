@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -154,7 +155,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     }
   };
 
-  const handleInputChange = (field: keyof Shop, value: any) => {
+  const handleInputChange = (field: keyof Shop, value: string | number | string[]) => {
     setEditForm(prev => ({
       ...prev,
       [field]: value
