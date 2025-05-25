@@ -20,17 +20,27 @@ interface MyShopViewProps {
   userId?: string;
 }
 
+// Only allow fields that can be edited
+type EditableShopFields = Exclude<keyof Shop, 'id' | 'owner_id' | 'created_at'>;
+
 export const MyShopView = ({ userId }: MyShopViewProps) => {
   const [shop, setShop] = useState<Shop | null>(null);
   const [shopOwner, setShopOwner] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState<Partial<Shop>>({});
+  const [editForm, setEditForm] = useState<Partial<Pick<Shop, EditableShopFields>>>({});
   const [userEmail, setUserEmail] = useState<string>("");
   const { userRole } = useAuthCheck();
   const [isShopOwner, setIsShopOwner] = useState(false);
 
-  const restrictedFields = ['region', 'district', 'full_address', 'name', 'employee_count', 'business_registration_number'];
+  const restrictedFields: EditableShopFields[] = [
+    'region',
+    'district',
+    'full_address',
+    'name',
+    'employee_count',
+    'business_registration_number'
+  ];
 
   useEffect(() => {
     if (userId) {
@@ -123,8 +133,8 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     try {
       const updateData: Partial<Shop> = {};
       Object.entries(editForm).forEach(([key, value]) => {
-        if (!restrictedFields.includes(key)) {
-          updateData[key as keyof Shop] = value;
+        if (!restrictedFields.includes(key as EditableShopFields)) {
+          updateData[key as keyof Shop] = value as Shop[keyof Shop];
         }
       });
 
@@ -152,7 +162,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     setEditForm(prev => ({ ...prev, logo_url: logoUrl }));
   };
 
-  const handleInputChange = <K extends keyof Shop>(field: K, value: Shop[K]) => {
+  const handleInputChange = <K extends EditableShopFields>(field: K, value: Shop[K]) => {
     setEditForm(prev => ({
       ...prev,
       [field]: value
