@@ -191,11 +191,11 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
     </Dialog>
   );
 
-  const MotorcycleVinDialog = ({ motorcycle }: { motorcycle: any }) => (
+  const MotorcycleVinDialog = ({ motorcycle, display }: { motorcycle: any; display?: string }) => (
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="link" className="p-0 h-auto font-semibold">
-          {motorcycle?.make} {motorcycle?.model} ({motorcycle?.year})
+          {display || `${motorcycle?.make} ${motorcycle?.model} (${motorcycle?.year})`}
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -377,11 +377,11 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                           <p className="text-sm font-medium">Motorcycles:</p>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {result.motorcycles.map((motorcycle: any, index: number) => (
-                              <MotorcycleVinDialog key={index} motorcycle={motorcycle.fullData}>
-                                <Badge variant="outline" className="text-xs cursor-pointer hover:bg-muted">
-                                  {motorcycle.display}
-                                </Badge>
-                              </MotorcycleVinDialog>
+                              <MotorcycleVinDialog 
+                                key={index} 
+                                motorcycle={motorcycle.fullData} 
+                                display={motorcycle.display}
+                              />
                             ))}
                           </div>
                         </div>
