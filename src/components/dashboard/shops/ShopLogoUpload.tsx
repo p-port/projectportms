@@ -39,32 +39,39 @@ export const ShopLogoUpload = ({
         return;
       }
 
+      // Create a unique filename with timestamp to avoid caching issues
       const fileExt = file.name.split(".").pop();
-      const fileName = `${shopId}/logo.${fileExt}`;
+      const timestamp = Date.now();
+      const fileName = `${shopId}/logo_${timestamp}.${fileExt}`;
 
+      // Remove old logo if exists
       if (currentLogoUrl) {
-        const existingPath = currentLogoUrl.split("/").pop();
-        if (existingPath) {
-          await supabase.storage.from("shop-logos").remove([`${shopId}/${existingPath}`]);
+        const oldFileName = currentLogoUrl.split("/").pop();
+        if (oldFileName) {
+          await supabase.storage.from("shop-logos").remove([`${shopId}/${oldFileName}`]);
         }
       }
 
+      // Upload new logo
       const { error: uploadError } = await supabase.storage
         .from("shop-logos")
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, file, { upsert: false });
 
       if (uploadError) throw uploadError;
 
+      // Get the public URL
       const { data } = supabase.storage.from("shop-logos").getPublicUrl(fileName);
+      const logoUrl = `${data.publicUrl}?t=${timestamp}`;
 
+      // Update the shop record
       const { error: updateError } = await supabase
         .from("shops")
-        .update({ logo_url: data.publicUrl })
+        .update({ logo_url: logoUrl })
         .eq("id", shopId);
 
       if (updateError) throw updateError;
 
-      onLogoUpdate(data.publicUrl);
+      onLogoUpdate(logoUrl);
       toast.success("Logo uploaded successfully");
     } catch (error) {
       console.error("Error uploading logo:", error);
@@ -80,7 +87,7 @@ export const ShopLogoUpload = ({
       setRemoving(true);
 
       if (currentLogoUrl) {
-        const fileName = currentLogoUrl.split("/").pop();
+        const fileName = currentLogoUrl.split("/").pop()?.split("?")[0]; // Remove query params
         if (fileName) {
           await supabase.storage.from("shop-logos").remove([`${shopId}/${fileName}`]);
         }
@@ -118,6 +125,7 @@ export const ShopLogoUpload = ({
               src={currentLogoUrl}
               alt="Shop logo"
               className="w-16 h-16 object-cover rounded border"
+              key={currentLogoUrl} // Force re-render when URL changes
             />
             <Button
               variant="destructive"

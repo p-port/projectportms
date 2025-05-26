@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,7 +65,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
         .from('profiles')
         .select('email')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (!error && data?.email) {
         setUserEmail(data.email);
@@ -101,7 +100,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
         .from('profiles')
         .select('shop_id')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (!profile?.shop_id) {
         setShop(null);
@@ -113,19 +112,19 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
         .from('shops')
         .select('*')
         .eq('id', profile.shop_id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
       setShop(shopData);
-      setEditForm(shopData);
+      setEditForm(shopData || {});
 
-      if (shopData.owner_id) {
+      if (shopData?.owner_id) {
         const { data: ownerData } = await supabase
           .from('profiles')
           .select('name, email')
           .eq('id', shopData.owner_id)
-          .single();
+          .maybeSingle();
 
         setShopOwner(ownerData);
       }
@@ -200,11 +199,11 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Always show shop invitations for mechanics - use email if available, otherwise use userId */}
+      {/* Always show shop invitations for mechanics */}
       {userId && (
         <ShopInvitationHandler 
           userId={userId} 
-          userEmail={userEmail || `user-${userId}`} 
+          userEmail={userEmail} 
         />
       )}
       

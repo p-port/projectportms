@@ -32,6 +32,8 @@ export const Layout = ({ children }: LayoutProps) => {
   const { theme, toggleTheme } = useTheme();
   const [language, setLanguage] = useLocalStorage("language", "en");
   const [shopName, setShopName] = useState<string | null>(null);
+  const [shopLogo, setShopLogo] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Add effect to reload page when language changes
   useEffect(() => {
@@ -49,30 +51,49 @@ export const Layout = ({ children }: LayoutProps) => {
     };
   }, [language]);
 
-  // Fetch user's shop name
+  // Fetch user's shop name and logo
   useEffect(() => {
     const fetchUserShop = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        
+        if (!user) {
+          setIsAuthenticated(false);
+          setShopName(null);
+          setShopLogo(null);
+          return;
+        }
+
+        setIsAuthenticated(true);
 
         const { data: profile } = await supabase
           .from('profiles')
           .select('shop_id')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
         if (profile?.shop_id) {
           const { data: shop } = await supabase
             .from('shops')
-            .select('name')
+            .select('name, logo_url')
             .eq('id', profile.shop_id)
-            .single();
+            .maybeSingle();
 
-          setShopName(shop?.name || null);
+          if (shop) {
+            setShopName(shop.name || null);
+            setShopLogo(shop.logo_url || null);
+          } else {
+            setShopName(null);
+            setShopLogo(null);
+          }
+        } else {
+          setShopName(null);
+          setShopLogo(null);
         }
       } catch (error) {
         console.error('Error fetching user shop:', error);
+        setShopName(null);
+        setShopLogo(null);
       }
     };
 
@@ -103,12 +124,15 @@ export const Layout = ({ children }: LayoutProps) => {
 
   const t = layoutTranslations[language as keyof typeof layoutTranslations];
   
-  // Set logo based on theme
-  const logoSrc = theme === "dark" 
-    ? "/lovable-uploads/28dd3615-eb59-4a33-ae85-3a1e81c82540.png" 
-    : "/lovable-uploads/263071da-5dd5-4f23-9074-ff28f3a3408f.png";
-
-  const displayTitle = shopName || t.title;
+  // Determine logo and title based on authentication and shop status
+  const defaultLogoDark = "/lovable-uploads/28dd3615-eb59-4a33-ae85-3a1e81c82540.png";
+  const defaultLogoLight = "/lovable-uploads/263071da-5dd5-4f23-9074-ff28f3a3408f.png";
+  
+  const logoSrc = isAuthenticated && shopLogo 
+    ? shopLogo 
+    : (theme === "dark" ? defaultLogoDark : defaultLogoLight);
+    
+  const displayTitle = isAuthenticated && shopName ? shopName : t.title;
   
   return (
     <div className="min-h-screen bg-background">
@@ -117,8 +141,9 @@ export const Layout = ({ children }: LayoutProps) => {
           <div className="flex items-center">
             <img 
               src={logoSrc} 
-              alt="Project Port Logo" 
+              alt={isAuthenticated && shopName ? `${shopName} Logo` : "Project Port Logo"}
               className="h-8 w-auto mr-2"
+              key={logoSrc} // Force re-render when logo changes
             />
             <span className="text-xl md:text-2xl font-bold text-foreground">{displayTitle}</span>
           </div>
@@ -142,8 +167,9 @@ export const Layout = ({ children }: LayoutProps) => {
           <div className="flex justify-center items-center mb-2">
             <img 
               src={logoSrc} 
-              alt="Project Port Logo" 
+              alt={isAuthenticated && shopName ? `${shopName} Logo` : "Project Port Logo"}
               className="h-6 w-auto mr-2"
+              key={`footer-${logoSrc}`} // Force re-render when logo changes
             />
           </div>
           &copy; {new Date().getFullYear()} {t.footer}
