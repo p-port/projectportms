@@ -8,7 +8,6 @@ export const useJobOperations = () => {
   const [userShop, setUserShop] = useState<any>(null);
 
   useEffect(() => {
-    // Check for authenticated user
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
@@ -19,7 +18,6 @@ export const useJobOperations = () => {
     
     checkUser();
 
-    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_, session) => {
         const currentUser = session?.user ?? null;
@@ -43,25 +41,28 @@ export const useJobOperations = () => {
         .from('profiles')
         .select('shop_id')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (profile?.shop_id) {
         const { data: shop } = await supabase
           .from('shops')
           .select('*')
           .eq('id', profile.shop_id)
-          .single();
+          .maybeSingle();
         
         setUserShop(shop);
+      } else {
+        setUserShop(null);
       }
     } catch (error) {
       console.error("Error fetching user shop:", error);
+      setUserShop(null);
     }
   };
 
   const syncJobToSupabase = async (job: any, userId: string) => {
     try {
-      // Ensure the job has shop_id from userShop
+      // Ensure jobs are always assigned to the user's shop
       const jobData = {
         job_id: job.id,
         customer: job.customer,
@@ -73,7 +74,7 @@ export const useJobOperations = () => {
         notes: job.notes,
         photos: job.photos,
         user_id: userId,
-        shop_id: userShop?.id || job.shop_id // Use userShop.id or existing shop_id
+        shop_id: userShop?.id || null // Always assign to user's shop or null if no shop
       };
 
       const { error } = await supabase.from('jobs').upsert(jobData);

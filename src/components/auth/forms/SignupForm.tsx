@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -71,40 +70,36 @@ export default function SignupForm({ onSignupSuccess }: SignupFormProps) {
         console.error("Sign up error:", error);
         toast.error(error.message);
       } else {
-        // If shop identifier was provided, try to link user to shop
-        if (values.shopIdentifier && values.shopIdentifier.trim() !== '') {
+        // Wait for the user to be created and then assign to shop
+        if (values.shopIdentifier && values.shopIdentifier.trim() !== '' && data?.user?.id) {
           try {
-            // Look up shop by unique identifier
-            const { data: shopData, error: shopError } = await supabase
-              .from('shops')
-              .select('id')
-              .eq('unique_identifier', values.shopIdentifier.trim())
-              .single();
-              
-            if (shopError) {
-              console.error("Shop lookup error:", shopError);
-              // Don't show error to user as this is just an additional feature
-            } else if (shopData && data?.user?.id) {
-              // Update the user's profile with the shop_id
-              const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ shop_id: shopData.id })
-                .eq('id', data.user.id);
-                
-              if (updateError) {
-                console.error("Error linking user to shop:", updateError);
-              } else {
-                console.log("User successfully linked to shop");
+            // Use the RPC function to assign user to shop
+            const { data: shopId, error: assignError } = await supabase.rpc(
+              'assign_user_to_shop_by_identifier',
+              {
+                user_id: data.user.id,
+                shop_identifier: values.shopIdentifier.trim()
               }
+            );
+            
+            if (assignError) {
+              console.error("Shop assignment error:", assignError);
+              toast.warning("Account created but could not assign to shop. Please contact support.");
+            } else if (shopId) {
+              console.log("User successfully assigned to shop:", shopId);
+              toast.success("Account created and assigned to shop successfully!");
             } else {
               console.log("Invalid shop identifier provided");
+              toast.warning("Account created but shop identifier was invalid.");
             }
           } catch (err) {
             console.error("Error during shop assignment:", err);
+            toast.warning("Account created but could not assign to shop. Please contact support.");
           }
+        } else {
+          toast.success("Signup successful! Please check your email to verify your account.");
         }
         
-        toast.success("Signup successful! Please check your email to verify your account.");
         onSignupSuccess(data);
       }
     } catch (err) {
