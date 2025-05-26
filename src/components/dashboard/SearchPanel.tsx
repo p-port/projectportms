@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Phone, Mail, Calendar, Wrench, User, Bike } from "lucide-react";
 import { useJobPermissions } from "@/hooks/useJobPermissions";
-import { supabase } from "@/integrations/supabase/client";
 
 interface SearchPanelProps {
   jobs: any[];
@@ -20,12 +19,6 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'customers' | 'motorcycles' | 'jobs'>('customers');
-  const [searchableJobs, setSearchableJobs] = useState<any[]>([]);
-
-  // Use the jobs prop instead of fetching directly to avoid RLS issues
-  useEffect(() => {
-    setSearchableJobs(jobs || []);
-  }, [jobs]);
 
   useEffect(() => {
     if (!searchTerm.trim()) {
@@ -33,7 +26,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
       return;
     }
 
-    const filtered = searchableJobs.filter(job => {
+    const filtered = jobs.filter(job => {
       const customer = job.customer || {};
       const motorcycle = job.motorcycle || {};
       
@@ -57,13 +50,13 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
     });
 
     setFilteredJobs(filtered);
-  }, [searchTerm, searchableJobs]);
+  }, [searchTerm, jobs]);
 
   const getCustomerResults = () => {
     if (!searchTerm.trim()) return [];
     
     const customerMap = new Map();
-    searchableJobs.forEach(job => {
+    jobs.forEach(job => {
       const customer = job.customer || {};
       const searchFields = [
         customer.name || '',
@@ -92,7 +85,9 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
       if (motorcycle.make || motorcycle.model) {
         customerMap.get(key).motorcycles.add({
           display: `${motorcycle.make || ''} ${motorcycle.model || ''} (${motorcycle.year || 'N/A'})`,
-          vin: motorcycle.vin || 'N/A'
+          vin: motorcycle.vin || 'N/A',
+          licensePlate: motorcycle.licensePlate || 'N/A',
+          fullData: motorcycle
         });
       }
     });
@@ -108,7 +103,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
     if (!searchTerm.trim()) return [];
     
     const motorcycleMap = new Map();
-    searchableJobs.forEach(job => {
+    jobs.forEach(job => {
       const motorcycle = job.motorcycle || {};
       const searchFields = [
         motorcycle.make || '',
@@ -178,6 +173,9 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                 <div className="text-sm text-muted-foreground">{job.service_type || job.serviceType}</div>
                 <div className="text-xs text-muted-foreground">
                   {job.motorcycle?.make} {job.motorcycle?.model} ({job.motorcycle?.year})
+                  {job.motorcycle?.vin && (
+                    <div className="font-mono">VIN: {job.motorcycle.vin}</div>
+                  )}
                 </div>
               </div>
               <div className="text-right">
@@ -225,6 +223,59 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
       </DialogContent>
     </Dialog>
   );
+
+  const AllServicesDialog = ({ jobs, customerName }: { jobs: any[], customerName: string }) => {
+    if (jobs.length <= 10) {
+      return <ServiceHistoryDialog jobs={jobs} customerName={customerName} />;
+    }
+
+    const openInNewWindow = () => {
+      const newWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+      if (newWindow) {
+        newWindow.document.write(`
+          <html>
+            <head>
+              <title>All Services - ${customerName}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                .service { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
+                .service-id { font-weight: bold; }
+                .service-type { color: #666; margin: 5px 0; }
+                .motorcycle { font-size: 0.9em; color: #888; }
+                .date { float: right; color: #666; }
+                .status { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 0.8em; }
+                .completed { background: #e8f5e8; color: #2d5a2d; }
+                .pending { background: #fff3cd; color: #856404; }
+              </style>
+            </head>
+            <body>
+              <h1>All Services for ${customerName}</h1>
+              <p>Total Services: ${jobs.length}</p>
+              ${jobs.map((job: any) => `
+                <div class="service">
+                  <div class="service-id">${job.job_id || job.id}</div>
+                  <div class="service-type">${job.service_type || job.serviceType}</div>
+                  <div class="motorcycle">
+                    ${job.motorcycle?.make || ''} ${job.motorcycle?.model || ''} (${job.motorcycle?.year || 'N/A'})
+                    ${job.motorcycle?.vin ? `<br/>VIN: ${job.motorcycle.vin}` : ''}
+                  </div>
+                  <div class="date">${new Date(job.date_created || job.dateCreated).toLocaleDateString()}</div>
+                  <span class="status ${job.status === 'completed' ? 'completed' : 'pending'}">${job.status}</span>
+                </div>
+              `).join('')}
+            </body>
+          </html>
+        `);
+        newWindow.document.close();
+      }
+    };
+
+    return (
+      <Button variant="link" className="p-0 h-auto text-xs" onClick={openInNewWindow}>
+        ... and {jobs.length - 3} more (Click to open in new window)
+      </Button>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -326,9 +377,11 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                           <p className="text-sm font-medium">Motorcycles:</p>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {result.motorcycles.map((motorcycle: any, index: number) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {motorcycle.display}
-                              </Badge>
+                              <MotorcycleVinDialog key={index} motorcycle={motorcycle.fullData}>
+                                <Badge variant="outline" className="text-xs cursor-pointer hover:bg-muted">
+                                  {motorcycle.display}
+                                </Badge>
+                              </MotorcycleVinDialog>
                             ))}
                           </div>
                         </div>
@@ -343,7 +396,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                           ))}
                           {result.jobs.length > 3 && (
                             <div className="text-xs text-muted-foreground">
-                              <ServiceHistoryDialog jobs={result.jobs} customerName={result.customer?.name || "Unknown Customer"} />
+                              <AllServicesDialog jobs={result.jobs} customerName={result.customer?.name || "Unknown Customer"} />
                             </div>
                           )}
                         </div>
@@ -389,7 +442,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                           ))}
                           {result.jobs.length > 3 && (
                             <div className="text-xs text-muted-foreground">
-                              <ServiceHistoryDialog jobs={result.jobs} customerName={result.customer?.name || "Motorcycle Owner"} />
+                              <AllServicesDialog jobs={result.jobs} customerName={result.customer?.name || "Motorcycle Owner"} />
                             </div>
                           )}
                         </div>

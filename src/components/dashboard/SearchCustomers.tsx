@@ -96,53 +96,156 @@ export const SearchCustomers = ({ jobs, userRole = 'mechanic', userId }: SearchC
   };
 
   const formatCustomerName = (name: string) => {
-    if (!name) return "Unknown";
-    if (name.length <= 2) return name;
-    return name.charAt(0) + "*".repeat(name.length - 2) + name.charAt(name.length - 1);
+    if (!canSeeAllData) {
+      if (!name) return "Unknown";
+      if (name.length <= 2) return name;
+      return name.charAt(0) + "*".repeat(name.length - 2) + name.charAt(name.length - 1);
+    }
+    return name || "Unknown";
   };
 
   const formatCustomerEmail = (email: string) => {
-    if (!email) return "No email";
-    const [localPart, domain] = email.split('@');
-    if (localPart.length <= 2) return email;
-    return localPart.charAt(0) + "*".repeat(localPart.length - 2) + localPart.charAt(localPart.length - 1) + '@' + domain;
+    if (!canSeeAllData) {
+      if (!email) return "No email";
+      const [localPart, domain] = email.split('@');
+      if (localPart.length <= 2) return email;
+      return localPart.charAt(0) + "*".repeat(localPart.length - 2) + localPart.charAt(localPart.length - 1) + '@' + domain;
+    }
+    return email || "No email";
   };
 
-  const ServiceHistoryDialog = ({ jobs, customerName }: { jobs: any[], customerName: string }) => (
+  const formatPhone = (phone: string) => {
+    if (!canSeeAllData) {
+      if (!phone) return "N/A";
+      if (phone.length <= 4) return phone;
+      return phone.charAt(0) + "*".repeat(phone.length - 4) + phone.slice(-3);
+    }
+    return phone || "N/A";
+  };
+
+  const ServiceHistoryDialog = ({ jobs, customerName }: { jobs: any[], customerName: string }) => {
+    const AllServicesDialog = () => {
+      if (jobs.length <= 10) {
+        return (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="link" className="p-0 h-auto text-sm">
+                View All Services ({jobs.length})
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Complete Service History - {customerName}</DialogTitle>
+                <DialogDescription>
+                  All services performed for this customer
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2">
+                {jobs.map((job: any, index: number) => (
+                  <div key={index} className="flex justify-between items-center p-3 bg-muted rounded border">
+                    <div>
+                      <div className="font-medium">{job.jobId}</div>
+                      <div className="text-sm text-muted-foreground">{job.serviceType}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {job.motorcycle?.make} {job.motorcycle?.model} ({job.motorcycle?.year})
+                        {job.motorcycle?.vin && (
+                          <div className="font-mono">VIN: {job.motorcycle.vin}</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm">{new Date(job.date).toLocaleDateString()}</div>
+                      <Badge variant={job.status === 'completed' ? 'default' : 'secondary'}>
+                        {job.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+      }
+
+      const openInNewWindow = () => {
+        const newWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+        if (newWindow) {
+          newWindow.document.write(`
+            <html>
+              <head>
+                <title>All Services - ${customerName}</title>
+                <style>
+                  body { font-family: Arial, sans-serif; padding: 20px; }
+                  .service { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
+                  .service-id { font-weight: bold; }
+                  .service-type { color: #666; margin: 5px 0; }
+                  .motorcycle { font-size: 0.9em; color: #888; }
+                  .date { float: right; color: #666; }
+                  .status { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 0.8em; }
+                  .completed { background: #e8f5e8; color: #2d5a2d; }
+                  .pending { background: #fff3cd; color: #856404; }
+                </style>
+              </head>
+              <body>
+                <h1>All Services for ${customerName}</h1>
+                <p>Total Services: ${jobs.length}</p>
+                ${jobs.map((job: any) => `
+                  <div class="service">
+                    <div class="service-id">${job.jobId}</div>
+                    <div class="service-type">${job.serviceType}</div>
+                    <div class="motorcycle">
+                      ${job.motorcycle?.make || ''} ${job.motorcycle?.model || ''} (${job.motorcycle?.year || 'N/A'})
+                      ${job.motorcycle?.vin ? `<br/>VIN: ${job.motorcycle.vin}` : ''}
+                    </div>
+                    <div class="date">${new Date(job.date).toLocaleDateString()}</div>
+                    <span class="status ${job.status === 'completed' ? 'completed' : 'pending'}">${job.status}</span>
+                  </div>
+                `).join('')}
+              </body>
+            </html>
+          `);
+          newWindow.document.close();
+        }
+      };
+
+      return (
+        <Button variant="link" className="p-0 h-auto text-sm" onClick={openInNewWindow}>
+          View All Services ({jobs.length}) - Click to open in new window
+        </Button>
+      );
+    };
+
+    return <AllServicesDialog />;
+  };
+
+  const MotorcycleVinDialog = ({ motorcycle, display }: { motorcycle: any, display: string }) => (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="link" className="p-0 h-auto text-sm">
-          View All Services ({jobs.length})
-        </Button>
+        <Badge variant="outline" className="cursor-pointer hover:bg-muted">
+          {display}
+        </Badge>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Complete Service History - {customerName}</DialogTitle>
-          <DialogDescription>
-            All services performed for this customer
-          </DialogDescription>
+          <DialogTitle>Motorcycle Details</DialogTitle>
         </DialogHeader>
-        <div className="space-y-2">
-          {jobs.map((job: any, index: number) => (
-            <div key={index} className="flex justify-between items-center p-3 bg-muted rounded border">
-              <div>
-                <div className="font-medium">{job.jobId}</div>
-                <div className="text-sm text-muted-foreground">{job.serviceType}</div>
-                <div className="text-xs text-muted-foreground">
-                  {job.motorcycle?.make} {job.motorcycle?.model} ({job.motorcycle?.year})
-                  {job.motorcycle?.vin && (
-                    <div className="font-mono">VIN: {job.motorcycle.vin}</div>
-                  )}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm">{new Date(job.date).toLocaleDateString()}</div>
-                <Badge variant={job.status === 'completed' ? 'default' : 'secondary'}>
-                  {job.status}
-                </Badge>
-              </div>
-            </div>
-          ))}
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium">Make & Model</h4>
+            <p className="text-muted-foreground">{motorcycle?.make} {motorcycle?.model}</p>
+          </div>
+          <div>
+            <h4 className="font-medium">Year</h4>
+            <p className="text-muted-foreground">{motorcycle?.year || 'N/A'}</p>
+          </div>
+          <div>
+            <h4 className="font-medium">License Plate</h4>
+            <p className="text-muted-foreground">{motorcycle?.licensePlate || 'N/A'}</p>
+          </div>
+          <div>
+            <h4 className="font-medium">VIN Number</h4>
+            <p className="text-muted-foreground font-mono">{motorcycle?.vin || 'Not available'}</p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -178,18 +281,25 @@ export const SearchCustomers = ({ jobs, userRole = 'mechanic', userId }: SearchC
                 </CardTitle>
                 <CardDescription>
                   {formatCustomerEmail(result.customer.email)}
-                  {result.customer.phone && ` • ${result.customer.phone.charAt(0)}***${result.customer.phone.slice(-2)}`}
+                  {result.customer.phone && ` • ${formatPhone(result.customer.phone)}`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-2">Motorcycles Owned:</h4>
                   <div className="flex flex-wrap gap-1">
-                    {result.motorcycles.map((motorcycle: string, index: number) => (
-                      <Badge key={index} variant="outline">
-                        {motorcycle}
-                      </Badge>
-                    ))}
+                    {result.motorcycles.map((motorcycle: string, index: number) => {
+                      const job = result.jobs.find((j: any) => 
+                        `${j.motorcycle?.make} ${j.motorcycle?.model} (${j.motorcycle?.year})` === motorcycle
+                      );
+                      return (
+                        <MotorcycleVinDialog 
+                          key={index} 
+                          motorcycle={job?.motorcycle} 
+                          display={motorcycle}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
                 

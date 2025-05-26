@@ -527,9 +527,17 @@ export type Database = {
         Args: { sql_string: string }
         Returns: undefined
       }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      is_current_user_approved: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       is_user_approved: {
         Args: Record<PropertyKey, never>
