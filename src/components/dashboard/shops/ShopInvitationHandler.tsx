@@ -14,6 +14,7 @@ interface ShopInvitation {
   invitation_code: string;
   status: string;
   created_at: string;
+  expires_at: string;
   shops: {
     name: string;
     region: string;
@@ -57,6 +58,13 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
         return;
       }
 
+      // First, clean up expired invitations (older than 1 hour)
+      await supabase
+        .from('shop_invitations')
+        .update({ status: 'expired' })
+        .eq('status', 'pending')
+        .lt('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+
       const { data, error } = await supabase
         .from('shop_invitations')
         .select(`
@@ -68,7 +76,8 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
           )
         `)
         .eq('email', email)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .gt('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString()); // Only get invitations from last hour
 
       if (error) throw error;
       setInvitations(data || []);
@@ -107,8 +116,13 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
 
         toast.success('Shop invitation accepted! Welcome to your new shop.');
         
+        // Remove the accepted invitation from state immediately
+        setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+        
         // Refresh the page to show the shop
-        window.location.reload();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         // Decline invitation
         const { error } = await supabase
@@ -120,8 +134,8 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
 
         toast.success('Invitation declined.');
         
-        // Refresh invitations list to remove the declined invitation
-        await fetchInvitations();
+        // Remove the declined invitation from state immediately
+        setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
       }
     } catch (error) {
       console.error('Error responding to invitation:', error);
@@ -144,26 +158,26 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
   }
 
   return (
-    <Card className="border-blue-500/20 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+    <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
+        <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
           <Building2 className="h-5 w-5" />
           Shop Invitations
         </CardTitle>
-        <CardDescription className="text-blue-700 dark:text-blue-200">
+        <CardDescription className="text-blue-600 dark:text-blue-300">
           You have been invited to join the following shops
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {invitations.map((invitation) => (
-          <div key={invitation.id} className="border border-blue-200 dark:border-blue-700 rounded-lg p-4 bg-white/80 dark:bg-blue-900/50 backdrop-blur-sm">
+          <div key={invitation.id} className="border border-blue-300 dark:border-blue-700 rounded-lg p-4 bg-blue-100 dark:bg-blue-900">
             <div className="flex items-start justify-between">
               <div>
                 <h4 className="font-medium text-lg text-blue-900 dark:text-blue-100">{invitation.shops.name}</h4>
-                <p className="text-sm text-blue-600 dark:text-blue-300">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
                   {invitation.shops.region}, {invitation.shops.district}
                 </p>
-                <Badge variant="secondary" className="mt-2 bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+                <Badge variant="secondary" className="mt-2 bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-200">
                   Pending Invitation
                 </Badge>
               </div>
@@ -180,7 +194,7 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
                   size="sm"
                   variant="outline"
                   onClick={() => respondToInvitation(invitation.id, invitation.shop_id, false)}
-                  className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-950"
+                  className="border-red-400 text-red-700 hover:bg-red-100 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-950"
                 >
                   <XCircle className="h-4 w-4 mr-1" />
                   Decline
