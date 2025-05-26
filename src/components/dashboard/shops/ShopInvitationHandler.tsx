@@ -29,14 +29,56 @@ interface ShopInvitationHandlerProps {
 export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandlerProps) => {
   const [invitations, setInvitations] = useState<ShopInvitation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actualUserEmail, setActualUserEmail] = useState<string>("");
 
   useEffect(() => {
-    fetchInvitations();
-  }, [userEmail]);
+    fetchUserEmailAndInvitations();
+  }, [userEmail, userId]);
 
-  const fetchInvitations = async () => {
+  const fetchUserEmailAndInvitations = async () => {
     try {
       setLoading(true);
+      
+      // Get the actual user email
+      let emailToUse = userEmail;
+      
+      // If userEmail looks like a fallback (user-xxxxx), try to get real email
+      if (userEmail.startsWith('user-')) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          emailToUse = user.email;
+        } else {
+          // Try profiles table
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('id', userId)
+            .single();
+          
+          if (profile?.email) {
+            emailToUse = profile.email;
+          }
+        }
+      }
+      
+      setActualUserEmail(emailToUse);
+      
+      // Only fetch invitations if we have a real email
+      if (emailToUse && !emailToUse.startsWith('user-')) {
+        await fetchInvitations(emailToUse);
+      } else {
+        setInvitations([]);
+      }
+    } catch (error) {
+      console.error('Error fetching user email and invitations:', error);
+      setInvitations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchInvitations = async (email: string) => {
+    try {
       const { data, error } = await supabase
         .from('shop_invitations')
         .select(`
@@ -47,15 +89,14 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
             district
           )
         `)
-        .eq('email', userEmail)
+        .eq('email', email)
         .eq('status', 'pending');
 
       if (error) throw error;
       setInvitations(data || []);
     } catch (error) {
       console.error('Error fetching invitations:', error);
-    } finally {
-      setLoading(false);
+      setInvitations([]);
     }
   };
 
@@ -92,7 +133,7 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
         if (error) throw error;
 
         toast.success('Invitation declined.');
-        fetchInvitations();
+        fetchUserEmailAndInvitations();
       }
     } catch (error) {
       console.error('Error responding to invitation:', error);
@@ -108,6 +149,11 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
         </CardContent>
       </Card>
     );
+  }
+
+  // Don't show anything if no real email available
+  if (!actualUserEmail || actualUserEmail.startsWith('user-')) {
+    return null;
   }
 
   if (invitations.length === 0) {

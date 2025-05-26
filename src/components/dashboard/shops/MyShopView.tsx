@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,13 +54,21 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
 
   const fetchUserEmail = async () => {
     try {
+      // First try to get email from auth user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setUserEmail(user.email);
+        return;
+      }
+
+      // Fallback to profiles table
       const { data, error } = await supabase
         .from('profiles')
         .select('email')
         .eq('id', userId)
         .single();
 
-      if (!error && data) {
+      if (!error && data?.email) {
         setUserEmail(data.email);
       }
     } catch (error) {
@@ -164,7 +173,7 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     setEditForm(prev => ({ ...prev, logo_url: logoUrl }));
   };
 
-  const handleInputChange = <K extends keyof Shop>(field: K, value: Shop[K]) => {
+  const handleInputChange = (field: keyof Shop, value: Shop[keyof Shop]) => {
     setEditForm(prev => ({
       ...prev,
       [field]: value
@@ -191,11 +200,11 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Always show shop invitations if user has email */}
-      {userId && userEmail && (
+      {/* Always show shop invitations for mechanics - use email if available, otherwise use userId */}
+      {userId && (
         <ShopInvitationHandler 
           userId={userId} 
-          userEmail={userEmail} 
+          userEmail={userEmail || `user-${userId}`} 
         />
       )}
       
