@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -106,37 +105,41 @@ export const Dashboard = ({ user }: DashboardProps) => {
   const completedJobs = filterJobs(jobs.filter(job => job.status === "completed"));
 
   return (
-    <div className="space-y-4">
-      <DashboardHeader 
-        userName={user?.email}
-        searchQuery=""
-        onSearchChange={() => {}}
-        translations={t}
-        userId={userId}
-      />
-      <Tabs defaultValue="jobs" className="space-y-4">
-        <TabsNavigation 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab}
-          isMobile={false}
-          activeJobs={activeJobs.length}
-          completedJobs={completedJobs.length}
-          unreadTickets={0}
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        <DashboardHeader 
+          userName={user?.email}
+          searchQuery=""
+          onSearchChange={() => {}}
           translations={t}
-          userRole={userRole}
           userId={userId}
         />
-        <TabContent
-          activeJobs={activeJobs}
-          completedJobs={completedJobs}
-          allJobs={allJobs}
-          setJobs={setJobs}
-          handleAddJob={handleAddJob}
-          userId={userId}
-          userRole={userRole}
-          translations={t}
-        />
-      </Tabs>
+        <Tabs defaultValue="jobs" className="space-y-6">
+          <div className="flex justify-center">
+            <TabsNavigation 
+              activeTab={activeTab} 
+              setActiveTab={setActiveTab}
+              isMobile={false}
+              activeJobs={activeJobs.length}
+              completedJobs={completedJobs.length}
+              unreadTickets={0}
+              translations={t}
+              userRole={userRole}
+              userId={userId}
+            />
+          </div>
+          <TabContent
+            activeJobs={activeJobs}
+            completedJobs={completedJobs}
+            allJobs={allJobs}
+            setJobs={setJobs}
+            handleAddJob={handleAddJob}
+            userId={userId}
+            userRole={userRole}
+            translations={t}
+          />
+        </Tabs>
+      </div>
     </div>
   );
 };

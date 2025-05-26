@@ -39,45 +39,49 @@ export const JobsTab = ({
   };
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="new" className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          {translations?.newJob || "New Job"}
-        </TabsTrigger>
-        <TabsTrigger value="active">
-          {translations?.activeJobs || "Active Jobs"} ({activeJobs.length})
-        </TabsTrigger>
-        <TabsTrigger value="completed">
-          {translations?.completedJobs || "Completed Jobs"} ({completedJobs.length})
-        </TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="new">
-        <NewJobForm onJobCreated={handleJobUpdate} />
-      </TabsContent>
-      
-      <TabsContent value="active">
-        <JobList 
-          jobs={activeJobs} 
-          allJobs={allJobs}
-          setJobs={setJobs}
-          jobType="active"
-          translations={translations}
-          userRole={userRole}
-        />
-      </TabsContent>
-      
-      <TabsContent value="completed">
-        <JobList 
-          jobs={completedJobs} 
-          allJobs={allJobs}
-          setJobs={setJobs}
-          jobType="completed"
-          translations={translations}
-          userRole={userRole}
-        />
-      </TabsContent>
-    </Tabs>
+    <div className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex justify-center mb-6">
+          <TabsList className="grid w-full max-w-md grid-cols-3 h-12">
+            <TabsTrigger value="new" className="flex items-center gap-2 text-sm">
+              <Plus className="h-4 w-4" />
+              {translations?.newJob || "New Job"}
+            </TabsTrigger>
+            <TabsTrigger value="active" className="text-sm">
+              {translations?.activeJobs || "Active"} ({activeJobs.length})
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="text-sm">
+              {translations?.completedJobs || "Completed"} ({completedJobs.length})
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        
+        <TabsContent value="new" className="mt-0">
+          <NewJobForm onJobCreated={handleJobUpdate} />
+        </TabsContent>
+        
+        <TabsContent value="active" className="mt-0">
+          <JobList 
+            jobs={activeJobs} 
+            allJobs={allJobs}
+            setJobs={setJobs}
+            jobType="active"
+            translations={translations}
+            userRole={userRole}
+          />
+        </TabsContent>
+        
+        <TabsContent value="completed" className="mt-0">
+          <JobList 
+            jobs={completedJobs} 
+            allJobs={allJobs}
+            setJobs={setJobs}
+            jobType="completed"
+            translations={translations}
+            userRole={userRole}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
