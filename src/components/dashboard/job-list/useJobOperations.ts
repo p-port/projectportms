@@ -61,7 +61,8 @@ export const useJobOperations = () => {
 
   const syncJobToSupabase = async (job: any, userId: string) => {
     try {
-      const { error } = await supabase.from('jobs').upsert({
+      // Ensure the job has shop_id from userShop
+      const jobData = {
         job_id: job.id,
         customer: job.customer,
         motorcycle: job.motorcycle, 
@@ -72,8 +73,10 @@ export const useJobOperations = () => {
         notes: job.notes,
         photos: job.photos,
         user_id: userId,
-        shop_id: userShop?.id
-      });
+        shop_id: userShop?.id || job.shop_id // Use userShop.id or existing shop_id
+      };
+
+      const { error } = await supabase.from('jobs').upsert(jobData);
       
       if (error) throw error;
 

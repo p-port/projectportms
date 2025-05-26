@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +7,7 @@ import { Shop } from "@/types/shop";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 import { ShopLogoUpload } from "./ShopLogoUpload";
 import { ShopUserInvitation } from "./ShopUserInvitation";
+import { ShopInvitationHandler } from "./ShopInvitationHandler";
 import { ShopHeader } from "./components/ShopHeader";
 import { ShopOwnerInfo } from "./components/ShopOwnerInfo";
 import { ShopBasicInfo } from "./components/ShopBasicInfo";
@@ -133,8 +135,9 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     try {
       const updateData: Partial<Shop> = {};
       Object.entries(editForm).forEach(([key, value]) => {
-        if (!restrictedFields.includes(key as EditableShopFields)) {
-          updateData[key as keyof Shop] = value as any;
+        const fieldKey = key as keyof Shop;
+        if (!restrictedFields.includes(fieldKey as EditableShopFields)) {
+          (updateData as any)[fieldKey] = value;
         }
       });
 
@@ -189,11 +192,20 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
 
   if (!shop) {
     return (
-      <EmptyShopState
-        userId={userId}
-        userEmail={userEmail}
-        onNavigateHome={navigateToHome}
-      />
+      <div className="space-y-6">
+        {userId && userEmail && (
+          <ShopInvitationHandler 
+            userId={userId} 
+            userEmail={userEmail} 
+          />
+        )}
+        
+        <EmptyShopState
+          userId={userId}
+          userEmail={userEmail}
+          onNavigateHome={navigateToHome}
+        />
+      </div>
     );
   }
 

@@ -4,7 +4,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Check, Clock, Globe, ArrowLeft, ArrowRight, RefreshCw, Image, DollarSign } from "lucide-react";
+import { Check, Clock, Globe, ArrowLeft, ArrowRight, RefreshCw, Image, DollarSign, Building2 } from "lucide-react";
 import { getStatusColor } from "@/components/dashboard/job-details/JobUtils";
 import { Button } from "@/components/ui/button";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -49,7 +49,9 @@ const translations = {
     startPhotos: "Initial Service Photos",
     completionPhotos: "Completion Photos",
     noPhotos: "No photos available",
-    viewLarger: "View larger"
+    viewLarger: "View larger",
+    servicedBy: "Serviced by",
+    shopLocation: "Location"
   },
   ko: {
     title: "프로젝트 포트 - 서비스 상태 추적기",
@@ -80,7 +82,9 @@ const translations = {
     startPhotos: "초기 서비스 사진",
     completionPhotos: "완료 사진",
     noPhotos: "사진이 없습니다",
-    viewLarger: "크게 보기"
+    viewLarger: "크게 보기",
+    servicedBy: "서비스 제공",
+    shopLocation: "위치"
   },
   ru: {
     title: "Проект Порт - Отслеживание статуса услуги",
@@ -111,7 +115,9 @@ const translations = {
     startPhotos: "Начальные фотографии",
     completionPhotos: "Фотографии завершения",
     noPhotos: "Нет доступных фотографий",
-    viewLarger: "Увеличить"
+    viewLarger: "Увеличить",
+    servicedBy: "Обслуживается",
+    shopLocation: "Местоположение"
   }
 };
 
@@ -119,6 +125,7 @@ const translations = {
 const TrackJob = () => {
   const { jobId } = useParams<{ jobId: string }>();
   const [job, setJob] = useState<any>(null);
+  const [shopInfo, setShopInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useLocalStorage("language", "en");
@@ -190,10 +197,25 @@ const TrackJob = () => {
           notes: supabaseJob.notes || [],
           photos: supabaseJob.photos || { start: [], completion: [] },
           initialCost: initialCost,
-          finalCost: finalCost
+          finalCost: finalCost,
+          shop_id: supabaseJob.shop_id
         };
         
         setJob(formattedJob);
+        
+        // Fetch shop information if shop_id exists
+        if (supabaseJob.shop_id) {
+          const { data: shopData, error: shopError } = await supabase
+            .from('shops')
+            .select('name, region, district')
+            .eq('id', supabaseJob.shop_id)
+            .single();
+          
+          if (!shopError && shopData) {
+            setShopInfo(shopData);
+          }
+        }
+        
         setError(null);
         return;
       }
@@ -373,6 +395,12 @@ const TrackJob = () => {
                   <p className="text-muted-foreground mt-1">
                     {job.motorcycle.make} {job.motorcycle.model} ({job.motorcycle.year})
                   </p>
+                  {shopInfo && (
+                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                      <Building2 className="h-4 w-4" />
+                      <span>{t.servicedBy}: {shopInfo.name}</span>
+                    </div>
+                  )}
                 </div>
                 <Badge className={`${getStatusColor(job.status)} capitalize mt-2 sm:mt-0`}>
                   {job.status === "in-progress" ? t.inProgress : 
