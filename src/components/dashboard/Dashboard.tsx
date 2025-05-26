@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 import { useJobPermissions } from "@/hooks/useJobPermissions";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { DashboardHeader } from "./features/DashboardHeader";
 import { TabsNavigation } from "./features/TabsNavigation";
 import { TabContent } from "./features/TabContent";
@@ -22,6 +22,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
   const [userDisplayName, setUserDisplayName] = useState<string>("");
   const { userRole, userId } = useAuthCheck();
   const { permissions, loading, filterJobs } = useJobPermissions();
+  const isMobile = useIsMobile();
 
   const t = defaultTranslations[language as keyof typeof defaultTranslations] || defaultTranslations.en;
 
@@ -135,7 +136,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className={`container mx-auto ${isMobile ? 'px-2' : 'px-4'} py-4 space-y-4`}>
         <DashboardHeader 
           userName={userDisplayName}
           searchQuery=""
@@ -143,12 +144,12 @@ export const Dashboard = ({ user }: DashboardProps) => {
           translations={t}
           userId={userId}
         />
-        <Tabs defaultValue="jobs" className="space-y-6">
-          <div className="flex justify-center">
+        <Tabs defaultValue="jobs" className="space-y-4">
+          <div className={`${isMobile ? 'px-2' : 'flex justify-center'}`}>
             <TabsNavigation 
               activeTab={activeTab} 
               setActiveTab={setActiveTab}
-              isMobile={false}
+              isMobile={isMobile}
               activeJobs={activeJobs.length}
               completedJobs={completedJobs.length}
               unreadTickets={0}

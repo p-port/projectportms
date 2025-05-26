@@ -2,6 +2,7 @@
 import { NotificationCenter } from "../notifications/NotificationCenter";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DashboardHeaderProps {
   userName?: string;
@@ -18,6 +19,8 @@ export const DashboardHeader = ({
   translations,
   userId
 }: DashboardHeaderProps) => {
+  const isMobile = useIsMobile();
+
   // Extract display name - prioritize the actual name over email
   const getDisplayName = (name?: string) => {
     if (!name) return "User";
@@ -38,17 +41,17 @@ export const DashboardHeader = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+      <div className={`flex ${isMobile ? 'flex-col gap-2' : 'flex-row items-center'} justify-between`}>
+        <div className={isMobile ? 'text-center' : ''}>
+          <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold tracking-tight`}>
             {translations.dashboard || "Dashboard"}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {translations.welcome || "Welcome"}, {getDisplayName(userName)}!
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={navigateToHome}>
+        <div className={`flex items-center gap-2 ${isMobile ? 'justify-center' : ''}`}>
+          <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={navigateToHome}>
             <Home className="h-4 w-4 mr-2" />
             Home
           </Button>

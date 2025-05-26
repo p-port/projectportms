@@ -50,6 +50,51 @@ export const TabsNavigation = ({
     }
   }, [userId]);
   
+  if (isMobile) {
+    return (
+      <div className="overflow-x-auto">
+        <TabsList className="flex w-max min-w-full">
+          <TabsTrigger value="customers" onClick={() => setActiveTab("customers")} className="flex flex-col gap-1 items-center px-3 py-2 text-xs">
+            <Search className="h-4 w-4" />
+            <span className="hidden sm:inline">Search</span>
+          </TabsTrigger>
+          
+          <TabsTrigger value="jobs" onClick={() => setActiveTab("jobs")} className="flex flex-col gap-1 items-center px-3 py-2 text-xs">
+            <Briefcase className="h-4 w-4" />
+            <span className="hidden sm:inline">{translations.jobs || "Jobs"}</span>
+          </TabsTrigger>
+          
+          <TabsTrigger value="shops" onClick={() => setActiveTab("shops")} className="flex flex-col gap-1 items-center px-3 py-2 text-xs">
+            <Store className="h-4 w-4" />
+            <span className="hidden sm:inline">{translations.shops || "Shops"}</span>
+          </TabsTrigger>
+          
+          {isAdmin && (
+            <TabsTrigger value="users" onClick={() => setActiveTab("users")} className="flex flex-col gap-1 items-center px-3 py-2 text-xs">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">{translations.users || "Users"}</span>
+            </TabsTrigger>
+          )}
+          
+          <TabsTrigger value="support" onClick={() => setActiveTab("support")} className="flex flex-col gap-1 items-center px-3 py-2 text-xs relative">
+            <MessageSquarePlus className="h-4 w-4" />
+            <span className="hidden sm:inline">Support</span>
+            {unreadTickets > 0 && (
+              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full px-1 text-xs font-medium min-w-[16px] h-4 flex items-center justify-center">
+                {unreadTickets}
+              </span>
+            )}
+          </TabsTrigger>
+          
+          <TabsTrigger value="account" onClick={() => setActiveTab("account")} className="flex flex-col gap-1 items-center px-3 py-2 text-xs">
+            <User className="h-4 w-4" />
+            <span className="hidden sm:inline">Account</span>
+          </TabsTrigger>
+        </TabsList>
+      </div>
+    );
+  }
+  
   return (
     <TabsList className="flex flex-wrap">
       {/* Search icon with tooltip at the very left */}
