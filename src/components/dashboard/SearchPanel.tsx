@@ -13,13 +13,30 @@ interface SearchPanelProps {
 }
 
 export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
-  const { filterJobs } = useJobPermissions();
+  const { permissions, filterJobs } = useJobPermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'customers' | 'motorcycles' | 'jobs'>('customers');
 
-  // Apply permission filtering to jobs based on user role and shop
-  const permissionFilteredJobs = filterJobs(jobs);
+  // Determine what jobs the user can search based on role and shop affiliation
+  const getSearchableJobs = () => {
+    const userRole = permissions.userRole;
+    
+    // Admin and support can search all jobs
+    if (userRole === 'admin' || userRole === 'support') {
+      return jobs;
+    }
+    
+    // Mechanics can only search jobs from their shop
+    if (userRole === 'mechanic') {
+      if (!permissions.shopId) {
+        return []; // No shop affiliation = no job search access
+      }
+      return jobs.filter(job => job.shop_id === permissions.shopId);
+    }
+    
+    return [];
+  };
 
   useEffect(() => {
     if (!searchTerm.trim()) {
@@ -27,7 +44,9 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
       return;
     }
 
-    const filtered = permissionFilteredJobs.filter(job => {
+    const searchableJobs = getSearchableJobs();
+    
+    const filtered = searchableJobs.filter(job => {
       const customer = job.customer || {};
       const motorcycle = job.motorcycle || {};
       
@@ -50,11 +69,14 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
     });
 
     setFilteredJobs(filtered);
-  }, [searchTerm, permissionFilteredJobs]);
+  }, [searchTerm, jobs, permissions]);
 
   const getCustomerResults = () => {
+    // All users can search customers from any job they have access to
+    const searchableJobs = getSearchableJobs();
+    
     const customerMap = new Map();
-    filteredJobs.forEach(job => {
+    searchableJobs.forEach(job => {
       const customer = job.customer || {};
       const key = customer.email || customer.name || 'unknown';
       
@@ -81,8 +103,11 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
   };
 
   const getMotorcycleResults = () => {
+    // All users can search motorcycles from any job they have access to
+    const searchableJobs = getSearchableJobs();
+    
     const motorcycleMap = new Map();
-    filteredJobs.forEach(job => {
+    searchableJobs.forEach(job => {
       const motorcycle = job.motorcycle || {};
       const key = `${motorcycle.make || ''} ${motorcycle.model || ''} ${motorcycle.licensePlate || ''}`.trim();
       
@@ -107,6 +132,25 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
 
   const customerResults = getCustomerResults();
   const motorcycleResults = getMotorcycleResults();
+  
+  // Check if user can search jobs
+  const canSearchJobs = () => {
+    const userRole = permissions.userRole;
+    
+    // Admin and support can always search jobs
+    if (userRole === 'admin' || userRole === 'support') {
+      return true;
+    }
+    
+    // Mechanics can only search jobs if they have shop affiliation
+    if (userRole === 'mechanic') {
+      return !!permissions.shopId;
+    }
+    
+    return false;
+  };
+
+  const jobSearchEnabled = canSearchJobs();
 
   return (
     <div className="space-y-6">
@@ -149,17 +193,25 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                 <Bike className="h-4 w-4 inline mr-1" />
                 Motorcycles ({motorcycleResults.length})
               </button>
-              <button
-                onClick={() => setActiveTab('jobs')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === 'jobs' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
-              >
-                <Wrench className="h-4 w-4 inline mr-1" />
-                Jobs ({filteredJobs.length})
-              </button>
+              {jobSearchEnabled && (
+                <button
+                  onClick={() => setActiveTab('jobs')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'jobs' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  <Wrench className="h-4 w-4 inline mr-1" />
+                  Jobs ({filteredJobs.length})
+                </button>
+              )}
+            </div>
+          )}
+          
+          {searchTerm.trim() && !jobSearchEnabled && permissions.userRole === 'mechanic' && !permissions.shopId && (
+            <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+              Note: Job search is not available as you are not affiliated with a shop.
             </div>
           )}
         </CardContent>
@@ -208,7 +260,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                         </div>
                       )}
                       <div className="mt-3">
-                        <p className="text-sm font-medium">Recent Service History:</p>
+                        <p className="text-sm font-medium">Service History:</p>
                         <div className="space-y-1 mt-1">
                           {result.jobs.slice(0, 3).map((job: any, index: number) => (
                             <div key={index} className="text-xs text-muted-foreground">
@@ -277,7 +329,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
             </div>
           )}
 
-          {activeTab === 'jobs' && (
+          {activeTab === 'jobs' && jobSearchEnabled && (
             <div className="space-y-4">
               {filteredJobs.length === 0 ? (
                 <Card>
