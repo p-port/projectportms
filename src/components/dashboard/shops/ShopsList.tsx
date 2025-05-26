@@ -200,7 +200,7 @@ export const ShopsList = () => {
               </p>
             </div>
           </CardContent>
-        </div>
+        </Card>
       )}
     </div>
   );
