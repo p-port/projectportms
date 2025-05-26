@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -190,85 +189,84 @@ export const MyShopView = ({ userId }: MyShopViewProps) => {
     );
   }
 
-  if (!shop) {
-    return (
-      <div className="space-y-6">
-        {userId && userEmail && (
-          <ShopInvitationHandler 
-            userId={userId} 
-            userEmail={userEmail} 
-          />
-        )}
-        
+  return (
+    <div className="space-y-6">
+      {/* Always show shop invitations if user has email */}
+      {userId && userEmail && (
+        <ShopInvitationHandler 
+          userId={userId} 
+          userEmail={userEmail} 
+        />
+      )}
+      
+      {!shop ? (
         <EmptyShopState
           userId={userId}
           userEmail={userEmail}
           onNavigateHome={navigateToHome}
         />
-      </div>
-    );
-  }
+      ) : (
+        <>
+          <Card>
+            <CardHeader>
+              <ShopHeader
+                shop={shop}
+                editing={editing}
+                editForm={editForm}
+                canEdit={canEdit}
+                onEdit={() => setEditing(true)}
+                onSave={handleSave}
+                onCancel={() => {
+                  setEditing(false);
+                  setEditForm(shop);
+                }}
+                onInputChange={handleInputChange}
+                onNavigateHome={navigateToHome}
+              />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {isShopOwner && (
+                <ShopLogoUpload
+                  shopId={shop.id}
+                  currentLogoUrl={shop.logo_url ?? undefined}
+                  onLogoUpdate={handleLogoUpdate}
+                  disabled={editing}
+                />
+              )}
 
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <ShopHeader
-            shop={shop}
-            editing={editing}
-            editForm={editForm}
-            canEdit={canEdit}
-            onEdit={() => setEditing(true)}
-            onSave={handleSave}
-            onCancel={() => {
-              setEditing(false);
-              setEditForm(shop);
-            }}
-            onInputChange={handleInputChange}
-            onNavigateHome={navigateToHome}
-          />
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {isShopOwner && (
-            <ShopLogoUpload
-              shopId={shop.id}
-              currentLogoUrl={shop.logo_url ?? undefined}
-              onLogoUpdate={handleLogoUpdate}
-              disabled={editing}
-            />
-          )}
+              <ShopOwnerInfo shopOwner={shopOwner} />
+              <ShopBasicInfo
+                shop={shop}
+                editing={editing}
+                editForm={editForm}
+                onInputChange={handleInputChange}
+              />
+              <ShopContactInfo
+                shop={shop}
+                editing={editing}
+                editForm={editForm}
+                onInputChange={handleInputChange}
+              />
+              <ShopAddressInfo
+                shop={shop}
+                editing={editing}
+                editForm={editForm}
+                onInputChange={handleInputChange}
+              />
+              <ShopServices shop={shop} />
+              <ShopBusinessInfo
+                shop={shop}
+                editing={editing}
+                editForm={editForm}
+                onInputChange={handleInputChange}
+              />
+              <AdminApprovalNotice isShopOwner={isShopOwner} />
+            </CardContent>
+          </Card>
 
-          <ShopOwnerInfo shopOwner={shopOwner} />
-          <ShopBasicInfo
-            shop={shop}
-            editing={editing}
-            editForm={editForm}
-            onInputChange={handleInputChange}
-          />
-          <ShopContactInfo
-            shop={shop}
-            editing={editing}
-            editForm={editForm}
-            onInputChange={handleInputChange}
-          />
-          <ShopAddressInfo
-            shop={shop}
-            editing={editing}
-            editForm={editForm}
-            onInputChange={handleInputChange}
-          />
-          <ShopServices shop={shop} />
-          <ShopBusinessInfo
-            shop={shop}
-            editing={editing}
-            editForm={editForm}
-            onInputChange={handleInputChange}
-          />
-          <AdminApprovalNotice isShopOwner={isShopOwner} />
-        </CardContent>
-      </Card>
-
-      {isShopOwner && <ShopUserInvitation shopId={shop.id} />}
+          {isShopOwner && <ShopUserInvitation shopId={shop.id} />}
+        </>
+      )}
     </div>
   );
 };
