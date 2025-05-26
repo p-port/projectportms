@@ -83,10 +83,13 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
   const respondToInvitation = async (invitationId: string, shopId: string, accept: boolean) => {
     try {
       if (accept) {
-        // Update user's shop_id
+        // Update user's shop_id and set as approved
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ shop_id: shopId })
+          .update({ 
+            shop_id: shopId,
+            approved: true // Auto-approve when accepting shop invitation
+          })
           .eq('id', userId);
 
         if (profileError) throw profileError;
@@ -94,7 +97,10 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
         // Update invitation status
         const { error: invitationError } = await supabase
           .from('shop_invitations')
-          .update({ status: 'accepted' })
+          .update({ 
+            status: 'accepted',
+            accepted_at: new Date().toISOString()
+          })
           .eq('id', invitationId);
 
         if (invitationError) throw invitationError;

@@ -104,6 +104,9 @@ export const ShopUserInvitation = ({ shopId }: ShopUserInvitationProps) => {
         .eq('id', shopId)
         .single();
 
+      // Get current user for invited_by field
+      const { data: { user } } = await supabase.auth.getUser();
+
       const { error } = await supabase
         .from('shop_invitations')
         .insert({
@@ -111,7 +114,7 @@ export const ShopUserInvitation = ({ shopId }: ShopUserInvitationProps) => {
           email: email.trim(),
           phone: phone.trim() || null,
           invitation_code: invitationCode,
-          invited_by: (await supabase.auth.getUser()).data.user?.id
+          invited_by: user?.id
         });
 
       if (error) throw error;
@@ -125,7 +128,7 @@ export const ShopUserInvitation = ({ shopId }: ShopUserInvitationProps) => {
 
       if (userData) {
         // Create notification for existing user
-        await supabase
+        const { error: notificationError } = await supabase
           .from('notifications')
           .insert({
             user_id: userData.id,
@@ -134,6 +137,10 @@ export const ShopUserInvitation = ({ shopId }: ShopUserInvitationProps) => {
             type: 'shop',
             reference_id: shopId
           });
+
+        if (notificationError) {
+          console.error('Error creating notification:', notificationError);
+        }
       }
 
       toast.success('Invitation sent successfully!');
@@ -167,20 +174,23 @@ export const ShopUserInvitation = ({ shopId }: ShopUserInvitationProps) => {
         .eq('id', shopId)
         .single();
 
-      // Create invitation instead of directly assigning
+      // Get current user for invited_by field
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Create invitation
       const { error: invitationError } = await supabase
         .from('shop_invitations')
         .insert({
           shop_id: shopId,
           email: selectedUser.email!,
           invitation_code: invitationCode,
-          invited_by: (await supabase.auth.getUser()).data.user?.id
+          invited_by: user?.id
         });
 
       if (invitationError) throw invitationError;
 
       // Create notification for the user
-      await supabase
+      const { error: notificationError } = await supabase
         .from('notifications')
         .insert({
           user_id: selectedUser.id,
@@ -189,6 +199,10 @@ export const ShopUserInvitation = ({ shopId }: ShopUserInvitationProps) => {
           type: 'shop',
           reference_id: shopId
         });
+
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
+      }
 
       toast.success(`Invitation sent to ${selectedUser.name || selectedUser.email}!`);
       setSelectedUser(null);

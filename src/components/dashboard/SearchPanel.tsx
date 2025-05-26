@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Phone, Mail, Calendar, Wrench, User, Bike } from "lucide-react";
 import { useJobPermissions } from "@/hooks/useJobPermissions";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SearchPanelProps {
   jobs: any[];
@@ -12,45 +13,36 @@ interface SearchPanelProps {
   userId?: string;
 }
 
-export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
-  const { permissions, filterJobs } = useJobPermissions();
+export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelPropsProps) => {
+  const { permissions } = useJobPermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'customers' | 'motorcycles' | 'jobs'>('customers');
+  const [searchableJobs, setSearchableJobs] = useState<any[]>([]);
 
-  // Get searchable jobs based on user role and permissions
-  const getSearchableJobs = () => {
-    const currentUserRole = permissions.userRole || userRole;
-    
-    // Admin and support can search all jobs
-    if (currentUserRole === 'admin' || currentUserRole === 'support') {
-      return jobs;
-    }
-    
-    // For mechanics - they can see all jobs for customer/motorcycle search
-    // but only their shop's jobs for job-specific searches
-    return jobs;
-  };
+  // Fetch jobs based on user permissions using Supabase directly
+  useEffect(() => {
+    const fetchSearchableJobs = async () => {
+      try {
+        const { data: jobsData, error } = await supabase
+          .from('jobs')
+          .select('*')
+          .order('date_created', { ascending: false });
 
-  // Get jobs filtered by shop for job-specific searches
-  const getShopFilteredJobs = () => {
-    const currentUserRole = permissions.userRole || userRole;
-    
-    // Admin and support can search all jobs
-    if (currentUserRole === 'admin' || currentUserRole === 'support') {
-      return jobs;
-    }
-    
-    // Mechanics can only search jobs from their shop
-    if (currentUserRole === 'mechanic') {
-      if (!permissions.shopId) {
-        return []; // No shop affiliation = no job search access
+        if (error) {
+          console.error('Error fetching jobs for search:', error);
+          setSearchableJobs([]);
+        } else {
+          setSearchableJobs(jobsData || []);
+        }
+      } catch (error) {
+        console.error('Error in fetchSearchableJobs:', error);
+        setSearchableJobs([]);
       }
-      return jobs.filter(job => job.shop_id === permissions.shopId);
-    }
-    
-    return [];
-  };
+    };
+
+    fetchSearchableJobs();
+  }, [permissions]);
 
   useEffect(() => {
     if (!searchTerm.trim()) {
@@ -58,9 +50,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
       return;
     }
 
-    const shopFilteredJobs = getShopFilteredJobs();
-    
-    const filtered = shopFilteredJobs.filter(job => {
+    const filtered = searchableJobs.filter(job => {
       const customer = job.customer || {};
       const motorcycle = job.motorcycle || {};
       
@@ -83,13 +73,10 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
     });
 
     setFilteredJobs(filtered);
-  }, [searchTerm, jobs, permissions]);
+  }, [searchTerm, searchableJobs]);
 
   const getCustomerResults = () => {
     if (!searchTerm.trim()) return [];
-    
-    // All users can search customers from any job they have access to
-    const searchableJobs = getSearchableJobs();
     
     const customerMap = new Map();
     searchableJobs.forEach(job => {
@@ -132,9 +119,6 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
 
   const getMotorcycleResults = () => {
     if (!searchTerm.trim()) return [];
-    
-    // All users can search motorcycles from any job they have access to
-    const searchableJobs = getSearchableJobs();
     
     const motorcycleMap = new Map();
     searchableJobs.forEach(job => {
