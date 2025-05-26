@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Phone, Mail, Calendar, Wrench, User, Bike } from "lucide-react";
-import { SearchCustomers } from "./SearchCustomers";
 import { useJobPermissions } from "@/hooks/useJobPermissions";
 
 interface SearchPanelProps {
@@ -19,7 +18,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
   const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'customers' | 'motorcycles' | 'jobs'>('customers');
 
-  // Apply permission filtering to jobs
+  // Apply permission filtering to jobs based on user role and shop
   const permissionFilteredJobs = filterJobs(jobs);
 
   useEffect(() => {
@@ -38,10 +37,11 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
         customer.phone || '',
         motorcycle.make || '',
         motorcycle.model || '',
-        motorcycle.year || '',
+        motorcycle.year?.toString() || '',
         motorcycle.licensePlate || '',
         job.serviceType || '',
-        job.id || ''
+        job.service_type || '',
+        job.job_id || job.id || ''
       ];
 
       return searchFields.some(field => 
@@ -207,6 +207,21 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                           </div>
                         </div>
                       )}
+                      <div className="mt-3">
+                        <p className="text-sm font-medium">Recent Service History:</p>
+                        <div className="space-y-1 mt-1">
+                          {result.jobs.slice(0, 3).map((job: any, index: number) => (
+                            <div key={index} className="text-xs text-muted-foreground">
+                              {job.job_id || job.id} - {job.service_type || job.serviceType} - {new Date(job.date_created || job.dateCreated).toLocaleDateString()}
+                            </div>
+                          ))}
+                          {result.jobs.length > 3 && (
+                            <div className="text-xs text-muted-foreground">
+                              ... and {result.jobs.length - 3} more
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 ))
@@ -235,10 +250,25 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                             License: {result.motorcycle?.licensePlate || "N/A"}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            Owner: {result.customer?.name || "Unknown"}
+                            Current Owner: {result.customer?.name || "Unknown"}
                           </p>
                         </div>
-                        <Badge variant="secondary">{result.jobs.length} jobs</Badge>
+                        <Badge variant="secondary">{result.jobs.length} services</Badge>
+                      </div>
+                      <div className="mt-3">
+                        <p className="text-sm font-medium">Service History:</p>
+                        <div className="space-y-1 mt-1">
+                          {result.jobs.slice(0, 3).map((job: any, index: number) => (
+                            <div key={index} className="text-xs text-muted-foreground">
+                              {job.job_id || job.id} - {job.service_type || job.serviceType} - {new Date(job.date_created || job.dateCreated).toLocaleDateString()}
+                            </div>
+                          ))}
+                          {result.jobs.length > 3 && (
+                            <div className="text-xs text-muted-foreground">
+                              ... and {result.jobs.length - 3} more
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -276,14 +306,20 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                         <div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
-                            {new Date(job.dateCreated).toLocaleDateString()}
+                            {new Date(job.date_created || job.dateCreated).toLocaleDateString()}
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Wrench className="h-4 w-4" />
-                            {job.serviceType || "N/A"}
+                            {job.service_type || job.serviceType || "N/A"}
                           </div>
-                          <Badge variant="secondary">Job ID: {job.id}</Badge>
+                          <Badge variant="secondary">Job ID: {job.job_id || job.id}</Badge>
                         </div>
+                      </div>
+                      <div className="mt-3">
+                        <p className="text-sm font-medium">Motorcycle:</p>
+                        <p className="text-sm text-muted-foreground">
+                          {job.motorcycle?.make} {job.motorcycle?.model} ({job.motorcycle?.year}) - {job.motorcycle?.licensePlate}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
