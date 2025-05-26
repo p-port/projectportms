@@ -33,6 +33,47 @@ export const NotificationCenter = ({ userId }: { userId?: string }) => {
     shopName: ''
   });
 
+  // Check for pending shop invitations when component mounts or user comes online
+  const checkPendingInvitations = async () => {
+    if (!userId) return;
+
+    try {
+      // Get user's email to check for pending invitations
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', userId)
+        .single();
+
+      if (!profile?.email) return;
+
+      // Check for pending shop invitations
+      const { data: pendingInvitations } = await supabase
+        .from('shop_invitations')
+        .select(`
+          id,
+          shops (
+            name
+          )
+        `)
+        .eq('email', profile.email)
+        .eq('status', 'pending')
+        .gt('expires_at', new Date().toISOString());
+
+      if (pendingInvitations && pendingInvitations.length > 0) {
+        // Show the first pending invitation
+        const invitation = pendingInvitations[0];
+        setInvitationModal({
+          isOpen: true,
+          invitationId: invitation.id,
+          shopName: invitation.shops?.name || 'Unknown Shop'
+        });
+      }
+    } catch (error) {
+      console.error('Error checking pending invitations:', error);
+    }
+  };
+
   // Fetch notifications
   useEffect(() => {
     if (!userId) return;
@@ -59,6 +100,7 @@ export const NotificationCenter = ({ userId }: { userId?: string }) => {
     };
 
     fetchNotifications();
+    checkPendingInvitations();
 
     // Subscribe to new notifications
     const channel = supabase
@@ -79,8 +121,25 @@ export const NotificationCenter = ({ userId }: { userId?: string }) => {
       )
       .subscribe();
 
+    // Also listen for shop invitation changes
+    const invitationChannel = supabase
+      .channel('invitation-changes')
+      .on('postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'shop_invitations'
+        },
+        (payload) => {
+          // Check if this invitation is for the current user
+          checkPendingInvitations();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(invitationChannel);
     };
   }, [userId]);
 
