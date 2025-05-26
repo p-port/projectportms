@@ -27,7 +27,7 @@ export const DashboardHeader = ({
       return name.split("@")[0];
     }
     
-    // Use the full name as display name instead of just first name
+    // Use the full name as display name
     return name;
   };
 
@@ -41,10 +41,10 @@ export const DashboardHeader = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {translations.dashboard}
+            {translations.dashboard || "Dashboard"}
           </h1>
           <p className="text-muted-foreground">
-            {translations.welcome}, {getDisplayName(userName)}!
+            {translations.welcome || "Welcome"}, {getDisplayName(userName)}!
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -58,11 +58,11 @@ export const TabsNavigation = ({
           <TooltipTrigger asChild>
             <TabsTrigger value="customers" onClick={() => setActiveTab("customers")} className="flex gap-2 items-center px-2">
               <Search className="h-4 w-4" />
-              <span className="sr-only">{translations.search || "Search"}</span>
+              Search
             </TabsTrigger>
           </TooltipTrigger>
           <TooltipContent>
-            <p>{translations.searchTooltip || "Search customers, motorcycles & jobs"}</p>
+            <p>Search customers, motorcycles & jobs</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -86,7 +86,7 @@ export const TabsNavigation = ({
       )}
       <TabsTrigger value="support" onClick={() => setActiveTab("support")} className="flex gap-2 items-center">
         <MessageSquarePlus className="h-4 w-4" />
-        {translations.tickets}
+        Support
         {unreadTickets > 0 && (
           <span className="bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5 text-xs font-medium">
             {unreadTickets}
@@ -95,7 +95,7 @@ export const TabsNavigation = ({
       </TabsTrigger>
       <TabsTrigger value="account" onClick={() => setActiveTab("account")} className="flex gap-2 items-center">
         <User className="h-4 w-4" />
-        {translations.account}
+        Account
       </TabsTrigger>
     </TabsList>
   );
