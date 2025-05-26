@@ -18,17 +18,31 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
   const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'customers' | 'motorcycles' | 'jobs'>('customers');
 
-  // Determine what jobs the user can search based on role and shop affiliation
+  // Get searchable jobs based on user role and permissions
   const getSearchableJobs = () => {
-    const userRole = permissions.userRole;
+    const currentUserRole = permissions.userRole || userRole;
     
     // Admin and support can search all jobs
-    if (userRole === 'admin' || userRole === 'support') {
+    if (currentUserRole === 'admin' || currentUserRole === 'support') {
+      return jobs;
+    }
+    
+    // For mechanics - they can see all jobs for customer/motorcycle search
+    // but only their shop's jobs for job-specific searches
+    return jobs;
+  };
+
+  // Get jobs filtered by shop for job-specific searches
+  const getShopFilteredJobs = () => {
+    const currentUserRole = permissions.userRole || userRole;
+    
+    // Admin and support can search all jobs
+    if (currentUserRole === 'admin' || currentUserRole === 'support') {
       return jobs;
     }
     
     // Mechanics can only search jobs from their shop
-    if (userRole === 'mechanic') {
+    if (currentUserRole === 'mechanic') {
       if (!permissions.shopId) {
         return []; // No shop affiliation = no job search access
       }
@@ -44,9 +58,9 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
       return;
     }
 
-    const searchableJobs = getSearchableJobs();
+    const shopFilteredJobs = getShopFilteredJobs();
     
-    const filtered = searchableJobs.filter(job => {
+    const filtered = shopFilteredJobs.filter(job => {
       const customer = job.customer || {};
       const motorcycle = job.motorcycle || {};
       
@@ -72,12 +86,26 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
   }, [searchTerm, jobs, permissions]);
 
   const getCustomerResults = () => {
+    if (!searchTerm.trim()) return [];
+    
     // All users can search customers from any job they have access to
     const searchableJobs = getSearchableJobs();
     
     const customerMap = new Map();
     searchableJobs.forEach(job => {
       const customer = job.customer || {};
+      const searchFields = [
+        customer.name || '',
+        customer.email || '',
+        customer.phone || ''
+      ];
+      
+      const matchesSearch = searchFields.some(field => 
+        field.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      if (!matchesSearch) return;
+      
       const key = customer.email || customer.name || 'unknown';
       
       if (!customerMap.has(key)) {
@@ -103,12 +131,27 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
   };
 
   const getMotorcycleResults = () => {
+    if (!searchTerm.trim()) return [];
+    
     // All users can search motorcycles from any job they have access to
     const searchableJobs = getSearchableJobs();
     
     const motorcycleMap = new Map();
     searchableJobs.forEach(job => {
       const motorcycle = job.motorcycle || {};
+      const searchFields = [
+        motorcycle.make || '',
+        motorcycle.model || '',
+        motorcycle.year?.toString() || '',
+        motorcycle.licensePlate || ''
+      ];
+      
+      const matchesSearch = searchFields.some(field => 
+        field.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      if (!matchesSearch) return;
+      
       const key = `${motorcycle.make || ''} ${motorcycle.model || ''} ${motorcycle.licensePlate || ''}`.trim();
       
       if (!motorcycleMap.has(key) && key) {
@@ -135,15 +178,15 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
   
   // Check if user can search jobs
   const canSearchJobs = () => {
-    const userRole = permissions.userRole;
+    const currentUserRole = permissions.userRole || userRole;
     
     // Admin and support can always search jobs
-    if (userRole === 'admin' || userRole === 'support') {
+    if (currentUserRole === 'admin' || currentUserRole === 'support') {
       return true;
     }
     
     // Mechanics can only search jobs if they have shop affiliation
-    if (userRole === 'mechanic') {
+    if (currentUserRole === 'mechanic') {
       return !!permissions.shopId;
     }
     
@@ -209,7 +252,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
             </div>
           )}
           
-          {searchTerm.trim() && !jobSearchEnabled && permissions.userRole === 'mechanic' && !permissions.shopId && (
+          {searchTerm.trim() && !jobSearchEnabled && (permissions.userRole === 'mechanic' || userRole === 'mechanic') && !permissions.shopId && (
             <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
               Note: Job search is not available as you are not affiliated with a shop.
             </div>
