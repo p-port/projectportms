@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface SearchCustomersProps {
   jobs: any[];
@@ -23,30 +23,10 @@ export const SearchCustomers = ({ jobs, userRole = 'mechanic', userId }: SearchC
   const [searchQuery, setSearchQuery] = useState("");
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [userShopId, setUserShopId] = useState<string | null>(null);
 
   const isAdmin = userRole === 'admin';
   const isSupport = userRole === 'support';
   const canSeeAllData = isAdmin || isSupport;
-
-  // Get user's shop ID for filtering
-  useEffect(() => {
-    if (userId && !canSeeAllData) {
-      const fetchUserShop = async () => {
-        const { data } = await supabase
-          .from('profiles')
-          .select('shop_id')
-          .eq('id', userId)
-          .single();
-        
-        if (data?.shop_id) {
-          setUserShopId(data.shop_id);
-        }
-      };
-      
-      fetchUserShop();
-    }
-  }, [userId, canSeeAllData]);
 
   const searchCustomers = async (query: string) => {
     if (!query.trim()) {
@@ -56,23 +36,23 @@ export const SearchCustomers = ({ jobs, userRole = 'mechanic', userId }: SearchC
 
     setLoading(true);
     try {
-      let dbQuery = supabase
-        .from('jobs')
-        .select('*')
-        .or(`customer->>name.ilike.%${query}%,customer->>email.ilike.%${query}%,customer->>phone.ilike.%${query}%`);
-
-      // Filter by shop for non-admin/support users
-      if (!canSeeAllData && userShopId) {
-        dbQuery = dbQuery.eq('shop_id', userShopId);
-      }
-
-      const { data, error } = await dbQuery.order('date_created', { ascending: false });
-
-      if (error) throw error;
+      // Filter the jobs prop based on search query
+      const filteredJobs = jobs.filter(job => {
+        const customer = job.customer as unknown as CustomerData;
+        const searchFields = [
+          customer?.name || '',
+          customer?.email || '',
+          customer?.phone || ''
+        ];
+        
+        return searchFields.some(field => 
+          field.toLowerCase().includes(query.toLowerCase())
+        );
+      });
 
       // Group by customer
       const customerMap = new Map();
-      data?.forEach(job => {
+      filteredJobs.forEach(job => {
         const customer = job.customer as unknown as CustomerData;
         const key = customer.email || customer.name;
         
@@ -128,6 +108,46 @@ export const SearchCustomers = ({ jobs, userRole = 'mechanic', userId }: SearchC
     return localPart.charAt(0) + "*".repeat(localPart.length - 2) + localPart.charAt(localPart.length - 1) + '@' + domain;
   };
 
+  const ServiceHistoryDialog = ({ jobs, customerName }: { jobs: any[], customerName: string }) => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="link" className="p-0 h-auto text-sm">
+          View All Services ({jobs.length})
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Complete Service History - {customerName}</DialogTitle>
+          <DialogDescription>
+            All services performed for this customer
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          {jobs.map((job: any, index: number) => (
+            <div key={index} className="flex justify-between items-center p-3 bg-muted rounded border">
+              <div>
+                <div className="font-medium">{job.jobId}</div>
+                <div className="text-sm text-muted-foreground">{job.serviceType}</div>
+                <div className="text-xs text-muted-foreground">
+                  {job.motorcycle?.make} {job.motorcycle?.model} ({job.motorcycle?.year})
+                  {job.motorcycle?.vin && (
+                    <div className="font-mono">VIN: {job.motorcycle.vin}</div>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm">{new Date(job.date).toLocaleDateString()}</div>
+                <Badge variant={job.status === 'completed' ? 'default' : 'secondary'}>
+                  {job.status}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
@@ -176,7 +196,7 @@ export const SearchCustomers = ({ jobs, userRole = 'mechanic', userId }: SearchC
                 <div>
                   <h4 className="font-medium mb-2">Service History:</h4>
                   <div className="space-y-2">
-                    {result.jobs.map((job: any, index: number) => (
+                    {result.jobs.slice(0, 5).map((job: any, index: number) => (
                       <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
                         <div>
                           <span className="font-medium">{job.jobId}</span>
@@ -190,6 +210,9 @@ export const SearchCustomers = ({ jobs, userRole = 'mechanic', userId }: SearchC
                         </div>
                       </div>
                     ))}
+                    {result.jobs.length > 5 && (
+                      <ServiceHistoryDialog jobs={result.jobs} customerName={result.customer.name} />
+                    )}
                   </div>
                 </div>
               </CardContent>

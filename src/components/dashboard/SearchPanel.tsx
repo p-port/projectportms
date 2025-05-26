@@ -1,7 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Phone, Mail, Calendar, Wrench, User, Bike } from "lucide-react";
 import { useJobPermissions } from "@/hooks/useJobPermissions";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,29 +22,10 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
   const [activeTab, setActiveTab] = useState<'customers' | 'motorcycles' | 'jobs'>('customers');
   const [searchableJobs, setSearchableJobs] = useState<any[]>([]);
 
-  // Fetch jobs based on user permissions using Supabase directly
+  // Use the jobs prop instead of fetching directly to avoid RLS issues
   useEffect(() => {
-    const fetchSearchableJobs = async () => {
-      try {
-        const { data: jobsData, error } = await supabase
-          .from('jobs')
-          .select('*')
-          .order('date_created', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching jobs for search:', error);
-          setSearchableJobs([]);
-        } else {
-          setSearchableJobs(jobsData || []);
-        }
-      } catch (error) {
-        console.error('Error in fetchSearchableJobs:', error);
-        setSearchableJobs([]);
-      }
-    };
-
-    fetchSearchableJobs();
-  }, [permissions]);
+    setSearchableJobs(jobs || []);
+  }, [jobs]);
 
   useEffect(() => {
     if (!searchTerm.trim()) {
@@ -61,6 +45,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
         motorcycle.model || '',
         motorcycle.year?.toString() || '',
         motorcycle.licensePlate || '',
+        motorcycle.vin || '',
         job.serviceType || '',
         job.service_type || '',
         job.job_id || job.id || ''
@@ -105,7 +90,10 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
       customerMap.get(key).jobs.push(job);
       const motorcycle = job.motorcycle || {};
       if (motorcycle.make || motorcycle.model) {
-        customerMap.get(key).motorcycles.add(`${motorcycle.make || ''} ${motorcycle.model || ''} (${motorcycle.year || 'N/A'})`);
+        customerMap.get(key).motorcycles.add({
+          display: `${motorcycle.make || ''} ${motorcycle.model || ''} (${motorcycle.year || 'N/A'})`,
+          vin: motorcycle.vin || 'N/A'
+        });
       }
     });
 
@@ -126,7 +114,8 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
         motorcycle.make || '',
         motorcycle.model || '',
         motorcycle.year?.toString() || '',
-        motorcycle.licensePlate || ''
+        motorcycle.licensePlate || '',
+        motorcycle.vin || ''
       ];
       
       const matchesSearch = searchFields.some(field => 
@@ -159,24 +148,83 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
   const customerResults = getCustomerResults();
   const motorcycleResults = getMotorcycleResults();
   
-  // Check if user can search jobs
   const canSearchJobs = () => {
     const currentUserRole = permissions.userRole || userRole;
-    
-    // Admin and support can always search jobs
-    if (currentUserRole === 'admin' || currentUserRole === 'support') {
-      return true;
-    }
-    
-    // Mechanics can only search jobs if they have shop affiliation
-    if (currentUserRole === 'mechanic') {
-      return !!permissions.shopId;
-    }
-    
-    return false;
+    return currentUserRole === 'admin' || currentUserRole === 'support' || 
+           (currentUserRole === 'mechanic' && !!permissions.shopId);
   };
 
   const jobSearchEnabled = canSearchJobs();
+
+  const ServiceHistoryDialog = ({ jobs, customerName }: { jobs: any[], customerName: string }) => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="link" className="p-0 h-auto text-xs">
+          ... and {jobs.length - 3} more
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Complete Service History - {customerName}</DialogTitle>
+          <DialogDescription>
+            All services performed for this customer
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          {jobs.map((job: any, index: number) => (
+            <div key={index} className="flex justify-between items-center p-3 bg-muted rounded border">
+              <div>
+                <div className="font-medium">{job.job_id || job.id}</div>
+                <div className="text-sm text-muted-foreground">{job.service_type || job.serviceType}</div>
+                <div className="text-xs text-muted-foreground">
+                  {job.motorcycle?.make} {job.motorcycle?.model} ({job.motorcycle?.year})
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm">{new Date(job.date_created || job.dateCreated).toLocaleDateString()}</div>
+                <Badge variant={job.status === 'completed' ? 'default' : 'secondary'}>
+                  {job.status}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const MotorcycleVinDialog = ({ motorcycle }: { motorcycle: any }) => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="link" className="p-0 h-auto font-semibold">
+          {motorcycle?.make} {motorcycle?.model} ({motorcycle?.year})
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Motorcycle Details</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium">Make & Model</h4>
+            <p className="text-muted-foreground">{motorcycle?.make} {motorcycle?.model}</p>
+          </div>
+          <div>
+            <h4 className="font-medium">Year</h4>
+            <p className="text-muted-foreground">{motorcycle?.year || 'N/A'}</p>
+          </div>
+          <div>
+            <h4 className="font-medium">License Plate</h4>
+            <p className="text-muted-foreground">{motorcycle?.licensePlate || 'N/A'}</p>
+          </div>
+          <div>
+            <h4 className="font-medium">VIN Number</h4>
+            <p className="text-muted-foreground font-mono">{motorcycle?.vin || 'Not available'}</p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 
   return (
     <div className="space-y-6">
@@ -277,9 +325,9 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                         <div className="mt-3">
                           <p className="text-sm font-medium">Motorcycles:</p>
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {result.motorcycles.map((motorcycle: string, index: number) => (
+                            {result.motorcycles.map((motorcycle: any, index: number) => (
                               <Badge key={index} variant="outline" className="text-xs">
-                                {motorcycle}
+                                {motorcycle.display}
                               </Badge>
                             ))}
                           </div>
@@ -295,7 +343,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                           ))}
                           {result.jobs.length > 3 && (
                             <div className="text-xs text-muted-foreground">
-                              ... and {result.jobs.length - 3} more
+                              <ServiceHistoryDialog jobs={result.jobs} customerName={result.customer?.name || "Unknown Customer"} />
                             </div>
                           )}
                         </div>
@@ -321,9 +369,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="font-semibold">
-                            {result.motorcycle?.make} {result.motorcycle?.model} ({result.motorcycle?.year})
-                          </h4>
+                          <MotorcycleVinDialog motorcycle={result.motorcycle} />
                           <p className="text-sm text-muted-foreground">
                             License: {result.motorcycle?.licensePlate || "N/A"}
                           </p>
@@ -343,7 +389,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                           ))}
                           {result.jobs.length > 3 && (
                             <div className="text-xs text-muted-foreground">
-                              ... and {result.jobs.length - 3} more
+                              <ServiceHistoryDialog jobs={result.jobs} customerName={result.customer?.name || "Motorcycle Owner"} />
                             </div>
                           )}
                         </div>
@@ -395,9 +441,10 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                       </div>
                       <div className="mt-3">
                         <p className="text-sm font-medium">Motorcycle:</p>
-                        <p className="text-sm text-muted-foreground">
-                          {job.motorcycle?.make} {job.motorcycle?.model} ({job.motorcycle?.year}) - {job.motorcycle?.licensePlate}
-                        </p>
+                        <div className="text-sm text-muted-foreground">
+                          <MotorcycleVinDialog motorcycle={job.motorcycle} />
+                          <p>License: {job.motorcycle?.licensePlate}</p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
