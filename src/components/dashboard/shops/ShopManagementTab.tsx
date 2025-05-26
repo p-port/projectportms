@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShopsList } from "./ShopsList";
 import { AdminShopRegistration } from "./AdminShopRegistration";
 import { MyShopView } from "./MyShopView";
+import { ShopMemberManagement } from "./ShopMemberManagement";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 
 interface ShopManagementTabProps {

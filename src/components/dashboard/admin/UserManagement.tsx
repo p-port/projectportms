@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -27,7 +28,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Edit, Save, X, ArrowLeft, UserCog } from "lucide-react";
+import { Search, Edit, Save, X, ArrowLeft, UserCog, Home } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchShops } from "@/integrations/supabase/client";
 import { Shop } from "@/types/shop";
@@ -136,6 +137,10 @@ export const UserManagement = () => {
     navigate(`/user-management/${userId}`);
   };
 
+  const navigateToHome = () => {
+    navigate('/');
+  };
+
   const filteredUsers = users.filter(user => {
     const searchTerm = searchQuery.toLowerCase();
     return (
@@ -158,15 +163,24 @@ export const UserManagement = () => {
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mb-2"
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
+            <div className="flex space-x-2 mb-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={navigateToHome}
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Home
+              </Button>
+            </div>
             <CardTitle>User Management</CardTitle>
             <CardDescription>
               Manage user accounts, roles, and permissions

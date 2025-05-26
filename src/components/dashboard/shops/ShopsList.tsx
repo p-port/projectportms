@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Search, MapPin, Users, Building2, Home } from "lucide-react";
+import { Search, MapPin, Users, Building2 } from "lucide-react";
 import { Shop } from "@/types/shop";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 
@@ -74,22 +74,11 @@ export const ShopsList = () => {
     }
   };
 
-  const navigateToHome = () => {
-    // Navigate to main dashboard by dispatching custom event
-    window.dispatchEvent(new CustomEvent('navigate-to-tab', { detail: 'jobs' }));
-  };
-
   if (loading) {
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-center">Loading shops...</div>
-            <Button variant="outline" size="sm" onClick={navigateToHome}>
-              <Home className="h-4 w-4 mr-2" />
-              Home
-            </Button>
-          </div>
+          <div className="text-center">Loading shops...</div>
         </CardContent>
       </Card>
     );
@@ -102,16 +91,10 @@ export const ShopsList = () => {
       {/* Search Bar */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              {canSeeAllShops ? "All Shops" : "My Shop"}
-            </CardTitle>
-            <Button variant="outline" size="sm" onClick={navigateToHome}>
-              <Home className="h-4 w-4 mr-2" />
-              Home
-            </Button>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            {canSeeAllShops ? "All Shops" : "My Shop"}
+          </CardTitle>
           <CardDescription>
             {canSeeAllShops 
               ? "Browse and search all registered motorcycle service shops"
@@ -217,7 +200,7 @@ export const ShopsList = () => {
               </p>
             </div>
           </CardContent>
-        </Card>
+        </div>
       )}
     </div>
   );

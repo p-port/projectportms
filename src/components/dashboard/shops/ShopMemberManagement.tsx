@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, UserPlus, Mail, Save, X, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, UserPlus, Mail, Save, X, AlertTriangle, UserMinus } from "lucide-react";
 import { Shop } from "@/types/shop";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -335,12 +335,22 @@ export const ShopMemberManagement = ({ shopId, isAdmin = false }: { shopId: stri
                           </div>
                         ) : (
                           <div className="flex space-x-2">
-                            <Button variant="ghost" size="sm" onClick={() => toggleEdit(member.id)}>
-                              Edit
-                            </Button>
-                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => removeMember(member.id)}>
-                              Remove
-                            </Button>
+                            {(isAdmin || isOwner) && (
+                              <>
+                                <Button variant="ghost" size="sm" onClick={() => toggleEdit(member.id)}>
+                                  Edit
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="text-destructive hover:text-destructive" 
+                                  onClick={() => removeMember(member.id)}
+                                >
+                                  <UserMinus className="h-4 w-4 mr-1" />
+                                  Remove
+                                </Button>
+                              </>
+                            )}
                           </div>
                         )}
                       </TableCell>
