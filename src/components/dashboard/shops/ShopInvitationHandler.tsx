@@ -119,7 +119,9 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
         if (error) throw error;
 
         toast.success('Invitation declined.');
-        fetchInvitations();
+        
+        // Refresh invitations list to remove the declined invitation
+        await fetchInvitations();
       }
     } catch (error) {
       console.error('Error responding to invitation:', error);
@@ -142,26 +144,26 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
   }
 
   return (
-    <Card className="border-blue-200 bg-blue-50">
+    <Card className="border-blue-500/20 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-blue-800">
+        <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
           <Building2 className="h-5 w-5" />
           Shop Invitations
         </CardTitle>
-        <CardDescription className="text-blue-600">
+        <CardDescription className="text-blue-700 dark:text-blue-200">
           You have been invited to join the following shops
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {invitations.map((invitation) => (
-          <div key={invitation.id} className="border rounded-lg p-4 bg-white">
+          <div key={invitation.id} className="border border-blue-200 dark:border-blue-700 rounded-lg p-4 bg-white/80 dark:bg-blue-900/50 backdrop-blur-sm">
             <div className="flex items-start justify-between">
               <div>
-                <h4 className="font-medium text-lg">{invitation.shops.name}</h4>
-                <p className="text-sm text-muted-foreground">
+                <h4 className="font-medium text-lg text-blue-900 dark:text-blue-100">{invitation.shops.name}</h4>
+                <p className="text-sm text-blue-600 dark:text-blue-300">
                   {invitation.shops.region}, {invitation.shops.district}
                 </p>
-                <Badge variant="secondary" className="mt-2">
+                <Badge variant="secondary" className="mt-2 bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
                   Pending Invitation
                 </Badge>
               </div>
@@ -169,7 +171,7 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
                 <Button
                   size="sm"
                   onClick={() => respondToInvitation(invitation.id, invitation.shop_id, true)}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   <CheckCircle className="h-4 w-4 mr-1" />
                   Accept
@@ -178,7 +180,7 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
                   size="sm"
                   variant="outline"
                   onClick={() => respondToInvitation(invitation.id, invitation.shop_id, false)}
-                  className="border-red-200 text-red-600 hover:bg-red-50"
+                  className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-950"
                 >
                   <XCircle className="h-4 w-4 mr-1" />
                   Decline
