@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -7,7 +8,7 @@ import { useJobPermissions } from "@/hooks/useJobPermissions";
 import { DashboardHeader } from "./features/DashboardHeader";
 import { TabsNavigation } from "./features/TabsNavigation";
 import { TabContent } from "./features/TabContent";
-import { translations } from "./job-list/translations";
+import { defaultTranslations } from "./job-list/translations";
 
 interface DashboardProps {
   user: any;
@@ -19,9 +20,9 @@ export const Dashboard = ({ user }: DashboardProps) => {
   const [allJobs, setAllJobs] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("jobs");
   const { userRole, userId } = useAuthCheck();
-  const { permissions, filterJobs } = useJobPermissions();
+  const { permissions, loading, filterJobs } = useJobPermissions();
 
-  const t = translations[language as keyof typeof translations] || translations.en;
+  const t = defaultTranslations[language as keyof typeof defaultTranslations] || defaultTranslations.en;
 
   const loadJobsFromStorage = () => {
     try {
@@ -89,10 +90,10 @@ export const Dashboard = ({ user }: DashboardProps) => {
   }, []);
 
   useEffect(() => {
-    if (userId && !permissions.loading) {
+    if (userId && !loading) {
       syncJobsFromSupabase();
     }
-  }, [userId, permissions.loading, permissions.canSeeAllJobs, permissions.shopId]);
+  }, [userId, loading, permissions.canSeeAllJobs, permissions.shopId]);
 
   const handleAddJob = (newJob: any) => {
     const updatedJobs = [...jobs, newJob];
@@ -106,9 +107,25 @@ export const Dashboard = ({ user }: DashboardProps) => {
 
   return (
     <div className="space-y-4">
-      <DashboardHeader user={user} />
+      <DashboardHeader 
+        userName={user?.email}
+        searchQuery=""
+        onSearchChange={() => {}}
+        translations={t}
+        userId={userId}
+      />
       <Tabs defaultValue="jobs" className="space-y-4">
-        <TabsNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+        <TabsNavigation 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab}
+          isMobile={false}
+          activeJobs={activeJobs.length}
+          completedJobs={completedJobs.length}
+          unreadTickets={0}
+          translations={t}
+          userRole={userRole}
+          userId={userId}
+        />
         <TabContent
           activeJobs={activeJobs}
           completedJobs={completedJobs}
