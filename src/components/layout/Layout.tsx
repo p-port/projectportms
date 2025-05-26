@@ -1,10 +1,11 @@
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Globe } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LayoutProps {
   children: ReactNode;
@@ -30,6 +31,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const isMobile = useIsMobile();
   const { theme, toggleTheme } = useTheme();
   const [language, setLanguage] = useLocalStorage("language", "en");
+  const [shopName, setShopName] = useState<string | null>(null);
   
   // Add effect to reload page when language changes
   useEffect(() => {
@@ -46,6 +48,45 @@ export const Layout = ({ children }: LayoutProps) => {
       // This cleanup function runs when language changes
     };
   }, [language]);
+
+  // Fetch user's shop name
+  useEffect(() => {
+    const fetchUserShop = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('shop_id')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.shop_id) {
+          const { data: shop } = await supabase
+            .from('shops')
+            .select('name')
+            .eq('id', profile.shop_id)
+            .single();
+
+          setShopName(shop?.name || null);
+        }
+      } catch (error) {
+        console.error('Error fetching user shop:', error);
+      }
+    };
+
+    fetchUserShop();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      fetchUserShop();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
   
   const toggleLanguage = () => {
     // Set a flag to indicate this is a language-change reload
@@ -66,6 +107,8 @@ export const Layout = ({ children }: LayoutProps) => {
   const logoSrc = theme === "dark" 
     ? "/lovable-uploads/28dd3615-eb59-4a33-ae85-3a1e81c82540.png" 
     : "/lovable-uploads/263071da-5dd5-4f23-9074-ff28f3a3408f.png";
+
+  const displayTitle = shopName || t.title;
   
   return (
     <div className="min-h-screen bg-background">
@@ -77,7 +120,7 @@ export const Layout = ({ children }: LayoutProps) => {
               alt="Project Port Logo" 
               className="h-8 w-auto mr-2"
             />
-            <span className="text-xl md:text-2xl font-bold text-foreground">{t.title}</span>
+            <span className="text-xl md:text-2xl font-bold text-foreground">{displayTitle}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleLanguage}>

@@ -29,8 +29,13 @@ export const JobsTab = ({
   const [activeTab, setActiveTab] = useState("new");
 
   const handleJobUpdate = () => {
-    // This function will be called when jobs are updated
-    // The actual job updates are handled by the parent component
+    // Switch to active jobs tab to show the newly created job
+    setActiveTab("active");
+    
+    // Trigger a page reload to ensure the new job appears
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   return (

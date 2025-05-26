@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -168,7 +167,13 @@ export const NewJobForm = ({ onJobCreated }: NewJobFormProps) => {
         privacyAccepted: false
       });
 
+      // Trigger refresh of job list and navigate to active jobs
       onJobCreated();
+      
+      // Force a page reload to ensure the job appears in the list
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error('Error creating job:', error);
       toast.error("Failed to create job");

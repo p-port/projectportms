@@ -23,62 +23,40 @@ interface ShopInvitation {
 
 interface ShopInvitationHandlerProps {
   userId: string;
-  userEmail: string;
+  userEmail?: string;
 }
 
 export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandlerProps) => {
   const [invitations, setInvitations] = useState<ShopInvitation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actualUserEmail, setActualUserEmail] = useState<string>("");
 
   useEffect(() => {
-    fetchUserEmailAndInvitations();
-  }, [userEmail, userId]);
+    fetchInvitations();
+  }, [userId]);
 
-  const fetchUserEmailAndInvitations = async () => {
+  const fetchInvitations = async () => {
     try {
       setLoading(true);
       
-      // Get the actual user email
-      let emailToUse = userEmail;
+      // Get user's email from auth or profile
+      const { data: { user } } = await supabase.auth.getUser();
+      let email = user?.email;
       
-      // If userEmail looks like a fallback (user-xxxxx), try to get real email
-      if (userEmail.startsWith('user-')) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.email) {
-          emailToUse = user.email;
-        } else {
-          // Try profiles table
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('id', userId)
-            .single();
-          
-          if (profile?.email) {
-            emailToUse = profile.email;
-          }
-        }
+      if (!email) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', userId)
+          .single();
+        email = profile?.email;
       }
-      
-      setActualUserEmail(emailToUse);
-      
-      // Only fetch invitations if we have a real email
-      if (emailToUse && !emailToUse.startsWith('user-')) {
-        await fetchInvitations(emailToUse);
-      } else {
-        setInvitations([]);
-      }
-    } catch (error) {
-      console.error('Error fetching user email and invitations:', error);
-      setInvitations([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const fetchInvitations = async (email: string) => {
-    try {
+      if (!email) {
+        console.log('No email found for user, cannot check invitations');
+        setInvitations([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('shop_invitations')
         .select(`
@@ -97,6 +75,8 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
     } catch (error) {
       console.error('Error fetching invitations:', error);
       setInvitations([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -133,7 +113,7 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
         if (error) throw error;
 
         toast.success('Invitation declined.');
-        fetchUserEmailAndInvitations();
+        fetchInvitations();
       }
     } catch (error) {
       console.error('Error responding to invitation:', error);
@@ -151,32 +131,27 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
     );
   }
 
-  // Don't show anything if no real email available
-  if (!actualUserEmail || actualUserEmail.startsWith('user-')) {
-    return null;
-  }
-
   if (invitations.length === 0) {
     return null;
   }
 
   return (
-    <Card>
+    <Card className="border-blue-200 bg-blue-50">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-blue-800">
           <Building2 className="h-5 w-5" />
           Shop Invitations
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-blue-600">
           You have been invited to join the following shops
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {invitations.map((invitation) => (
-          <div key={invitation.id} className="border rounded-lg p-4">
+          <div key={invitation.id} className="border rounded-lg p-4 bg-white">
             <div className="flex items-start justify-between">
               <div>
-                <h4 className="font-medium">{invitation.shops.name}</h4>
+                <h4 className="font-medium text-lg">{invitation.shops.name}</h4>
                 <p className="text-sm text-muted-foreground">
                   {invitation.shops.region}, {invitation.shops.district}
                 </p>
