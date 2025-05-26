@@ -62,6 +62,34 @@ export class NotificationService {
         .single();
 
       if (error) throw error;
+
+      // Get shop details for the notification
+      const { data: shop } = await supabase
+        .from('shops')
+        .select('name')
+        .eq('id', shopId)
+        .single();
+
+      // Find the user by email to send notification
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email);
+
+      if (profiles && profiles.length > 0) {
+        // Create notification for the invited user
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: profiles[0].id,
+            title: 'Shop Invitation',
+            content: `You have been invited to join ${shop?.name || 'a shop'}`,
+            type: 'shop_invitation',
+            reference_id: data.id,
+            is_read: false
+          });
+      }
+
       return invitationCode;
     } catch (error) {
       console.error('Error creating shop invitation:', error);
