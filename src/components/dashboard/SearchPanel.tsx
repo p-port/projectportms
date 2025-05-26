@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +12,7 @@ interface SearchPanelProps {
   userId?: string;
 }
 
-export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelPropsProps) => {
+export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
   const { permissions } = useJobPermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredJobs, setFilteredJobs] = useState<any[]>([]);
