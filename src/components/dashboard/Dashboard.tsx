@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocalStorage } from "@/hooks/use-local-storage";
@@ -18,10 +19,38 @@ export const Dashboard = ({ user }: DashboardProps) => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [allJobs, setAllJobs] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("jobs");
+  const [userDisplayName, setUserDisplayName] = useState<string>("");
   const { userRole, userId } = useAuthCheck();
   const { permissions, loading, filterJobs } = useJobPermissions();
 
   const t = defaultTranslations[language as keyof typeof defaultTranslations] || defaultTranslations.en;
+
+  // Fetch user's display name from profile
+  useEffect(() => {
+    const fetchUserDisplayName = async () => {
+      if (!userId) return;
+      
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', userId)
+          .single();
+        
+        if (profile?.name) {
+          setUserDisplayName(profile.name);
+        } else {
+          // Fallback to user email/name from auth
+          setUserDisplayName(user?.name || user?.email || "User");
+        }
+      } catch (error) {
+        console.error("Error fetching user display name:", error);
+        setUserDisplayName(user?.name || user?.email || "User");
+      }
+    };
+
+    fetchUserDisplayName();
+  }, [userId, user]);
 
   const loadJobsFromStorage = () => {
     try {
@@ -108,7 +137,7 @@ export const Dashboard = ({ user }: DashboardProps) => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 space-y-6">
         <DashboardHeader 
-          userName={user?.name || user?.email}
+          userName={userDisplayName}
           searchQuery=""
           onSearchChange={() => {}}
           translations={t}

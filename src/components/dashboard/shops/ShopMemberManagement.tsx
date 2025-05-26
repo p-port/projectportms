@@ -135,8 +135,8 @@ export const ShopMemberManagement = ({ shopId, isAdmin = false }: { shopId: stri
     }
   };
 
-  const removeMember = async (userId: string) => {
-    if (!confirm("Are you sure you want to remove this member from the shop?")) return;
+  const removeMember = async (userId: string, memberName: string) => {
+    if (!confirm(`Are you sure you want to remove ${memberName || 'this member'} from the shop?`)) return;
     
     try {
       const { error } = await supabase
@@ -168,7 +168,7 @@ export const ShopMemberManagement = ({ shopId, isAdmin = false }: { shopId: stri
         .eq("email", invitationData.email)
         .single();
 
-      if (userError && userError.code !== "PGRST116") { // PGRST116 is "No rows returned" which is expected if user doesn't exist
+      if (userError && userError.code !== "PGRST116") {
         throw userError;
       }
 
@@ -179,7 +179,7 @@ export const ShopMemberManagement = ({ shopId, isAdmin = false }: { shopId: stri
           .update({ 
             shop_id: shopId,
             role: invitationData.role,
-            approved: false // Require approval
+            approved: false
           })
           .eq("id", userData.id);
           
@@ -198,7 +198,7 @@ export const ShopMemberManagement = ({ shopId, isAdmin = false }: { shopId: stri
         
         setMembers([...members, newMember]);
       } else {
-        // User doesn't exist, create an invitation (in a real app, would send email)
+        // User doesn't exist, create an invitation
         toast.info("User does not exist in system yet. In a production app, an invitation email would be sent.");
         
         // For demo purposes, simulate a "pending" invitation
@@ -293,7 +293,6 @@ export const ShopMemberManagement = ({ shopId, isAdmin = false }: { shopId: stri
                           <SelectContent>
                             <SelectItem value="mechanic">Mechanic</SelectItem>
                             <SelectItem value="support">Support</SelectItem>
-                            {/* Admin role is restricted */}
                           </SelectContent>
                         </Select>
                       ) : (
@@ -317,7 +316,7 @@ export const ShopMemberManagement = ({ shopId, isAdmin = false }: { shopId: stri
                           </SelectContent>
                         </Select>
                       ) : (
-                        <Badge variant={member.status === "active" ? "success" : "warning"}>
+                        <Badge variant={member.status === "active" ? "default" : "secondary"}>
                           {member.status}
                         </Badge>
                       )}
@@ -335,22 +334,18 @@ export const ShopMemberManagement = ({ shopId, isAdmin = false }: { shopId: stri
                           </div>
                         ) : (
                           <div className="flex space-x-2">
-                            {(isAdmin || isOwner) && (
-                              <>
-                                <Button variant="ghost" size="sm" onClick={() => toggleEdit(member.id)}>
-                                  Edit
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="text-destructive hover:text-destructive" 
-                                  onClick={() => removeMember(member.id)}
-                                >
-                                  <UserMinus className="h-4 w-4 mr-1" />
-                                  Remove
-                                </Button>
-                              </>
-                            )}
+                            <Button variant="ghost" size="sm" onClick={() => toggleEdit(member.id)}>
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-destructive hover:text-destructive" 
+                              onClick={() => removeMember(member.id, member.name || member.email || 'this user')}
+                            >
+                              <UserMinus className="h-4 w-4 mr-1" />
+                              Remove
+                            </Button>
                           </div>
                         )}
                       </TableCell>

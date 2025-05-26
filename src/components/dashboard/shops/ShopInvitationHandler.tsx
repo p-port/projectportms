@@ -58,13 +58,14 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
         return;
       }
 
-      // First, clean up expired invitations (older than 1 hour)
+      // Clean up expired invitations first
       await supabase
         .from('shop_invitations')
         .update({ status: 'expired' })
         .eq('status', 'pending')
         .lt('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
 
+      // Only fetch pending invitations that are not expired
       const { data, error } = await supabase
         .from('shop_invitations')
         .select(`
@@ -77,7 +78,7 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
         `)
         .eq('email', email)
         .eq('status', 'pending')
-        .gt('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString()); // Only get invitations from last hour
+        .gt('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
 
       if (error) throw error;
       setInvitations(data || []);
@@ -97,13 +98,13 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
           .from('profiles')
           .update({ 
             shop_id: shopId,
-            approved: true // Auto-approve when accepting shop invitation
+            approved: true
           })
           .eq('id', userId);
 
         if (profileError) throw profileError;
 
-        // Update invitation status
+        // Update invitation status to accepted
         const { error: invitationError } = await supabase
           .from('shop_invitations')
           .update({ 
@@ -116,7 +117,7 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
 
         toast.success('Shop invitation accepted! Welcome to your new shop.');
         
-        // Remove the accepted invitation from state immediately
+        // Remove from UI immediately
         setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
         
         // Refresh the page to show the shop
@@ -124,7 +125,7 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
           window.location.reload();
         }, 1000);
       } else {
-        // Decline invitation
+        // Update invitation status to declined
         const { error } = await supabase
           .from('shop_invitations')
           .update({ status: 'declined' })
@@ -134,7 +135,7 @@ export const ShopInvitationHandler = ({ userId, userEmail }: ShopInvitationHandl
 
         toast.success('Invitation declined.');
         
-        // Remove the declined invitation from state immediately
+        // Remove from UI immediately
         setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
       }
     } catch (error) {
