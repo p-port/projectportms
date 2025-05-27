@@ -1,9 +1,8 @@
-
 import { ReactNode, useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Globe, Home } from "lucide-react";
+import { Moon, Sun, Globe } from "lucide-react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -122,11 +121,6 @@ export const Layout = ({ children }: LayoutProps) => {
     window.location.reload();
   };
 
-  const navigateToHome = () => {
-    // Navigate to main dashboard by dispatching custom event
-    window.dispatchEvent(new CustomEvent('navigate-to-tab', { detail: 'jobs' }));
-  };
-
   const t = layoutTranslations[language as keyof typeof layoutTranslations];
   
   // Determine logo and title based on authentication and shop status
@@ -143,22 +137,14 @@ export const Layout = ({ children }: LayoutProps) => {
     <div className="min-h-screen bg-background">
       <header className="bg-secondary shadow-md">
         <div className="container mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-2">
-          <div className="flex items-center gap-3">
-            {isAuthenticated && (
-              <Button variant="ghost" size={isMobile ? "sm" : "default"} onClick={navigateToHome} className="flex items-center gap-2">
-                <Home className="h-4 w-4" />
-                {!isMobile && "Home"}
-              </Button>
-            )}
-            <div className="flex items-center">
-              <img 
-                src={logoSrc} 
-                alt={isAuthenticated && shopName ? `${shopName} Logo` : "Project Port Logo"}
-                className="h-8 w-auto mr-2"
-                key={logoSrc} // Force re-render when logo changes
-              />
-              <span className="text-xl md:text-2xl font-bold text-foreground">{displayTitle}</span>
-            </div>
+          <div className="flex items-center">
+            <img 
+              src={logoSrc} 
+              alt={isAuthenticated && shopName ? `${shopName} Logo` : "Project Port Logo"}
+              className="h-8 w-auto mr-2"
+              key={logoSrc} // Force re-render when logo changes
+            />
+            <span className="text-xl md:text-2xl font-bold text-foreground">{displayTitle}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleLanguage}>

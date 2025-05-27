@@ -1,5 +1,7 @@
 
 import { NotificationCenter } from "../notifications/NotificationCenter";
+import { Button } from "@/components/ui/button";
+import { Home } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DashboardHeaderProps {
@@ -32,6 +34,11 @@ export const DashboardHeader = ({
     return name;
   };
 
+  const navigateToHome = () => {
+    // Navigate to main dashboard by dispatching custom event
+    window.dispatchEvent(new CustomEvent('navigate-to-tab', { detail: 'jobs' }));
+  };
+
   return (
     <div className="space-y-4">
       <div className={`flex ${isMobile ? 'flex-col gap-2' : 'flex-row items-center'} justify-between`}>
@@ -46,6 +53,12 @@ export const DashboardHeader = ({
         <div className={`flex items-center gap-2 ${isMobile ? 'justify-center' : ''}`}>
           <NotificationCenter userId={userId} />
         </div>
+      </div>
+      <div className="flex justify-start">
+        <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={navigateToHome}>
+          <Home className="h-4 w-4 mr-2" />
+          {isMobile ? "" : "Home"}
+        </Button>
       </div>
     </div>
   );
