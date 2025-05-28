@@ -164,14 +164,15 @@ export const NotesTab = ({
         </div>
       </div>
 
-      {/* Enhanced Quick Notes Selector */}
-      {userId && job.shopId && (
+      {/* Quick Notes Section - Always show this */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium">Quick Notes</h3>
         <EnhancedQuickNotesSelector 
           onSelectNote={handleQuickNoteSelect}
-          userId={userId}
-          shopId={job.shopId}
+          userId={userId || ""}
+          shopId={job.shopId || job.shop_id}
         />
-      )}
+      </div>
 
       {/* Add New Note */}
       <div className="space-y-4">

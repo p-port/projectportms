@@ -55,6 +55,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
     if (!searchTerm.trim()) return [];
     
     const customerMap = new Map();
+    // Now search ALL jobs, not just filtered ones for mechanics
     jobs.forEach(job => {
       const customer = job.customer || {};
       const searchFields = [
@@ -102,6 +103,7 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
     if (!searchTerm.trim()) return [];
     
     const motorcycleMap = new Map();
+    // Now search ALL jobs, not just filtered ones for mechanics
     jobs.forEach(job => {
       const motorcycle = job.motorcycle || {};
       const searchFields = [
@@ -142,9 +144,9 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
   const customerResults = getCustomerResults();
   const motorcycleResults = getMotorcycleResults();
   
-  // Allow all authenticated users to search jobs - mechanics can now search all data
+  // Allow mechanics to search customers and motorcycles, but restrict job details access based on permissions
   const canSearchJobs = () => {
-    return true; // Allow all users to search
+    return permissions.canSeeAllJobs; // Only admins and support can search job details
   };
 
   const jobSearchEnabled = canSearchJobs();
