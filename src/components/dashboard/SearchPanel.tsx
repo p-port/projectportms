@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -143,10 +142,9 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
   const customerResults = getCustomerResults();
   const motorcycleResults = getMotorcycleResults();
   
+  // Allow all authenticated users to search jobs - mechanics can now search all data
   const canSearchJobs = () => {
-    const currentUserRole = permissions.userRole || userRole;
-    return currentUserRole === 'admin' || currentUserRole === 'support' || 
-           (currentUserRole === 'mechanic' && !!permissions.shopId);
+    return true; // Allow all users to search
   };
 
   const jobSearchEnabled = canSearchJobs();
@@ -331,12 +329,6 @@ export const SearchPanel = ({ jobs, userRole, userId }: SearchPanelProps) => {
                   Jobs ({filteredJobs.length})
                 </button>
               )}
-            </div>
-          )}
-          
-          {searchTerm.trim() && !jobSearchEnabled && (permissions.userRole === 'mechanic' || userRole === 'mechanic') && !permissions.shopId && (
-            <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-              Note: Job search is not available as you are not affiliated with a shop.
             </div>
           )}
         </CardContent>

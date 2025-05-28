@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { QuickNotesSelector } from "./QuickNotesSelector";
+import { EnhancedQuickNotesSelector } from "./EnhancedQuickNotesSelector";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 
 interface NotesTabProps {
@@ -72,7 +73,38 @@ export const NotesTab = ({
   };
 
   const handleQuickNoteSelect = (noteText: string) => {
-    setNotes(noteText);
+    // Automatically add the quick note and save it
+    const quickSaveNote = async () => {
+      try {
+        const newNote = {
+          text: noteText,
+          timestamp: new Date().toISOString(),
+          userId: userId
+        };
+
+        const existingNotes = Array.isArray(job.notes) ? job.notes : [];
+        const updatedJob = { 
+          ...job, 
+          notes: [...existingNotes, newNote]
+        };
+        
+        await onUpdateJob(updatedJob);
+
+        // Update the job in the local state
+        const updatedJobs = allJobs.map((j) => (j.id === job.id ? updatedJob : j));
+        setJobs(updatedJobs);
+
+        // Update local storage
+        await updateJobInLocalStorage(updatedJob);
+
+        toast.success("Quick note added successfully!");
+      } catch (error: any) {
+        console.error("Error adding quick note:", error);
+        toast.error(error.message || "Failed to add quick note");
+      }
+    };
+
+    quickSaveNote();
   };
 
   const handleStatusChangeLocal = async (newStatus: string) => {
@@ -132,9 +164,9 @@ export const NotesTab = ({
         </div>
       </div>
 
-      {/* Quick Notes Selector */}
+      {/* Enhanced Quick Notes Selector */}
       {userId && job.shopId && (
-        <QuickNotesSelector 
+        <EnhancedQuickNotesSelector 
           onSelectNote={handleQuickNoteSelect}
           userId={userId}
           shopId={job.shopId}
@@ -143,9 +175,9 @@ export const NotesTab = ({
 
       {/* Add New Note */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Add Note</h3>
+        <h3 className="text-lg font-medium">Add Custom Note</h3>
         <Textarea
-          placeholder="Add notes about the job here..."
+          placeholder="Add custom notes about the job here..."
           value={notes}
           onChange={handleNotesChange}
           className="w-full min-h-[100px]"
@@ -180,7 +212,7 @@ export const NotesTab = ({
           </div>
         ) : (
           <p className="text-muted-foreground text-center py-8">
-            No notes added yet. Add your first note above.
+            No notes added yet. Use quick notes above or add a custom note.
           </p>
         )}
       </div>

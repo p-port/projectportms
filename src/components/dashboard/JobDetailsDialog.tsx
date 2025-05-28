@@ -48,6 +48,7 @@ export const JobDetailsDialog = ({
   // Update currentJob whenever job prop changes
   useEffect(() => {
     if (job) {
+      console.log("JobDetailsDialog: Updating currentJob with:", job);
       setCurrentJob({ ...job });
       if (job.finalCost) {
         setFinalCost(job.finalCost);
@@ -58,9 +59,13 @@ export const JobDetailsDialog = ({
   useEffect(() => {
     // Check for authenticated user
     const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        setUser(data.session.user);
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.user) {
+          setUser(data.session.user);
+        }
+      } catch (error) {
+        console.error("Error checking user session:", error);
       }
     };
     
@@ -68,7 +73,10 @@ export const JobDetailsDialog = ({
   }, []);
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!currentJob) return;
+    if (!currentJob) {
+      console.error("No current job available for status change");
+      return;
+    }
     
     const minPhotosRequired = 3; // Consistent with PhotosTab
     
@@ -127,7 +135,7 @@ export const JobDetailsDialog = ({
       onUpdateJob(updatedJob);
       
       // Update the job in localStorage
-      updateJobInLocalStorage(updatedJob);
+      await updateJobInLocalStorage(updatedJob);
       
       toast.success(`${t.jobStatusUpdated} ${newStatus}`);
     } catch (error) {
@@ -168,7 +176,7 @@ export const JobDetailsDialog = ({
       
       // Update locally
       onUpdateJob(updatedJob);
-      updateJobInLocalStorage(updatedJob);
+      await updateJobInLocalStorage(updatedJob);
       
       setShowFinalCostDialog(false);
       
@@ -213,7 +221,10 @@ export const JobDetailsDialog = ({
   };
 
   // Don't render anything if job is not available
-  if (!currentJob) return null;
+  if (!currentJob) {
+    console.log("JobDetailsDialog: No currentJob available, not rendering");
+    return null;
+  }
 
   return (
     <>
@@ -247,8 +258,10 @@ export const JobDetailsDialog = ({
                 allJobs={[currentJob]}
                 setJobs={(jobs) => {
                   const updatedJob = jobs[0];
-                  setCurrentJob(updatedJob);
-                  onUpdateJob(updatedJob);
+                  if (updatedJob) {
+                    setCurrentJob(updatedJob);
+                    onUpdateJob(updatedJob);
+                  }
                 }}
                 onUpdateJob={(updatedJob) => {
                   setCurrentJob(updatedJob);
