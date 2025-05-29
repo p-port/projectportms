@@ -50,6 +50,48 @@ export type Database = {
           },
         ]
       }
+      external_job_tracking: {
+        Row: {
+          created_at: string
+          endpoint: string
+          error_message: string | null
+          http_method: string
+          id: string
+          job_id: string | null
+          request_id: string | null
+          request_payload: Json | null
+          response_payload: Json | null
+          response_status: number | null
+          source_app: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          error_message?: string | null
+          http_method?: string
+          id?: string
+          job_id?: string | null
+          request_id?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          response_status?: number | null
+          source_app: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          error_message?: string | null
+          http_method?: string
+          id?: string
+          job_id?: string | null
+          request_id?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          response_status?: number | null
+          source_app?: string
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           created_at: string | null
